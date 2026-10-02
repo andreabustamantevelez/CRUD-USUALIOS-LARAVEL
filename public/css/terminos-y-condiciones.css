@@ -1,0 +1,12 @@
+/*
+ * ==============================================================================
+ * ARCHIVO : public/css/terminos-y-condiciones.css
+ * QUÉ ES  : Estilos EXCLUSIVOS de: Términos y condiciones. Se carga después de style.css (vía
+ *           @push('styles') en la vista).
+ * QUÉ HAY QUE HACER (en orden):
+ *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
+ * CÓMO HACERLO / NOTAS:
+ *   - Ejemplo (texto, no código): igual que la política de privacidad.
+ * ==============================================================================
+ */
+

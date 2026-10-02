@@ -1,0 +1,12 @@
+/*
+ * ==============================================================================
+ * ARCHIVO : public/css/gastos-fijos.css
+ * QUÉ ES  : Estilos EXCLUSIVOS de: Gastos fijos. Se carga después de style.css (vía
+ *           @push('styles') en la vista).
+ * QUÉ HAY QUE HACER (en orden):
+ *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
+ * CÓMO HACERLO / NOTAS:
+ *   - Ejemplo (texto, no código): chips de estado (pagado, próximo, vencido).
+ * ==============================================================================
+ */
+

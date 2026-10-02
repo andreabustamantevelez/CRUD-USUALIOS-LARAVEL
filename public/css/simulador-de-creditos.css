@@ -1,0 +1,83 @@
+/*
+ * ==============================================================================
+ * ARCHIVO : public/css/simulador-de-creditos.css
+ * QUÉ ES  : Estilos EXCLUSIVOS de: Simulador de créditos. Se carga después de style.css (vía
+ *           @push('styles') en la vista).
+ * QUÉ HAY QUE HACER (en orden):
+ *   1. Mantener aquí lo exclusivo de esta pantalla.
+ * CÓMO HACERLO / NOTAS:
+ *   - Ejemplo (texto, no código): estilo del control deslizante, botones de plazo, tabla y barras.
+ * ==============================================================================
+ */
+
+/* Control deslizante, botones de plazo, tabla de amortización y barras del simulador. */
+#amountSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--surface-container-high);
+  outline: none;
+}
+
+#amountSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(15,23,42,.3);
+  cursor: pointer;
+}
+
+#amountSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(15,23,42,.3);
+  cursor: pointer;
+}
+
+.term-btn {
+  border: 0;
+  cursor: pointer;
+  min-height: 2.5rem;
+}
+
+.term-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+#installmentDisplay,
+#totalPaymentDisplay,
+#totalInterestDisplay,
+#debtRatioDisplay,
+#amortizationBody td {
+  font-variant-numeric: tabular-nums;
+}
+
+#amortizationBody tr {
+  border-top: 1px solid #f1f5f9;
+}
+
+#amortizationBody tr:hover {
+  background: var(--surface-container-low);
+}
+
+#tableContainer {
+  scrollbar-width: thin;
+}
+
+#saveToast {
+  transition: opacity .3s var(--ease);
+}
+
+#capitalBarSegment,
+#interestBarSegment,
+#debtRatioBar {
+  transition: width .5s var(--ease),background-color .3s;
+}
