@@ -5,22 +5,25 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
-/** Usuarios de PRUEBA (solo desarrollo local). Contraseña de todos: password */
+/**
+ * Cuentas para probar A MANO en el navegador (solo entorno local; contraseña: password).
+ * Ya NO hay nombres, cédulas ni montos escritos aquí: los inventa la UserFactory.
+ * Lo único fijo son los correos, para poder iniciar sesión.
+ * (Las pruebas automáticas NO dependen de este seeder: crean sus propios usuarios con la factory.)
+ */
 class UsuariosSeeder extends Seeder
 {
     public function run(): void
     {
-        $datos = [
-            ['Ana Estándar',   '1000000001', 'estandar@test.com',  'estandar',      3000000],
-            ['Luis Familiar',  '1000000002', 'familiar@test.com',  'familiar',      2500000],
-            ['Admin',          '1000000003', 'admin@test.com',     'administrador', null],
-        ];
-        foreach ($datos as [$nombre, $cedula, $email, $rol, $ingreso]) {
-            $u = User::firstOrNew(['email' => $email]);
-            $u->fill(['nombre' => $nombre, 'cedula' => $cedula, 'password' => 'password', 'ingreso_mensual' => $ingreso]);
-            $u->rol = $rol;        // 'rol' no es "fillable": se asigna a mano a propósito
-            $u->activo = true;
-            $u->save();
+        $this->crearSiNoExiste('estandar@test.com', fn ($f) => $f);
+        $this->crearSiNoExiste('familiar@test.com', fn ($f) => $f->familiar());
+        $this->crearSiNoExiste('admin@test.com',    fn ($f) => $f->administrador());
+    }
+
+    private function crearSiNoExiste(string $email, callable $estado): void
+    {
+        if (! User::where('email', $email)->exists()) {
+            $estado(User::factory())->create(['email' => $email]);
         }
     }
 }
