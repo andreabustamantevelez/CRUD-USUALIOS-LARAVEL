@@ -50,7 +50,24 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 | Login con cédula (#1) | **No se hizo.** Se entra solo con correo | Se deja para decidir después si realmente se necesita |
 | "Recordarme" | El código lo soporta (campo `recordarme`) pero la vista no tiene casilla | Cambiar el diseño no estaba en el alcance |
 | `UsuarioMaqueta` | Eliminado. Todo el bloque privado de `routes/web.php` exige `auth` | Ya hay sesión real |
-| Hueco temporal | Hasta J4 no existen `cuenta.activa` ni `rol:…`: un administrador con sesión puede abrir rutas de estándar y una cuenta suspendida con sesión abierta no se expulsa | J4 es la siguiente tarea |
+| Hueco temporal | Hasta J4 no existían `cuenta.activa` ni `rol:…`. **Cerrado en J4 (2026-10-06)** | Ver la sección de J4 |
+
+## Decisiones tomadas al hacer J4 — Roles, permisos y aislamiento (2026-10-06, Juan)
+
+| Tema | Qué se decidió | Por qué |
+|------|----------------|---------|
+| Rol que no corresponde | Responde **403** (no 404 ni redirección) | El recurso existe pero la persona no puede verlo; 403 es explícito y fácil de probar |
+| Dato ajeno | Responde **403** (no 404) | Igual que arriba; la prueba comprueba además que el dato no cambia |
+| Quién entra a qué | B (ajustes): todos · C (gastos, categorías, gastos fijos, notificaciones, créditos, informes, panel): estandar y familiar · D (metas): familiar · E (/admin): administrador | Matriz del documento de arquitectura, probada en PermisosTest |
+| Administrador y datos financieros | Bloqueado también **dentro de las Policies** (`before` devuelve false) | Defensa extra por si algún día se afloja una ruta (decisión #20) |
+| Cuenta suspendida | `cuenta.activa` la expulsa en la **siguiente petición**, aunque ya tuviera sesión | Suspender debe surtir efecto de inmediato |
+| Global scope | **No se usa.** Se usa el scope explícito `delUsuario` y las relaciones del usuario | Un global scope esconde errores y estorba a las consultas del administrador y de los servicios |
+| Simulaciones de crédito | Se ven y se **borran**, pero no se editan | Se calcula otra y se guarda como nueva |
+| Informes guardados | Solo se ven; no se editan ni se borran a mano | En meses cerrados no se recalculan (regla de informes) |
+| Categorías | Propias: todo. Del sistema: las ven y usan todos, nadie las edita desde la zona del usuario. Habilidad `usar` al guardar un gasto | Evita ligar un gasto a una categoría ajena mandando otro id |
+| Administrador y categorías | Gestiona (ve y edita) solo las del sistema; no ve las de las personas; **borrar queda en false** | Depende de la decisión #23 (desactivar, no borrar) |
+| MetaPolicy | La hace J5 | Depende de las participaciones y de la regla de privacidad de aportes |
+| Página 403 | Por ahora la estándar de Laravel | Una pantalla con el diseño de la app queda como mejora |
 
 ## Otras decisiones cerradas
 
@@ -68,6 +85,7 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 - N2: #17 eliminar categoría con gastos (propuesta: pedir a qué categoría moverlos).
 - N3: #15 estado "vencido".
 - V1: #3 semáforo (hasta 20 % saludable, 20–30 % moderado, más de 30 % riesgo) · #13 tasa mensual vencida, sistema francés, redondeo final a pesos enteros.
-- J4: cerrar el hueco temporal de J3 (`cuenta.activa` y `rol`).
+- J5: `MetaPolicy` (solo participantes; aportes: solo ver los propios).
+- Mejora opcional: página 403 con el diseño de la app.
 - J7: #20 finanzas del administrador · #23 columna `categorias.activa` (decidir antes de J7).
 - N5/J9: #21 cifras de la landing y textos legales.

@@ -4,9 +4,10 @@ Documento de contexto para cualquier persona o IA que vaya a trabajar en el cód
 ======================================================================
 Leer completo antes de escribir código. Resume QUÉ es el sistema, QUÉ está hecho,
 QUÉ falta, CÓMO está organizado, TODAS las rutas y las reglas que no se pueden romper.
-Versión: después de J3 (armazón + rutas + BASE DE DATOS + AUTENTICACIÓN). Fecha: 2026-10-06.
-Cambios respecto a la versión del 2026-10-05: J3 hecha (login, registro, recuperar contraseña),
-UsuarioMaqueta eliminado, rutas privadas con 'auth' (secciones 2, 5, 7, 8, 11, 13, 15, 16).
+Versión: después de J4 (armazón + rutas + BASE DE DATOS + AUTENTICACIÓN + PERMISOS). Fecha: 2026-10-06.
+Cambios respecto a la versión anterior (J3): J4 hecha: middleware 'cuenta.activa' y 'rol', Policies,
+scope delUsuario, rutas privadas por rol (secciones 2, 4, 5, 9, 10, 11, 13, 15, 16).
+Cambios de J3 (2026-10-06): login, registro, recuperar contraseña; UsuarioMaqueta eliminado; 'auth'.
 Cambios del 2026-10-05: J2 hecha, modelo de datos real (sección 9), decisiones cerradas (14).
 
 
@@ -78,14 +79,30 @@ HECHO (J3 - Autenticación, 2026-10-06, Juan; 32 pruebas, 108 aserciones, todas 
   [x] Seguridad: el rol sale de la tarjeta del registro y solo admite estandar o familiar
       (administrador nunca se acepta desde un formulario); rol y activo no son asignables en masa.
 
+HECHO (J4 - Roles, permisos y aislamiento, 2026-10-06, Juan; con J3 y J2 suman 77 pruebas, 319 aserciones):
+  [x] Middleware CuentaActiva (alias 'cuenta.activa'): expulsa en la siguiente petición a quien tenga
+      users.activo = false, aunque ya tuviera sesión; vuelve al login con aviso.
+  [x] Middleware RolRequerido (alias 'rol'): 'rol:estandar,familiar', 'rol:familiar',
+      'rol:administrador'; si el rol no corresponde responde 403.
+  [x] routes/web.php: grupo privado = auth + cuenta.activa. B (ajustes) todos los roles; C (panel,
+      gastos, categorías, gastos fijos, notificaciones, créditos, informes) = estandar y familiar;
+      D (metas) = familiar; E (/admin) = administrador. Matriz probada rol x ruta.
+  [x] Policies (app/Policies): GastoPolicy, GastoFijoPolicy, SimulacionCreditoPolicy,
+      NotificacionPolicy, InformePolicy (todas sobre PoliticaDeDueno) y CategoriaPolicy.
+      El administrador NUNCA pasa por una Policy de datos financieros (before devuelve false).
+  [x] Scope delUsuario (trait PerteneceAUsuario) en Gasto, GastoFijo, PagoGastoFijo,
+      SimulacionCredito, Informe y Notificacion.
+  [x] Se responde 403 (no 404) cuando el recurso existe pero es ajeno.
+  [x] Pruebas: PermisosTest (10) y AislamientoTest (10).
+
 NO HECHO (todo lo demás):
-  [ ] Middleware 'cuenta.activa' y 'rol' y las Policies (J4). SIGUIENTE TAREA DE JUAN. Mientras
-      no exista: un administrador con sesión puede abrir rutas de estándar/familiar y una cuenta
-      suspendida que ya tenía sesión abierta no se expulsa.
+  [ ] MetaPolicy: la hace J5 junto con las metas (depende de las participaciones).
+  [ ] Página 403 con el diseño de la app (hoy sale la página 403 estándar de Laravel).
   [ ] Controladores, FormRequests y servicios de los demás módulos (ver sección 10); solo existen
       los de autenticación.
   [ ] Metas, alertas, administración, dashboard con datos reales.
-  [ ] Pruebas de comportamiento de cada módulo (solo existen las de la base de datos).
+  [ ] Pruebas de comportamiento de cada módulo. Existen las de base de datos, autenticación, permisos,
+      aislamiento y CalculadoraCredito (Valeria). Cada módulo nuevo agrega las suyas.
   [ ] Imágenes: public/img está vacía; las vistas enlazan imágenes externas temporales
       (lh3.googleusercontent.com). Hay que descargarlas y usar asset('img/...').
   [ ] Pantallas con marca "DISEÑO PENDIENTE" (solo estructura): ver sección 6.
@@ -132,6 +149,9 @@ entra; se cierra su sesión). Por seguridad "rol" y "activo" NO son asignables e
 cambia ServicioCuentas / administración, nunca un formulario del usuario.
 Nunca puede quedar el sistema sin un administrador activo.
 Ocultar un enlace del menú NO protege: la protección real es middleware + Policies.
+Cómo se aplica (J4): 'rol:...' en cada grupo de rutas (403 si el rol no corresponde), 'cuenta.activa'
+en todo el bloque privado y una Policy por recurso. El administrador además queda bloqueado dentro de
+las Policies de datos financieros.
 
 
 ----------------------------------------------------------------------
@@ -142,18 +162,21 @@ Ocultar un enlace del menú NO protege: la protección real es middleware + Poli
   app/
     Http/Controllers/ ........ (R) Auth/{RegistroController, LoginController, PasswordResetController}
                                · (F) un controlador por cada otro módulo
-    Http/Middleware/ ......... (F) CuentaActiva, Rol (J4). UsuarioMaqueta fue eliminado en J3
+    Http/Middleware/ ......... (R) CuentaActiva, RolRequerido (J4). UsuarioMaqueta fue eliminado en J3
     Http/Requests/ ........... (R) Auth/{RegistroRequest, LoginRequest, SolicitarEnlaceRequest,
                                RestablecerContrasenaRequest} · (F) los de los demás módulos
     Notifications/ ........... (R) RestablecerContrasena (correo de recuperar contraseña en español)
     Models/ .................. (R) User, Categoria, Gasto, GastoFijo, PagoGastoFijo, SimulacionCredito,
                                Informe, DetalleInforme, Meta, ParticipacionMeta, AporteMeta, Notificacion
-    Policies/ ................ (F) una por recurso
+    Policies/ ................ (R) PoliticaDeDueno (base), GastoPolicy, GastoFijoPolicy, SimulacionCreditoPolicy,
+                               NotificacionPolicy, InformePolicy, CategoriaPolicy · (F) MetaPolicy (J5)
+    Models/Concerns/ ......... (R) PerteneceAUsuario (scope delUsuario)
     Providers/AppServiceProvider.php ... (R) View Composer de $notificacionesPendientes
     Services/ ................ (F) CalculadoraCredito, GeneradorInforme, ServicioMetas,
                                ServicioGastosFijos, ServicioNotificaciones, ServicioCuentas
     Console/ ................. (F) comando diario de alertas
-  bootstrap/app.php .......... (F) registrar alias 'cuenta.activa' y 'rol' (J4)
+  bootstrap/app.php .......... (R) alias 'cuenta.activa' y 'rol' y redirectUsersTo (J3/J4). Las líneas
+                               'use' van arriba del archivo, nunca dentro de la función
   database/migrations|seeders|factories ... (R) hechos en J2 (migraciones NO se editan una vez unidas a main)
   routes/
     web.php .................. (R) ÍNDICE: solo Juan lo cambia. Define grupos A-E.
@@ -227,7 +250,8 @@ php artisan route:list --except-vendor => "Showing [60] routes".
 
 Cómo están organizadas:
   - routes/web.php incluye los archivos de routes/modulos/ dentro de grupos (A-E).
-  - Desde J3 los grupos B-E llevan 'auth'. En "// FASE 2" entran 'cuenta.activa' y 'rol:...' (J4).
+  - Desde J3 y J4 el bloque privado lleva 'auth' + 'cuenta.activa', y cada grupo su rol: C =
+    rol:estandar,familiar · D = rol:familiar · E = rol:administrador (B: todos los roles con sesión).
   - admin.php va dentro de Route::prefix('admin')->name('admin.'): dentro de ese archivo los
     nombres se escriben SIN "admin." (ej. ->name('usuarios') produce admin.usuarios).
   - ajustes.php va dentro de un grupo con prefijo /ajustes y nombre 'ajustes.': ahí se escribe
@@ -450,10 +474,12 @@ Relaciones (en los modelos):
   GastoFijo tiene muchos PagoGastoFijo. Informe tiene muchos DetalleInforme. Meta tiene muchas
   ParticipacionMeta y AporteMeta, y pertenece a su creador.
 Constantes y ayudas útiles: Categoria::BLOQUES (contrato C2), Categoria::esDelSistema(),
-  Gasto::delUsuario($id) (scope), Meta::totalConjunto(). Los modelos de dominio usan $guarded = []
+  Gasto::delUsuario($id) (scope; existe en todos los modelos con user_id), Meta::totalConjunto(). Los modelos de dominio usan $guarded = []
   (la validación va en los FormRequests); User sí usa $fillable y NO incluye rol ni activo.
-Alcance global "del usuario actual": aún NO está implementado como global scope; hoy cada consulta
-  parte de auth()->user() o usa Gasto::delUsuario(). Se evalúa en J4.
+Alcance global "del usuario actual": se decidió NO usar global scope (escondería errores y rompería
+  consultas del administrador y de los servicios). Regla: en listados y totales siempre
+  Modelo::delUsuario(auth()->id()) o $usuario->relacion(); para un registro puntual,
+  $this->authorize('view|update|delete', $registro).
 
 Semillas (database/seeders):
   CategoriaSeeder ..... 14 categorías del sistema. Necesidades (50): Arriendo, Servicios públicos,
@@ -494,8 +520,10 @@ ServicioGastosFijos · ServicioNotificaciones · ServicioCuentas.
   C8  Variables del armazón ............ Juan: $notificacionesPendientes, mensaje flash 'exito'
       (lo muestra <x-toast />), usuario autenticado con nombre y rol, ruta "logout".
   C9  Nombres de rutas ................. Juan. No se cambian; uno nuevo se agrega a docs/backend/00-rutas.php.
-  C10 Permisos ......................... Juan (J4): middleware 'cuenta.activa' y 'rol' + una Policy por
-      recurso (gasto, categoría, gasto fijo, simulación, notificación, informe, meta).
+  C10 Permisos ......................... Juan (J4, HECHO): middleware 'cuenta.activa' y 'rol' + una Policy por
+      recurso (gasto, categoría, gasto fijo, simulación, notificación, informe; meta llega con J5).
+      Uso: $this->authorize('update', $gasto); Gasto::delUsuario(auth()->id()); al guardar un gasto o
+      gasto fijo, $this->authorize('usar', $categoria) (la categoría debe ser propia o del sistema).
   C11 Categorías globales .............. Juan (J2 semillas HECHO, J7 admin): categorias.user_id vacío = del sistema;
       se ven para todos y no se editan desde la zona del usuario.
 
@@ -507,6 +535,10 @@ Seguridad y privacidad
   - Toda consulta de datos parte del usuario autenticado. Se prueba con dos usuarios: ninguno
     lista, abre, edita ni borra registros del otro (otro usuario -> 403 o 404).
   - Policy antes de leer, editar o borrar. Contraseñas con hash. Token CSRF en todos los formularios.
+  - Reglas de las Policies: el dueño ve, edita y borra lo suyo; el administrador nunca toca datos
+    financieros; una simulación de crédito se borra pero no se edita; un informe guardado no se edita
+    ni se borra a mano; las categorías del sistema las ven y usan todos pero nadie las edita desde la
+    zona del usuario. Ajeno -> 403.
   - Mensajes de error genéricos hacia afuera; detalle solo en el registro interno.
   - Límite de intentos en login y recuperación. Recuperar contraseña con mensaje neutro (no revela
     si el correo existe); enlace de un solo uso que vence.
@@ -583,15 +615,15 @@ Los demás están en los comentarios de cabecera de cada vista.
 13. ORDEN DE CONSTRUCCIÓN
 ----------------------------------------------------------------------
   1. J1 armazón y rutas (HECHO)          2. J2 base de datos (HECHO 2026-10-05)
-  3. J3 autenticación (HECHO 2026-10-06)   4. J4 permisos (SIGUIENTE)
-  5. N1 -> N2 -> V1 -> V2 -> V4 (perfil e ingreso)
+  3. J3 autenticación (HECHO 2026-10-06)   4. J4 permisos (HECHO 2026-10-06)
+  5. N1 -> N2 -> V1 -> V2 -> V4 (perfil e ingreso)   <- SIGUIENTE (V1 ya empezó)
   6. N3, J5, V3                          7. J6 alertas, N4, J8 (dashboard y cuentas), V4 (resto)
   8. J7 administración, N5 landing       9. V5 revisión visual y J9 seguridad/despliegue
 Regla: lo que otros necesitan se une primero. Si alguien depende de algo que aún no existe, usa
 datos falsos o un servicio simulado y avanza. Como J2 ya está, Nikol y Valeria pueden usar los
 modelos y las fábricas (Gasto::factory(), Categoria::factory()...) para sus pantallas y pruebas.
-J3 ya borró UsuarioMaqueta.php y activó 'auth'. Al terminar J4: activar 'cuenta.activa' en el grupo
-privado y 'rol:...' en los grupos C, D y E.
+J3 borró UsuarioMaqueta.php y activó 'auth'; J4 activó 'cuenta.activa' y 'rol:...' en los grupos B-E.
+Siguiente de Juan: J5 (metas y MetaPolicy) en paralelo a la revisión de los PR de Nikol y Valeria.
 Antes de J7: cerrar la decisión #23 (columna categorias.activa) con una migración nueva.
 Al terminar todo (J9): no debe quedar ningún aviso "MAQUETA", ni Route::view de maqueta, ni imágenes
 externas, ni routes/maqueta.php (nunca existió); comparar php artisan route:list con docs/backend/00-rutas.php.
@@ -636,6 +668,7 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
      migraciones) si la tarea es de Nikol o Valeria; pide el cambio a Juan. NUNCA edites una
      migración ya unida a main: si falta una columna, se pide una migración nueva a Juan.
   5. Toda consulta parte de auth()->user(); autoriza con Policy antes de leer/modificar.
+     Listados: Modelo::delUsuario(auth()->id()). Nunca Gasto::all() ni find($id) sin filtrar.
   6. Usa los mensajes exactos; texto de interfaz en español; dinero en enteros.
   7. Escribe pruebas junto con el código (aislamiento entre dos usuarios, permisos por rol y la
      regla principal de la tarea).
@@ -656,6 +689,13 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
      el controlador, no cambies el formulario. Correos se guardan en minúsculas.
  15. Para enviar correos usa notificaciones en español (ver app/Notifications). Nunca muestres si un
      correo existe o no (mensajes neutros).
+ 16. Permisos: cada controlador llama $this->authorize() antes de leer/editar/borrar un registro y
+     usa el scope delUsuario en listados y totales. Al guardar algo con categoría, autoriza 'usar'.
+     No pases el id del usuario desde el formulario: sale de auth(). Ocultar un botón no es seguridad.
+ 17. Pruebas de cada módulo: incluye (a) el dueño puede, (b) un ajeno recibe 403 y el dato no cambia,
+     (c) el administrador recibe 403 en datos financieros. Agrega tu ruta a la matriz de PermisosTest.
+ 18. Los middleware se usan por su alias ('cuenta.activa', 'rol:...'), nunca con closures en grupos.
+     Las líneas 'use' de un archivo PHP van arriba, nunca dentro de una función.
 
 
 ----------------------------------------------------------------------
@@ -667,6 +707,7 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
   DECISIONES.md (raíz del repositorio) ............... registro de decisiones con fecha
   Guia_BD_para_el_equipo.txt ......................... cómo usar la base de datos ya hecha (J2)
   J3_Autenticacion_Documentacion.txt ................. qué cambió en J3, cómo probarlo y cómo lo usan los demás
+  J4_Roles_Permisos_Documentacion.txt ................ qué cambió en J4, matriz rol x ruta y cómo usar Policies y scope
   diagrama_tablas.png / .svg ......................... diagrama de las 20 tablas y su contenido
   docs/backend/03-migraciones.php .................... diccionario de datos real (HECHO 2026-10-05)
   docs/backend/*.php ................................. planes técnicos por tema
