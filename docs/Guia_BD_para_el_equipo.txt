@@ -1,0 +1,482 @@
+================================================================================================
+CUENTAS CLARAS - LA BASE DE DATOS YA ESTÁ LISTA (J2)
+Qué hay, cómo integrarla en tu computador y cómo usarla en tu módulo
+================================================================================================
+Para: Nikol y Valeria        De: Juan        Fecha: 5 de octubre de 2026
+
+Ya están en main las 12 tablas de Cuentas Claras con sus modelos, fábricas (datos inventados
+para pruebas), semillas y 20 pruebas automáticas que pasan. Este documento explica en qué
+consiste, qué cambió respecto al diagrama que habíamos dibujado y por qué, cómo ponerla a
+funcionar en tu computador (5 minutos) y cómo usarla desde tu módulo. Además va el archivo
+diagrama_tablas.png con el diagrama completo.
+
+CONTENIDO
+   1. Qué debes hacer ahora (5 minutos)
+   2. Qué es una migración y qué NO se debe hacer
+   3. Mapa de las tablas (cómo se conectan)
+   4. Detalle de cada tabla (columnas y para qué sirve)
+   5. Qué cambió respecto al diagrama original y por qué
+   6. Qué tablas y modelos usa cada persona
+   7. Ejemplos de código para usar los modelos
+   8. Reglas de oro
+   9. Cuentas y datos de prueba
+   10. Problemas comunes y su solución
+   11. Lista de verificación final
+
+================================================================================================
+1. QUÉ DEBES HACER AHORA (5 MINUTOS)
+================================================================================================
+Abre la terminal (Git Bash en Windows) dentro de la carpeta del proyecto, donde está el archivo artisan.
+
+   1. Guarda lo que tengas a medias:  git status.  Si tienes cambios sin guardar, haz commit en
+      tu rama o consúltame antes de seguir.
+   2. Trae lo nuevo:   git checkout main   y luego   git pull
+   3. Abre tu archivo .env (el real; NO se sube a Git) y revisa estas líneas. Si no están así,
+      cámbialas:          APP_ENV=local          APP_DEBUG=true          APP_LOCALE=es
+      DB_CONNECTION=sqlite       (las líneas DB_HOST, DB_PORT, DB_USERNAME, etc. deben estar
+      comentadas con # o borradas)       Con APP_ENV=production el programa de datos de prueba
+      NO crea los usuarios y Laravel esconde los errores.
+   4. Crea las tablas y los datos iniciales:   php artisan migrate:fresh --seed       Responde
+      yes si pregunta. Esto BORRA tu base local y la crea de nuevo: es normal y seguro en
+      desarrollo.       Debes ver 12 líneas DONE de migraciones y luego CategoriaSeeder,
+      UsuariosSeeder y DatosDePruebaSeeder en DONE.
+   5. Comprueba que todo funciona:   php artisan test       Deben pasar las 20 pruebas de
+      BaseDeDatosTest (y las de ejemplo de Laravel).
+   6. Mira la base con tus ojos (opcional pero recomendado):   php artisan db:show   y   php
+      artisan db:table gastos
+   7. Crea tu rama para tu tarea desde main:          Nikol:    git checkout -b nikol/n1-gastos
+      Valeria:  git checkout -b valeria/v1-simulador
+
+Cada vez que alguien una algo nuevo a main: git pull y luego php artisan migrate (si hay migraciones nuevas).
+
+================================================================================================
+2. QUÉ ES UNA MIGRACIÓN Y QUÉ NO SE DEBE HACER
+================================================================================================
+Una MIGRACIÓN es un archivo PHP (carpeta database/migrations) que describe cómo crear una tabla.
+Es el 'control de versiones' de la base de datos: todos corremos las mismas migraciones y
+tenemos las mismas tablas. Un MODELO (carpeta app/Models) es la clase PHP que representa una
+tabla: con Gasto::create(...) guardas un gasto sin escribir SQL. Una SEMILLA (seeder) mete datos
+iniciales. Una FÁBRICA (factory) inventa datos de prueba.
+
+REGLAS PARA NO ROMPER LA BASE DEL EQUIPO:
+   - NO edites una migración que ya está en main. Si necesitas una columna nueva o cambiar algo:
+     php artisan make:migration agregar_algo_a_gastos --table=gastos  y escribe el cambio ahí.
+     Avísame en el grupo (los demás deberán correr php artisan migrate).
+   - NO subas database.sqlite ni .env a Git (ya están en .gitignore). Cada quien tiene su base
+     local.
+   - NO crees tablas nuevas sin avisar: todas las que necesitamos ya existen (ver sección 4).
+   - Si crees que falta una columna, abre una tarjeta 'Pedido a Juan' en Jira con: qué
+     necesitas, para qué tarea (ID) y para cuándo.
+
+================================================================================================
+3. MAPA DE LAS TABLAS (CÓMO SE CONECTAN)
+================================================================================================
+
+  Lectura: "A ──< B" significa que UN registro de A tiene MUCHOS de B (B guarda la llave de A).
+  Todo cuelga de USERS: casi cada tabla tiene user_id.
+
+        users ──< categorias (propias; user_id vacío = del sistema)
+          │
+          ├──< gastos            (cada gasto tiene UNA categoria_id)
+          │
+          ├──< gastos_fijos      (también con categoria_id)
+          │        └──< pagos_gasto_fijo ──< notificaciones   (una alerta puede apuntar a un pago)
+          │
+          ├──< simulaciones_credito
+          │
+          ├──< informes ──< detalles_informe
+          │
+          ├──< notificaciones    (también puede apuntar a una meta: p. ej. una invitación)
+          │
+          └──< metas (creador) ──< participaciones_meta   (quién participa: máximo 2)
+                         └─────< aportes_meta             (cuánto aportó cada uno: PRIVADO)
+
+  Relaciones, una por una (padre ──< hijos):
+     users              ──<  categorias             1 a muchas (opcional)
+     users              ──<  gastos                 1 a muchas
+     categorias         ──<  gastos                 1 a muchas
+     users              ──<  gastos_fijos           1 a muchas
+     categorias         ──<  gastos_fijos           1 a muchas
+     gastos_fijos       ──<  pagos_gasto_fijo       1 a muchas
+     users              ──<  pagos_gasto_fijo       1 a muchas
+     pagos_gasto_fijo   ──<  notificaciones         1 a muchas (opcional)
+     users              ──<  notificaciones         1 a muchas
+     metas              ──<  notificaciones         1 a muchas (opcional)
+     users              ──<  simulaciones_credito   1 a muchas
+     users              ──<  informes               1 a muchas
+     informes           ──<  detalles_informe       1 a muchas
+     users              ──<  metas                  1 a muchas (creador)
+     metas              ──<  participaciones_meta   1 a muchas
+     users              ──<  participaciones_meta   1 a muchas
+     metas              ──<  aportes_meta           1 a muchas
+     users              ──<  aportes_meta           1 a muchas
+
+  Qué pasa al BORRAR:
+     - Se borra un usuario        -> se borran TODOS sus datos (gastos, gastos fijos, pagos, simulaciones,
+                                     informes, notificaciones, metas que creó, aportes y participaciones).
+     - Se borra una categoría     -> NO se puede si tiene gastos o gastos fijos (primero se mueven; N2).
+     - Se borra un gasto fijo     -> se borran sus pagos.
+     - Se borra un informe        -> se borran sus detalles.
+
+================================================================================================
+4. DETALLE DE CADA TABLA
+================================================================================================
+Marcas:  [PK] llave primaria · [FK] llave foránea (apunta a otra tabla) · [U] valor único ·
+         [U*] único en combinación con otra columna (se indica en la nota).  COP = pesos colombianos, ENTEROS.
+
+  +------------------------------------------------------------------------------------------------------+
+  | USERS   (Juan (J3, J4))                                                                              |
+  | Las personas que usan la app. Una fila = una cuenta.                                                 |
+  +------------------------------------------------------------------------------------------------------+
+  | [PK] id                                     | entero          |                                      |
+  |      nombre                                 | texto 100       |                                      |
+  | [U]  cedula                                 | texto 20        | identificación (decisión #1)         |
+  | [U]  email                                  | texto 150       | en pantalla se llama 'Correo'        |
+  |      password                               | texto           | SIEMPRE con hash (nunca texto plano) |
+  |      rol                                    | texto 20        | estandar | familiar | administrador  |
+  |      activo                                 | verdadero/falso | false = cuenta suspendida            |
+  |      ingreso_mensual                        | entero COP      | puede estar vacío; contrato C3       |
+  |      consentimiento_datos_at                | fecha-hora      | vacío = nunca aceptó                 |
+  |      remember_token, created_at, updated_at |                 | los pone Laravel                     |
+  +------------------------------------------------------------------------------------------------------+
+
+  +-------------------------------------------------------------------------------------+
+  | CATEGORIAS   (Nikol (N2))                                                           |
+  | Clasifican los gastos. user_id vacío = categoría del sistema.                       |
+  +-------------------------------------------------------------------------------------+
+  | [PK] id                     | entero   |                                            |
+  | [FK] user_id                | entero   | → users.id (vacío = del sistema)           |
+  |      nombre                 | texto 50 | único por usuario: se valida en la app     |
+  |      bloque                 | texto 20 | necesidades | discrecionales | ahorro (C2) |
+  |      peso_recomendado       | entero   | 50 / 30 / 20 (opcional)                    |
+  |      created_at, updated_at |          |                                            |
+  +-------------------------------------------------------------------------------------+
+
+  +-------------------------------------------------------------------------------------------+
+  | GASTOS   (Nikol (N1))                                                                     |
+  | Cada gasto que registra el usuario.                                                       |
+  +-------------------------------------------------------------------------------------------+
+  | [PK] id                     | entero     |                                                |
+  | [FK] user_id                | entero     | → users.id (borra en cascada)                  |
+  | [FK] categoria_id           | entero     | → categorias.id (NO deja borrar si hay gastos) |
+  |      monto                  | entero COP | pesos enteros, sin decimales                   |
+  |      fecha                  | fecha      | índice con user_id                             |
+  |      descripcion            | texto 200  | opcional                                       |
+  |      created_at, updated_at |            |                                                |
+  +-------------------------------------------------------------------------------------------+
+
+  +-------------------------------------------------------------------------+
+  | GASTOS_FIJOS   (Nikol (N3))                                             |
+  | Pagos que se repiten (arriendo, internet...).                           |
+  +-------------------------------------------------------------------------+
+  | [PK] id                     | entero          |                         |
+  | [FK] user_id                | entero          | → users.id              |
+  | [FK] categoria_id           | entero          | → categorias.id         |
+  |      nombre                 | texto 100       |                         |
+  |      monto                  | entero COP      |                         |
+  |      dia_vencimiento        | entero          | 1 a 31                  |
+  |      periodicidad           | texto 20        | 'mensual' (decisión #6) |
+  |      descripcion            | texto 100       | opcional                |
+  |      activo                 | verdadero/falso |                         |
+  |      created_at, updated_at |                 |                         |
+  +-------------------------------------------------------------------------+
+
+  +---------------------------------------------------------------------------------------+
+  | PAGOS_GASTO_FIJO   (Nikol (N3))                                                       |
+  | Un pago por gasto fijo y por mes.                                                     |
+  +---------------------------------------------------------------------------------------+
+  | [PK] id                     | entero     |                                            |
+  | [FK] user_id                | entero     | → users.id                                 |
+  | [FK] gasto_fijo_id          | entero     | → gastos_fijos.id (decisión #9)            |
+  | [U*] periodo                | texto 7    | '2026-10'  · único junto con gasto_fijo_id |
+  |      fecha_vencimiento      | fecha      |                                            |
+  |      estado                 | texto 20   | pendiente | pagado | vencido               |
+  |      fecha_pago             | fecha      | vacío hasta que se paga                    |
+  |      monto                  | entero COP | monto de ese mes                           |
+  |      created_at, updated_at |            |                                            |
+  +---------------------------------------------------------------------------------------+
+
+  +---------------------------------------------------------------------------------------+
+  | NOTIFICACIONES   (Juan (J6) · Nikol (N4))                                             |
+  | Alertas y avisos del usuario.                                                         |
+  +---------------------------------------------------------------------------------------+
+  | [PK] id                     | entero    |                                             |
+  | [FK] user_id                | entero    | → users.id                                  |
+  |      tipo                   | texto 30  | por_vencer | vencido | invitacion_meta ...  |
+  |      mensaje                | texto 255 |                                             |
+  |      estado                 | texto 20  | pendiente | leida | cancelada               |
+  | [FK] pago_gasto_fijo_id     | entero    | → pagos_gasto_fijo.id (puede estar vacío)   |
+  | [FK] meta_id                | entero    | → metas.id (puede estar vacío)              |
+  | [U*] clave_unica            | texto     | evita alertas repetidas · único con user_id |
+  |      created_at, updated_at |           |                                             |
+  +---------------------------------------------------------------------------------------+
+
+  +--------------------------------------------------------------------+
+  | SIMULACIONES_CREDITO   (Valeria (V1, V2))                          |
+  | Simulaciones guardadas (solo simulación, decisión #4).             |
+  +--------------------------------------------------------------------+
+  | [PK] id                     | entero      |                        |
+  | [FK] user_id                | entero      | → users.id             |
+  |      nombre                 | texto 100   |                        |
+  |      monto                  | entero COP  | préstamo               |
+  |      tasa_mensual           | decimal 5,2 | % mensual              |
+  |      plazo_meses            | entero      |                        |
+  |      cuota                  | entero COP  | la calcula el SERVIDOR |
+  |      total_pagar            | entero COP  |                        |
+  |      intereses              | entero COP  |                        |
+  |      created_at, updated_at |             | created_at = fecha     |
+  +--------------------------------------------------------------------+
+
+  +------------------------------------------------------------------------------+
+  | INFORMES   (Valeria (V3))                                                    |
+  | Foto del informe 50/30/20 de un mes.                                         |
+  +------------------------------------------------------------------------------+
+  | [PK] id                     | entero     |                                   |
+  | [FK] user_id                | entero     | → users.id                        |
+  | [U*] anio                   | entero     | 2026                              |
+  | [U*] mes                    | entero     | 1 a 12 · único con user_id y anio |
+  |      ingreso                | entero COP | ingreso de ESE mes                |
+  |      total_gastado          | entero COP |                                   |
+  |      created_at, updated_at |            |                                   |
+  +------------------------------------------------------------------------------+
+
+  +-------------------------------------------------------------------------------------------+
+  | DETALLES_INFORME   (Valeria (V3))                                                         |
+  | Una fila por categoría dentro de un informe.                                              |
+  +-------------------------------------------------------------------------------------------+
+  | [PK] id                     | entero          |                                           |
+  | [FK] informe_id             | entero          | → informes.id (borra en cascada)          |
+  | [FK] categoria_id           | entero          | → categorias.id (vacío si se eliminó)     |
+  |      categoria_nombre       | texto 50        | foto: no cambia si renombran la categoría |
+  |      bloque                 | texto 20        | foto                                      |
+  |      monto_gastado          | entero COP      |                                           |
+  |      porcentaje_real        | decimal 5,2     |                                           |
+  |      porcentaje_recomendado | entero          |                                           |
+  |      excede                 | verdadero/falso |                                           |
+  +-------------------------------------------------------------------------------------------+
+
+  +----------------------------------------------------------------------------------------+
+  | METAS   (Juan (J5))                                                                    |
+  | Metas de ahorro compartidas entre dos familiares.                                      |
+  +----------------------------------------------------------------------------------------+
+  | [PK] id                     | entero     |                                             |
+  | [FK] creador_id             | entero     | → users.id (solo él invita)                 |
+  |      nombre                 | texto 100  |                                             |
+  |      monto_objetivo         | entero COP |                                             |
+  |      fecha_limite           | fecha      | opcional                                    |
+  |      estado                 | texto 20   | activa | completada | cancelada             |
+  |      (sin monto_actual)     |            | el avance se CALCULA: Meta::totalConjunto() |
+  |      created_at, updated_at |            |                                             |
+  +----------------------------------------------------------------------------------------+
+
+  +----------------------------------------------------------------------------------------+
+  | PARTICIPACIONES_META   (Juan (J5))                                                     |
+  | Quién participa en cada meta (invitaciones).                                           |
+  +----------------------------------------------------------------------------------------+
+  | [PK] id                     | entero   |                                               |
+  | [FK] meta_id                | entero   | → metas.id                                    |
+  | [FK] user_id                | entero   | → users.id                                    |
+  |      estado_invitacion      | texto 20 | pendiente | aceptada | rechazada | abandonada |
+  |      fecha_union            | fecha    | se llena al aceptar                           |
+  | [U*] (único)                |          | meta_id + user_id: no invitar dos veces       |
+  |      created_at, updated_at |          |                                               |
+  +----------------------------------------------------------------------------------------+
+
+  +-------------------------------------------------------+
+  | APORTES_META   (Juan (J5))                            |
+  | Cada aporte de dinero a una meta. PRIVADO.            |
+  +-------------------------------------------------------+
+  | [PK] id                     | entero     |            |
+  | [FK] meta_id                | entero     | → metas.id |
+  | [FK] user_id                | entero     | → users.id |
+  |      monto                  | entero COP |            |
+  |      fecha                  | fecha      |            |
+  |      created_at, updated_at |            |            |
+  +-------------------------------------------------------+
+
+Tablas que trae Laravel por su cuenta y NO se tocan: sessions, password_reset_tokens, cache, cache_locks,
+jobs, job_batches, failed_jobs, migrations.
+
+================================================================================================
+5. QUÉ CAMBIÓ RESPECTO AL DIAGRAMA ORIGINAL Y POR QUÉ
+================================================================================================
+  ANTES                     AHORA                       POR QUÉ
+  Tabla saldo               ELIMINADA                   El saldo guardado se desactualiza. Se CALCULA: disponible del
+                                                        mes = ingreso - gastos (decisión #14).
+  Tabla cuota_credito       ELIMINADA                   El crédito es solo simulación (decisión #4). Una tabla de cuotas
+                                                        implicaría alertas y pantallas que no están planeadas.
+  credito                   simulaciones_credito        Se quitó el 'cupo' (nadie lo usa) y se agregaron cuota,
+                                                        total_pagar e intereses, que calcula el servidor.
+  Dinero                    enteros                     NUMBER(12,2) con decimales se guarda como número flotante en
+                                                        SQLite y da errores de redondeo. Pesos enteros siempre.
+  informe_mensual           informes                    La llave era solo la fecha: dos usuarios con informe del mismo
+                                                        mes chocaban. Ahora tiene id propio y es único por (usuario,
+                                                        año, mes).
+  detalle_informe           detalles_informe            Guarda el nombre y el bloque de la categoría como 'foto' para
+                                                        que el historial no cambie si luego la renombran o borran.
+  pago_gasto_fijo           + gasto_fijo_id             Faltaba saber de qué gasto fijo es cada pago (decisión #9).
+                                                        Único por (gasto fijo, periodo): no se paga dos veces el mismo
+                                                        mes.
+  meta_ahorro               metas                       Se quitó monto_actual (el avance se calcula sumando aportes, y
+                                                        así no se desincroniza ni se filtra el aporte ajeno). Se agregó
+                                                        creador_id y fecha_limite.
+  ahorro_individual         aportes_meta                Tenía un id 'UNKNOWN' y sin llave primaria. Ahora es una tabla
+                                                        normal con su llave.
+  participacion_meta        participaciones_meta        Ahora tiene llave primaria y es única por (meta, usuario): no se
+                                                        invita dos veces a la misma persona.
+  notificacion              notificaciones              Referencias opcionales (a un pago o a una meta) y clave_unica
+                                                        para que el comando diario de alertas no duplique.
+  usuario                   users                       Nombres que Laravel espera: users, email, password. En pantalla
+                                                        se sigue viendo 'Correo' y 'Contraseña'.
+  usuario (cédula)          + cedula                    Decisión #1: se guarda la identificación.
+  usuario (estado)          activo                      Verdadero/falso. false = cuenta suspendida (el middleware la
+                                                        expulsa).
+  usuario (consentimiento)  + consentimiento_datos_at   Fecha en que aceptó el tratamiento de datos; el registro (J3) la
+                                                        exige.
+  categoria_gasto           categorias (+ bloque)       Decisión #12: cada categoría pertenece a un bloque 50/30/20
+                                                        (necesidades, discrecionales, ahorro).
+  gasto_fijo                + periodicidad, activo      Decisión #6: solo 'mensual'; y se puede desactivar sin borrar.
+  Estados                   texto                       necesidades, pendiente, pagado, etc. son texto validado en la
+                                                        aplicación, no enum (SQLite no los maneja bien).
+
+Todo esto quedó anotado con fecha en DECISIONES.md y en el diccionario de datos docs/backend/03-migraciones.php.
+
+================================================================================================
+6. QUÉ TABLAS Y MODELOS USA CADA PERSONA
+================================================================================================
+
+JUAN
+  Tablas: users, notificaciones (servicio), metas, participaciones_meta, aportes_meta.
+  Siguientes pasos: J4-A (middleware cuenta.activa y rol, Policy de gasto), J3 (login y registro), J5 (metas),
+  J6 (alertas con notificaciones).
+
+NIKOL
+  Tablas: categorias (N2), gastos (N1), gastos_fijos y pagos_gasto_fijo (N3), pantalla de notificaciones (N4).
+  Para conectar N1: reemplaza los datos falsos de GastoController por Gasto y Categoria (ver sección 7).
+  Tu contrato C1 (gastos por periodo) va dentro del modelo Gasto: scope delPeriodo(año, mes) y totalDelMes.
+  Tu contrato C2: Categoria::BLOQUES y la columna bloque ya existen.
+
+VALERIA
+  Tablas: simulaciones_credito (V1, V2), informes y detalles_informe (V3), users.ingreso_mensual (V4, contrato C3).
+  Para V1: guarda en SimulacionCredito con cuota, total_pagar e intereses CALCULADOS por tu CalculadoraCredito.
+  Para V3: lee los gastos con el contrato C1 de Nikol y el bloque de cada categoría (C2); guarda la foto en
+  informes y detalles_informe.
+  Ojo con el nombre: users.ingreso_mensual (entero, puede estar vacío). Maneja el caso vacío en tus pantallas.
+
+================================================================================================
+7. EJEMPLOS DE CÓDIGO PARA USAR LOS MODELOS
+================================================================================================
+Los puedes probar tal cual en la consola:  php artisan tinker   (se sale con  exit).
+
+  -- El usuario con sesión iniciada (en un controlador) --
+     $usuario = $request->user();          // o auth()->user();   su id: auth()->id()
+
+  -- Guardar un gasto (siempre ligado al usuario autenticado, nunca desde el formulario) --
+     $usuario->gastos()->create($request->validated());
+     // validated() ya trae: categoria_id, monto, fecha, descripcion. user_id lo pone la relación.
+
+  -- Listar SOLO los gastos de este usuario, con su categoría, paginados --
+     $gastos = Gasto::delUsuario(auth()->id())->with('categoria')->orderByDesc('fecha')->paginate(15);
+
+  -- Categorías que puede ver/usar el usuario: las del sistema + las suyas --
+     $categorias = Categoria::where(function ($q) {
+         $q->whereNull('user_id')->orWhere('user_id', auth()->id());
+     })->orderBy('nombre')->get();
+
+  -- Total gastado en octubre de 2026 (dinero entero) --
+     $total = Gasto::delUsuario(auth()->id())->whereYear('fecha', 2026)->whereMonth('fecha', 10)->sum('monto');
+
+  -- Mostrar dinero en pantalla (Blade): 1230000  ->  $ 1.230.000 --
+     $ {{ number_format($gasto->monto, 0, ',', '.') }}
+
+  -- Gastos fijos y el pago de un mes --
+     $fijo = GastoFijo::find(1);   $fijo->pagos;   $fijo->pagos()->where('periodo', '2026-10')->first();
+
+  -- Metas: el avance se calcula, NO se guarda --
+     $meta->totalConjunto();       // suma de aportes de ambos
+     // Privacidad: a la vista solo envía el aporte DEL usuario con sesión y el total conjunto:
+     $miAporte = $meta->aportes()->where('user_id', auth()->id())->sum('monto');
+
+  -- Datos inventados para pruebas automáticas (en tests/) --
+     $u = User::factory()->create();            // estándar        ->familiar()   ->administrador()
+     Gasto::factory()->count(3)->create(['user_id' => $u->id]);
+
+  -- Ver el bloque de un gasto --
+     $gasto->categoria->bloque;      // 'necesidades' | 'discrecionales' | 'ahorro'
+
+================================================================================================
+8. REGLAS DE ORO
+================================================================================================
+   - DINERO = ENTEROS en pesos. Nunca float ni decimales. Se formatea solo al mostrarlo.
+   - TODA consulta de datos financieros parte del usuario autenticado (delUsuario(auth()->id())
+     o $usuario->gastos()). Nunca Gasto::all() en una pantalla. Se prueba siempre con DOS
+     usuarios.
+   - El user_id SIEMPRE sale de la sesión, nunca de un campo del formulario.
+   - Usa $request->validated() (FormRequest), nunca $request->all() para guardar.
+   - rol y activo NO se asignan en masa en User (a propósito): no los pongas en $fillable.
+   - Privacidad de metas (RQNF-03): jamás enviar a una vista, JSON o tooltip el aporte
+     individual de la otra persona.
+   - Las fechas usan la zona America/Bogota (ya está en config/app.php). No uses fechas UTC a
+     mano.
+   - Los mensajes de error y éxito son los EXACTOS de la guía de cada pantalla.
+   - Antes de pedir la unión a main: php artisan test debe pasar completo.
+
+================================================================================================
+9. CUENTAS Y DATOS DE PRUEBA
+================================================================================================
+Con php artisan migrate:fresh --seed (y APP_ENV=local) se crean 14 categorías del sistema y tres
+cuentas. La contraseña de todas es: password
+
+     estandar@test.com    rol estándar         (nombre, cédula e ingreso inventados)
+     familiar@test.com    rol familiar
+     admin@test.com       rol administrador
+     + 20 gastos inventados por cada cuenta estándar o familiar, para que las pantallas no estén vacías.
+
+Los nombres, cédulas e ingresos NO están escritos en el código: los inventa la fábrica cada vez,
+así que cambian en cada migrate:fresh. Solo los tres correos son fijos, para poder iniciar
+sesión (cuando J3 esté lista). Las pruebas automáticas NO dependen de estas cuentas: crean las
+suyas.
+
+Categorías del sistema (14):
+     necesidades:    Arriendo, Servicios públicos, Mercado, Transporte, Salud, Educación
+     discrecionales: Restaurantes, Entretenimiento, Ropa, Suscripciones, Viajes
+     ahorro:         Ahorro, Inversión, Pago extra de deudas
+     (Valeria y Nikol: esta equivalencia es la propuesta para la decisión #12; si quieren
+     cambiarla, es solo editar CategoriaSeeder.php y avisar.)
+
+================================================================================================
+10. PROBLEMAS COMUNES Y SU SOLUCIÓN
+================================================================================================
+   - 'APPLICATION IN PRODUCTION' al correr migrate: tu .env tiene APP_ENV=production. Cámbialo a
+     local (y APP_DEBUG=true).
+   - No se crearon los usuarios de prueba: mismo motivo (APP_ENV distinto de local).
+   - 'table ... already exists' o columnas que no aparecen: tienes una base vieja. php artisan
+     migrate:fresh --seed.
+   - 'Database file ... does not exist': crea el archivo vacío (Git Bash: touch
+     database/database.sqlite) y repite.
+   - 'SQLSTATE[23000] ... UNIQUE constraint failed': intentaste guardar algo repetido (correo,
+     cédula, pago del mismo mes, invitación repetida). Es la regla funcionando.
+   - 'FOREIGN KEY constraint failed': apuntas a un id que no existe, o borras algo que tiene
+     hijos (una categoría con gastos).
+   - 'Class ... not found': falta el archivo o hay que correr  composer dump-autoload.
+   - 'Add [campo] to fillable property': el campo no está permitido en ese modelo. En User solo:
+     nombre, cedula, email, password, ingreso_mensual, consentimiento_datos_at.
+   - Las pruebas borran mis datos de desarrollo: no debería pasar (usan una base en memoria).
+     Revisa que phpunit.xml tenga DB_CONNECTION=sqlite y DB_DATABASE=:memory: sin comentar, y
+     avísame.
+   - Algo distinto: copia el mensaje COMPLETO del error y mándalo al grupo con la plantilla de
+     bloqueo.
+
+================================================================================================
+11. LISTA DE VERIFICACIÓN FINAL (marca cuando la hagas)
+================================================================================================
+   - [ ] git pull de main hecho
+   - [ ] .env con APP_ENV=local, APP_LOCALE=es y DB_CONNECTION=sqlite
+   - [ ] php artisan migrate:fresh --seed sin errores
+   - [ ] php artisan test pasa
+   - [ ] Vi las tablas con php artisan db:show
+   - [ ] Leí la sección 6 (mis tablas) y la sección 8 (reglas de oro)
+   - [ ] Creé mi rama:  nombre/id-de-tarea
+   - [ ] Avisé en el grupo que ya lo tengo funcionando (o con qué problema)
+
+FIN DEL DOCUMENTO
