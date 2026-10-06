@@ -64,7 +64,7 @@ class BaseDeDatosTest extends TestCase
     public function test_columnas_clave_existen(): void
     {
         $esperadas = [
-            'users'            => ['nombre', 'cedula', 'email', 'password', 'rol', 'activo', 'ingreso_mensual'],
+            'users'            => ['nombre', 'cedula', 'email', 'password', 'rol', 'activo', 'ingreso_mensual', 'consentimiento_datos_at'],
             'categorias'       => ['user_id', 'nombre', 'bloque'],
             'gastos'           => ['user_id', 'categoria_id', 'monto', 'fecha', 'descripcion'],
             'gastos_fijos'     => ['periodicidad', 'activo', 'dia_vencimiento'],
