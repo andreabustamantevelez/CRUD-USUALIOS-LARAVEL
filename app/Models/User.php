@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Notifications\RestablecerContrasena;
 use Illuminate\Notifications\Notifiable;
 
 /**
@@ -29,6 +30,12 @@ class User extends Authenticatable
             'ingreso_mensual' => 'integer',
             'consentimiento_datos_at' => 'datetime',
         ];
+    }
+
+    // Correo de recuperar contraseña en español (J3).
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new RestablecerContrasena($token));
     }
 
     public function gastos(): HasMany { return $this->hasMany(Gasto::class); }

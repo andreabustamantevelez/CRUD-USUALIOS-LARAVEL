@@ -1,0 +1,164 @@
+======================================================================
+J3 - AUTENTICACIÓN COMPLETA  ·  DOCUMENTACIÓN DE LO QUE CAMBIÓ
+Responsable: Juan · Fecha: 2026-10-06 · Rama: juan/j3-autenticacion
+======================================================================
+Estado: HECHO. php artisan test --filter=AuthTest => 32 pruebas, 108 aserciones, todas pasan.
+
+
+----------------------------------------------------------------------
+1. QUÉ SE HIZO (en una frase por pieza)
+----------------------------------------------------------------------
+  Registro ............ crea el usuario, guarda la fecha de consentimiento, inicia sesión y va al panel.
+  Login ............... correo + contraseña; error genérico; rechaza cuentas suspendidas; 5 intentos/min.
+  Cerrar sesión ....... POST, invalida la sesión y regenera el token CSRF.
+  Recuperar contraseña  enlace por correo (un solo uso, vence a los 60 min), mensaje neutro.
+  Rutas privadas ...... todo el bloque B-E exige 'auth'; sin sesión redirige a /iniciar-sesion.
+  UsuarioMaqueta ...... eliminado: ya hay usuario real.
+
+
+----------------------------------------------------------------------
+2. ARCHIVOS NUEVOS Y MODIFICADOS
+----------------------------------------------------------------------
+NUEVOS
+  app/Http/Controllers/Auth/RegistroController.php ........ registro (create, store)
+  app/Http/Controllers/Auth/LoginController.php ........... login y logout (create, store, destroy)
+  app/Http/Controllers/Auth/PasswordResetController.php ... recuperar y restablecer
+  app/Http/Requests/Auth/RegistroRequest.php .............. validación del registro
+  app/Http/Requests/Auth/LoginRequest.php ................. validación del login + límite de intentos
+  app/Http/Requests/Auth/SolicitarEnlaceRequest.php ....... validación de "recuperar contraseña"
+  app/Http/Requests/Auth/RestablecerContrasenaRequest.php . validación de "nueva contraseña"
+  app/Notifications/RestablecerContrasena.php ............. correo de recuperación en español
+  tests/Feature/AuthTest.php .............................. 32 pruebas
+
+MODIFICADOS
+  routes/modulos/auth.php ........ rutas apuntan a controladores; 'guest' y 'throttle'; logout con 'auth'
+  routes/web.php ................. el bloque privado usa 'auth' (antes UsuarioMaqueta)
+  app/Models/User.php ............ método sendPasswordResetNotification (usa el correo en español)
+  bootstrap/app.php .............. redirectUsersTo: quien ya tiene sesión va a su panel
+  resources/views/publico/crear-usuario.blade.php .... mensaje de error del consentimiento + cabecera
+  resources/views/publico/iniciar-sesion.blade.php ... solo la cabecera (comentario)
+  .env (local, no se sube) ....... MAIL_MAILER=log
+
+ELIMINADO
+  app/Http/Middleware/UsuarioMaqueta.php
+
+NO SE TOCÓ: el diseño (HTML/CSS), los nombres de ruta, los name= de los formularios, la base de datos.
+
+
+----------------------------------------------------------------------
+3. CÓMO FUNCIONA CADA FLUJO
+----------------------------------------------------------------------
+REGISTRO (POST /crear-usuario, registro.guardar)
+  1. RegistroRequest valida: nombre (máx. 100), identificacion (5-15 dígitos, única), correo (válido,
+     único, se guarda en minúsculas), password (mín. 8, con confirmación), tipo_cuenta (estandar o
+     familiar) y consentimiento (obligatorio).
+  2. El controlador traduce identificacion -> users.cedula y correo -> users.email.
+  3. rol = tipo_cuenta, activo = true, consentimiento_datos_at = ahora. Se asignan a mano porque rol y
+     activo NO son asignables en masa.
+  4. La contraseña se guarda con hash (el modelo User la declara con cast 'hashed').
+  5. Se inicia sesión, se regenera la sesión y se va al panel con "Registro exitoso".
+  Errores: "Este correo ya se encuentra registrado", cédula repetida, contraseña corta, etc.; se
+  conservan los datos escritos menos la contraseña.
+
+LOGIN (POST /iniciar-sesion, login.entrar)
+  1. LoginRequest intenta Auth::attempt con email + password.
+  2. Falla -> "Usuario o contraseña incorrectos" (igual si el correo no existe).
+  3. Acierta pero users.activo = false -> se cierra y avisa "Tu cuenta está suspendida...".
+  4. 5 fallos en un minuto para el mismo correo + IP -> bloqueo con "Demasiados intentos fallidos.
+     Intenta de nuevo en N segundos." (aunque la contraseña sea correcta). Un acierto reinicia la cuenta.
+  5. Éxito: se regenera la sesión. Destino: administrador -> admin.estadisticas; los demás -> panel;
+     si venía de una URL protegida, vuelve a ella.
+
+LOGOUT (POST /cerrar-sesion, logout): cierra sesión, invalida la sesión, regenera el token, va a inicio.
+
+RECUPERAR CONTRASEÑA
+  1. POST /recuperar-contrasena (password.email, máx. 5 por minuto): siempre responde
+     "Si el correo está registrado, te enviamos un enlace...", exista o no.
+  2. El enlace (password.reset) apunta a /restablecer-contrasena/{token}. En desarrollo no sale por
+     correo: se busca en storage/logs/laravel.log.
+  3. POST /restablecer-contrasena (password.update): si el token es válido cambia la contraseña y va
+     al login con un aviso. Token reutilizado, vencido o falso -> "El enlace no es válido o ya venció".
+
+
+----------------------------------------------------------------------
+4. SEGURIDAD: QUÉ PROTEGE CADA COSA
+----------------------------------------------------------------------
+  Nadie puede crearse como administrador ...... tipo_cuenta solo admite estandar|familiar; rol/activo
+                                                 no son fillable (prueba: campos extra se ignoran).
+  No se puede saber qué correos existen ....... mismo mensaje en login, en recuperar y en cuenta
+                                                 suspendida con contraseña mala.
+  Adivinar contraseñas ......................... 5 intentos por minuto por correo + IP.
+  Fijación de sesión ........................... la sesión se regenera al registrarse y al entrar.
+  CSRF ......................................... logout y todos los formularios llevan @csrf; no
+                                                 existe logout por GET (prueba: devuelve 405).
+  Contraseñas .................................. siempre con hash ($2y$...), nunca en texto plano.
+
+
+----------------------------------------------------------------------
+5. CÓMO LO USAN LOS DEMÁS (Nikol y Valeria)
+----------------------------------------------------------------------
+  - El usuario actual es auth()->user() (nombre, email, rol, ingreso_mensual...). Todas las consultas
+    parten de ahí. Ya no hay ?rol= en la URL: para probar otro rol, inicia sesión con otra cuenta.
+  - Cuentas de prueba (solo APP_ENV=local, tras php artisan migrate:fresh --seed), contraseña "password":
+      estandar@test.com · familiar@test.com · admin@test.com
+  - En pruebas automáticas: $this->actingAs(User::factory()->create());
+      administrador:  User::factory()->administrador()->create()
+      familiar:       User::factory()->familiar()->create()
+      suspendido:     User::factory()->inactivo()->create()
+  - Mensajes de éxito: redirect()->route(...)->with('exito', '...'); los muestra <x-toast />.
+  - Si una ruta privada da "Route [login] not defined" o redirige en bucle, avisen a Juan.
+
+
+----------------------------------------------------------------------
+6. CÓMO PROBARLO A MANO
+----------------------------------------------------------------------
+  1. php artisan migrate:fresh --seed   y   php artisan serve
+  2. /crear-usuario: registra a alguien nuevo (tarjeta estándar y luego familiar). Debe llegar al panel.
+  3. Cierra sesión. Entra con una contraseña mala: mensaje genérico. Hazlo 6 veces: mensaje de espera.
+  4. Entra con admin@test.com: debe ir a /admin/estadisticas.
+  5. /recuperar-contrasena: escribe un correo, busca el enlace en storage/logs/laravel.log, ábrelo,
+     cambia la contraseña y entra con la nueva. Abre el mismo enlace otra vez: debe fallar.
+  6. Cerrada la sesión, abre /gastos: debe llevar al login, y al entrar volver a /gastos.
+  Pruebas automáticas: php artisan test --filter=AuthTest   (o php artisan test para todas).
+
+
+----------------------------------------------------------------------
+7. LIMITACIONES CONOCIDAS (se resuelven después)
+----------------------------------------------------------------------
+  - J4 pendiente: sin 'cuenta.activa' ni 'rol:...' un administrador con sesión puede abrir rutas de
+    estándar/familiar, y una cuenta suspendida que ya tenía sesión abierta no se expulsa.
+  - Login con identificación (decisión #1): no se hizo; se entra solo con correo.
+  - "Recordarme": soportado en el código, pero la vista no tiene la casilla.
+  - Correo real (SMTP) de recuperación: se configura en J9; en desarrollo se lee en el log.
+  - Las cabeceras de recuperar-contrasena y restablecer-contrasena (comentarios) aún dicen
+    "usuarios/correo": marcarlas HECHO a mano.
+
+
+----------------------------------------------------------------------
+8. TEXTO PARA EL PULL REQUEST
+----------------------------------------------------------------------
+Título: [J3] Autenticación real
+
+Qué se hizo
+- Registro, login, cierre de sesión y recuperación de contraseña con controladores y FormRequests.
+- Límite de 5 intentos por minuto; mensajes genéricos que no revelan si un correo existe.
+- Rutas privadas con 'auth'; se eliminó UsuarioMaqueta.
+- Correo de recuperación en español.
+
+Rutas tocadas (nombres sin cambios): login, login.entrar, registro, registro.guardar,
+password.request, password.email, password.reset, password.update, logout.
+
+Cómo probar: php artisan migrate:fresh --seed; php artisan test --filter=AuthTest (32 pruebas);
+cuentas estandar@test.com, familiar@test.com y admin@test.com con contraseña "password".
+
+Notas para quien revise
+- rol y activo se asignan a mano (no son fillable).
+- Falta J4 (cuenta.activa y rol): ver "Limitaciones conocidas".
+- Adjuntar capturas del login y del registro a 1440 y 390 px.
+
+Lista de terminado: [x] hace lo que dice la guía  [x] nombres de ruta sin cambios  [x] mensajes
+exactos  [x] pruebas pasan  [x] cabeceras actualizadas  [ ] capturas  [ ] revisada por otra persona
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================

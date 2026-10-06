@@ -6,17 +6,17 @@
   RUTA    : GET /iniciar-sesion (login) · POST (login.entrar) · middleware guest
   DATOS QUE LLEGAN DEL CONTROLADOR:
     - $errors / old()
-  BASE DE DATOS: usuarios (correo, password, estado).
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear LoginController@create y @store.
-    2. En @store: validar, intentar Auth::attempt, rechazar cuentas suspendidas, regenerar la
-       sesión.
-    3. Error de credenciales con el texto exacto: "Usuario o contraseña incorrectos" (sin decir
-       cuál falló).
-    4. Redirigir por rol: estándar/familiar → panel; administrador → admin.estadisticas.
-    5. Limitar intentos fallidos (RateLimiter) por correo + IP.
-    6. Si se aprueba login con identificación (decisión #1), aceptar correo O identificación en el
-       mismo campo y cambiar la etiqueta.
+  ESTADO  : HECHO (J3, 2026-10-06, Juan). Controlador: Auth\LoginController. Validación e
+            intentos: Auth\LoginRequest.
+  BASE DE DATOS: users (email, password, activo). El campo del formulario se llama "correo".
+  QUÉ SE HIZO:
+    - Auth::attempt; error de credenciales con el texto exacto "Usuario o contraseña incorrectos"
+      (sin decir cuál falló).
+    - Cuenta suspendida (activo = false): se rechaza solo si la contraseña era correcta.
+    - Límite: 5 intentos fallidos por minuto por correo + IP (después, mensaje de espera).
+    - Redirección: estandar/familiar -> panel; administrador -> admin.estadisticas (o a la URL
+      protegida que intentaron abrir).
+    - Pendiente: login con identificación (decisión #1) no se hizo; se entra solo con correo.
   CÓMO HACERLO / NOTAS:
     - Logout: POST a la ruta "logout" (botón de la barra superior).
     - Si hay diseño original de esta pantalla, reemplazar el contenido conservando @csrf, name= y
