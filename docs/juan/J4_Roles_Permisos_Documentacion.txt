@@ -1,0 +1,200 @@
+======================================================================
+J4 - ROLES, PERMISOS Y AISLAMIENTO DE DATOS  ·  DOCUMENTACIÓN DE LO QUE CAMBIÓ
+Responsable: Juan · Fecha: 2026-10-06 · Rama: juan/j4-roles-y-permisos
+======================================================================
+Estado: HECHO. php artisan test => 77 pruebas, 319 aserciones, todas pasan (incluye J2, J3, J4 y
+las de CalculadoraCredito de Valeria). Las de J4: PermisosTest (10) y AislamientoTest (10).
+
+
+----------------------------------------------------------------------
+1. QUÉ SE HIZO (en una frase por pieza)
+----------------------------------------------------------------------
+  cuenta.activa ....... expulsa a quien tenga la cuenta suspendida, aunque ya estuviera dentro.
+  rol:... ............. cada grupo de rutas solo admite sus roles; los demás reciben 403.
+  Policies ............ el dueño ve, edita y borra lo suyo; un ajeno recibe 403.
+  Scope delUsuario .... filtro "solo lo de este usuario" para listados y totales.
+  Matriz de pruebas ... rol x ruta y dueño x ajeno, para no romper nada al agregar módulos.
+
+
+----------------------------------------------------------------------
+2. ARCHIVOS NUEVOS Y MODIFICADOS
+----------------------------------------------------------------------
+NUEVOS
+  app/Http/Middleware/CuentaActiva.php ............ alias 'cuenta.activa'
+  app/Http/Middleware/RolRequerido.php ............ alias 'rol'
+  app/Policies/PoliticaDeDueno.php ................ regla base (abstracta) de las Policies de dueño
+  app/Policies/GastoPolicy.php
+  app/Policies/GastoFijoPolicy.php ................ + habilidad 'pagar'
+  app/Policies/SimulacionCreditoPolicy.php ........ update = false
+  app/Policies/NotificacionPolicy.php
+  app/Policies/InformePolicy.php .................. update y delete = false
+  app/Policies/CategoriaPolicy.php ................ propias / del sistema / ajenas / administrador; 'usar'
+  app/Models/Concerns/PerteneceAUsuario.php ....... scope delUsuario
+  tests/Feature/PermisosTest.php .................. 10 pruebas
+  tests/Feature/AislamientoTest.php ............... 10 pruebas
+
+MODIFICADOS
+  routes/web.php .................. grupo privado = auth + cuenta.activa; rol por grupo (C, D, E)
+  bootstrap/app.php ............... alias 'cuenta.activa' y 'rol'
+  app/Models/{Gasto, GastoFijo, PagoGastoFijo, SimulacionCredito, Informe, Notificacion}.php
+                                    usan el trait PerteneceAUsuario (Gasto ya tenía su scope; ahora
+                                    todos usan el mismo)
+  docs/backend/04-middleware.php y 05-policies.php ... pasan de "plan vacío" a documentación real
+  Arquitectura_Cuentas_Claras.txt y DECISIONES.md .... actualizados
+
+NO SE TOCÓ: el diseño, los nombres de ruta, la base de datos (no hay migraciones nuevas).
+
+
+----------------------------------------------------------------------
+3. QUIÉN ENTRA A QUÉ (MATRIZ DE ROLES, PROBADA)
+----------------------------------------------------------------------
+  Grupo  Rutas                                                      estandar  familiar  administrador
+  -----  ---------------------------------------------------------  --------  --------  -------------
+  B      ajustes.perfil, ajustes.tipo-cuenta, ajustes.eliminar-cuenta   200       200        200
+  C      panel, gastos.index, categorias.index, gastos-fijos.index,
+         notificaciones.index, creditos.simulador, creditos.historial,
+         informes.actual, informes.historial                            200       200        403
+  D      metas.index, metas.invitaciones                                403       200        403
+  E      admin.usuarios, admin.categorias, admin.estadisticas           403       403        200
+  Sin sesión: todas redirigen a /iniciar-sesion.
+  También se prueban las acciones que modifican: POST gastos y POST creditos como administrador (403),
+  POST metas como estándar (403), PUT/DELETE de admin/usuarios como estándar (403).
+
+
+----------------------------------------------------------------------
+4. REGLAS DE LAS POLICIES
+----------------------------------------------------------------------
+  Modelo              ver     editar   borrar   Notas
+  ------------------  ------  -------  -------  ------------------------------------------------------
+  Gasto               dueño   dueño    dueño
+  GastoFijo           dueño   dueño    dueño    + 'pagar': solo el dueño
+  Notificacion        dueño   dueño    dueño
+  SimulacionCredito   dueño   nadie    dueño    se calcula otra y se guarda como nueva
+  Informe             dueño   nadie    nadie    en meses cerrados no se recalcula; lo genera el servicio
+  Categoria propia    dueño   dueño    dueño    + 'usar'
+  Categoria sistema   todos   nadie*   nadie*   *el administrador sí edita; borrar queda en false (#23)
+  Meta                -       -        -        PENDIENTE: la hace J5 (solo participantes)
+  ADMINISTRADOR: en las Policies de datos financieros siempre recibe false (doble protección además
+  del middleware). En categorías solo gestiona las del sistema.
+  Respuesta cuando no se puede: 403 (no 404).
+
+
+----------------------------------------------------------------------
+5. CÓMO FUNCIONA CADA PIEZA
+----------------------------------------------------------------------
+CuentaActiva: en cada petición mira users.activo. Si es false: cierra sesión, invalida la sesión,
+  regenera el token y manda al login con "Tu cuenta está suspendida. Comunícate con el administrador."
+  Si la petición pide JSON responde 403. Ejemplo: el administrador suspende a Ana mientras navega;
+  en su siguiente clic vuelve al login.
+RolRequerido: recibe los roles permitidos desde la ruta (rol:estandar,familiar). Si el rol no está en
+  la lista, 403 "No tienes permiso para esta sección." Se aplica por grupo en routes/web.php.
+PoliticaDeDueno: compara users.id con user_id del registro. El administrador siempre false. Las
+  Policies concretas solo la extienden (y cambian lo que haga falta).
+PerteneceAUsuario: Gasto::delUsuario($id) = where user_id = $id (con el nombre de la tabla, para que
+  funcione aunque haya joins).
+
+
+----------------------------------------------------------------------
+6. CÓMO LO USAN NIKOL Y VALERIA (NOTA PARA SUS CONTROLADORES)
+----------------------------------------------------------------------
+En CADA controlador con datos propios:
+
+  // 1. Listar: siempre desde el scope, nunca Gasto::all()
+  $this->authorize('viewAny', Gasto::class);
+  $gastos = Gasto::delUsuario(auth()->id())->latest('fecha')->paginate(15);
+
+  // 2. Un registro puntual: autorizar ANTES de leer o cambiar
+  $this->authorize('update', $gasto);          // 403 si es de otra persona
+  $gasto->update($request->validated());
+
+  // 3. Guardar algo con categoría: la categoría debe ser propia o del sistema
+  $categoria = Categoria::findOrFail($request->validated('categoria_id'));
+  $this->authorize('usar', $categoria);
+
+  // 4. El dueño sale de la sesión, NUNCA del formulario
+  Gasto::create([...$request->validated(), 'user_id' => auth()->id()]);
+
+  // 5. Totales y contadores también con scope (la fuga silenciosa más común)
+  Gasto::delUsuario(auth()->id())->whereMonth('fecha', 9)->sum('monto');
+
+Reglas:
+  - Ocultar un botón con @can NO es seguridad: la protección va en el controlador.
+  - Al terminar cada módulo, agreguen su ruta a la lista de su grupo en PermisosTest y escriban su
+    prueba: (a) el dueño puede, (b) un ajeno recibe 403 y el dato no cambia, (c) el administrador
+    recibe 403. Como ejemplo copien la prueba "un ajeno recibe 403 y el gasto no cambia" de
+    tests/Feature/AislamientoTest.php.
+  - Si necesitan una habilidad que no existe en una Policy (por ejemplo "archivar"), pídansela a
+    Juan o agréguenla en la Policy de su módulo y avísenle en el PR.
+  - La plantilla de las rutas no cambia: los permisos van en routes/web.php, no en los archivos de módulo.
+
+
+----------------------------------------------------------------------
+7. CRITERIOS DE ACEPTACIÓN DE LA TARJETA
+----------------------------------------------------------------------
+  [x] Cada rol solo accede a sus grupos; el resto da 403 ................ PermisosTest
+  [x] Una cuenta desactivada es expulsada en la siguiente petición ....... PermisosTest
+  [x] Existe una Policy por cada modelo con dueño .......................... 6 Policies (Meta en J5)
+  [x] Pruebas de permisos que se pueden ampliar con una fila por ruta ..... listas por grupo en PermisosTest
+  [~] Con dos cuentas, ninguna ve ni modifica datos de la otra en NINGUNA ruta:
+      la infraestructura está probada (Policies, scope y una ruta de prueba completa), pero las rutas
+      reales de gastos, categorías, etc. todavía son maqueta. Cada módulo (N1, N2, N3, N4, V1, V2,
+      V3, J5...) debe usar authorize() y delUsuario() y traer su prueba de aislamiento. La tarjeta
+      de J4 se da por cumplida con la infraestructura; el aislamiento por ruta se verifica en cada PR.
+
+
+----------------------------------------------------------------------
+8. CÓMO PROBARLO A MANO
+----------------------------------------------------------------------
+  1. php artisan migrate:fresh --seed   y   php artisan serve
+  2. Entra con estandar@test.com: puedes abrir /gastos; /metas da 403; /admin/usuarios da 403.
+  3. Entra con familiar@test.com: /metas abre; /admin/usuarios da 403.
+  4. Entra con admin@test.com: /admin/estadisticas abre; /gastos da 403.
+  5. Con la sesión de estandar@test.com abierta, suspende la cuenta desde la consola:
+       php artisan tinker
+       >>> App\Models\User::where('email','estandar@test.com')->update(['activo' => false]);
+     y haz clic en cualquier enlace: vuelve al login con el aviso de cuenta suspendida.
+     (Para reactivarla: ...->update(['activo' => true]).)
+  6. php artisan test   (todo debe pasar: 77 pruebas).
+
+
+----------------------------------------------------------------------
+9. LIMITACIONES Y PENDIENTES
+----------------------------------------------------------------------
+  - MetaPolicy (solo participantes; de los aportes solo ver los propios): se hace en J5.
+  - La página 403 es la estándar de Laravel; una versión con el diseño de la app queda como mejora.
+  - Aislamiento por ruta real: se verifica módulo por módulo (ver sección 7).
+  - bootstrap/app.php: las líneas "use App\Http\Middleware\..." deben estar ARRIBA del archivo, junto
+    a los demás "use". Dentro de la función withMiddleware dan error de sintaxis.
+  - El administrador no puede borrar categorías del sistema hasta cerrar la decisión #23.
+
+
+----------------------------------------------------------------------
+10. TEXTO PARA EL PULL REQUEST
+----------------------------------------------------------------------
+Título: [J4] Roles y permisos
+
+Qué se hizo
+- Middleware 'cuenta.activa' (expulsa cuentas suspendidas) y 'rol' (403 según el rol).
+- Rutas privadas con auth + cuenta.activa; grupos C, D y E con su rol.
+- Policies: Gasto, GastoFijo, SimulacionCredito, Notificacion, Informe y Categoria; el administrador
+  queda bloqueado en las financieras.
+- Scope delUsuario en todos los modelos con dueño.
+- 20 pruebas nuevas (PermisosTest y AislamientoTest).
+
+Matriz rol x ruta probada: ver sección 3 de J4_Roles_Permisos_Documentacion.txt.
+Policies creadas: Gasto, GastoFijo, SimulacionCredito, Notificacion, Informe, Categoria
+(Meta llega con J5).
+
+Cómo probar: php artisan migrate:fresh --seed; php artisan test (77 pruebas); cuentas
+estandar@test.com, familiar@test.com y admin@test.com con contraseña "password".
+
+Notas para quien revise
+- Se responde 403 (no 404) cuando el recurso es ajeno.
+- No se usa global scope a propósito (ver DECISIONES.md).
+
+Lista de terminado: [x] hace lo que dice la guía  [x] nombres de ruta sin cambios  [x] pruebas pasan
+[x] cabeceras y documentación actualizadas  [ ] revisada por otra persona
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================

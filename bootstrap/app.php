@@ -4,6 +4,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use App\Http\Middleware\CuentaActiva;
+use App\Http\Middleware\RolRequerido;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
        $middleware->redirectUsersTo(fn () => auth()->user()->rol === 'administrador'
        ? route('admin.estadisticas')
        : route('panel'));
+
+        $middleware->alias([
+            'cuenta.activa' => CuentaActiva::class,
+            'rol'           => RolRequerido::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
