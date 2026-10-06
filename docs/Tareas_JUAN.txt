@@ -1,0 +1,924 @@
+======================================================================
+CUENTAS CLARAS - TAREAS DE JUAN
+Guía personal: qué haces, qué necesitas de los demás y a quién le entregas
+======================================================================
+
+Este documento es SOLO para Juan. Es una parte del reparto completo (ver Reparto_Trabajo_Cuentas_Claras_Detallado.txt y los otros dos documentos personales).
+
+Eres el responsable de lo más difícil: la base sobre la que trabajan las demás (proyecto, base de datos, permisos), las metas compartidas, las alertas y la seguridad y el despliegue final. Tus tareas desbloquean a Nikol y Valeria: por eso J1, J2 y J4 tienen prioridad sobre todo lo demás.
+
+Orden sugerido: J1 → J2 → J4 → J3 → J5 → J6 (mínimo) → J8 (cuentas) → J6 (completo) → J7 → J8 (dashboard) → J9.
+
+Etiquetas: [CONTRATO] acuerdo entre dos personas · [DECISIÓN #N] punto pendiente de la especificación · C1..C11 = contratos (sección 3).
+
+CUENTAS CLARAS - CONTRATOS ENTRE MÓDULOS (C1 a C11)
+Un contrato es un acuerdo entre dos personas: qué se entrega, quién lo entrega y quién lo usa.
+
++----------+------------------------------------------------+---------------+------------------------------------+
+| Contrato | Qué es                                         | Lo entrega    | Lo usa                             |
++==========+================================================+===============+====================================+
+| C1       | Consulta de gastos por mes y total del mes     | Nikol         | Valeria (informes) y Juan          |
+|          |                                                |               | (dashboard)                        |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C2       | El bloque 50/30/20 de cada categoría           | Nikol y Juan  | Valeria                            |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C3       | Ingreso mensual del usuario                    | Valeria       | Valeria (simulador e informes) y   |
+|          |                                                |               | Juan (dashboard)                   |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C4       | Servicio de notificaciones                     | Juan          | Nikol                              |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C5       | Función que crea los pagos del mes de cada     | Nikol         | Juan (alertas diarias)             |
+|          | gasto fijo y detecta los que vencen en 3 días  |               |                                    |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C6       | "El usuario tiene metas activas"               | Juan          | Valeria (tipo de cuenta)           |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C7       | Cambiar tipo de cuenta y eliminar cuenta       | Juan          | Valeria                            |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C8       | Variables del armazón                          | Juan          | Todos                              |
+|          | ($notificacionesPendientes, mensaje de éxito,  |               |                                    |
+|          | usuario y rol)                                 |               |                                    |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C9       | Nombres de las rutas                           | Juan          | Todos                              |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C10      | Permisos (middleware y Policies)               | Juan          | Todos                              |
++----------+------------------------------------------------+---------------+------------------------------------+
+| C11      | Categorías globales del sistema                | Juan          | Nikol y Valeria                    |
++----------+------------------------------------------------+---------------+------------------------------------+
+
+Cómo usarlos:
+- Quien entrega el contrato lo documenta en un comentario y no le cambia el nombre sin avisar.
+- Quien lo usa lo llama tal cual; no modifica el código interno de la otra persona.
+- Si el contrato aún no está listo, se avanza con datos falsos y se conecta cuando llegue.
+
+----------------------------------------------------------------------
+1. TUS DEPENDENCIAS DE UN VISTAZO
+----------------------------------------------------------------------
+
+Para cada tarea: de quién esperas algo, con quién trabajas en conjunto y a quién le entregas.
+
+J1  (Semana 0)
+  Espera a ........ nadie (arranca el proyecto)
+  Trabaja con ..... Nikol y Valeria (verificar que el entorno les corre)
+  Entrega a ....... todas: rutas, armazón, maqueta
+
+J2  (Jueves de la semana 1)
+  Espera a ........ reunión de decisiones (#1, #2, #6, #9, #10, #12, #14); #6 y #9 las lleva Nikol y #12 Valeria
+  Trabaja con ..... Nikol y Valeria (revisan las tablas de su módulo)
+  Entrega a ....... todas: tablas, modelos y semillas
+==========================================================================================================================================================
+   | QUÉ HAY QUE DECIDIR                                        | QUÉ CAMBIA EN LA BASE DE DATOS         | QUIÉN LO LLEVA | SI NO SE DECIDE, SE USA
+==========================================================================================================================================================
+1  | ¿Se guarda la identificación (cédula)?                     | Columna cedula en users                | Juan           | Conservarla, porque el diseño del registro ya la trae
+2  | ¿Dónde se registra el ingreso mensual?                     | Columna ingreso_mensual en users       | Juan           | En Ajustes > Perfil
+6  | ¿Los gastos fijos solo son mensuales?                      | Columna de periodicidad en gastos_fijos| Nikol          | Solo mensual
+9  | ¿El pago lleva la clave de su gasto fijo?                  | Llave foránea en pagos_gasto_fijo      | Nikol          | Sí, agregarla
+10 | ¿Cómo se distinguen las categorías del sistema y usuario?  | user_id puede quedar vacío             | Juan           | Vacío significa "del sistema"
+12 | ¿A qué bloque 50/30/20 pertenece cada categoría?           | Columna bloque en categorias           | Valeria        | Tres bloques: necesidades, discrecionales y ahorro
+14 | ¿Se guarda un saldo?                                       | Si existe o no una tabla de saldo      | Juan           | No guardarlo; calcular el "disponible del mes"
+   (Cerradas el 2026-10-05 al hacer J2: #1, #2, #6, #9, #10, #12 y #14. #14: NO existe tabla de saldo. Ver DECISIONES.md.)
+
+
+J4  (Semanas 1-2)
+  Espera a ........ J2 (tablas)
+  Trabaja con ..... Nikol y Valeria (sesión para explicar el uso de Policies)
+  Entrega a ....... todas: permisos (C10)
+
+J3  (Semana 2)
+  Espera a ........ J1 y J2
+  Trabaja con ..... Nikol (enlaces de la landing a registro y login)
+  Entrega a ....... todas: poder iniciar sesión para probar
+
+J5  (Semanas 2-3)
+  Espera a ........ J2, J4 y J3 (usuarios familiares de prueba)
+  Trabaja con ..... Valeria (reglas de tipo de cuenta)
+  Entrega a ....... Valeria: C6 "tiene metas activas"
+
+J6  (Semanas 2 y 4)
+  Espera a ........ N3 de Nikol (C5: pagos por periodo) para la versión completa
+  Trabaja con ..... Nikol (probar el comando con sus gastos fijos)
+  Entrega a ....... Nikol: C4 mínimo (sem 2) y completo (sem 4)
+
+J7  (Semana 5)
+  Espera a ........ J4 y el servicio de cuentas de J8; el campo bloque (C2)
+  Trabaja con ..... Nikol (las categorías del sistema deben verse con candado en N2)
+  Entrega a ....... —
+
+J8  (Semanas 4-5)
+  Espera a ........ N1 (C1), V4 (C3), J5 y J6 para el dashboard; J5 para el servicio de cuentas
+  Trabaja con ..... Valeria (probar cambio de tipo y eliminar cuenta)
+  Entrega a ....... Valeria: C7 servicio de cuentas
+
+J9  (Semanas 5-7)
+  Espera a ........ todas las uniones a main
+  Trabaja con ..... Nikol y Valeria (pruebas integrales); Nikol (#21 landing); Valeria (lista V5)
+  Entrega a ....... el equipo: sitio publicado y documento de operación
+
+Regla: si la persona de la que dependes no ha entregado, NO te quedes parada/o: usa el "plan B" de la tarea (datos falsos o servicio simulado) y avanza en lo que no depende de ella.
+
+----------------------------------------------------------------------
+2. TUS PEDIDOS Y ENTREGAS POR PERSONA
+----------------------------------------------------------------------
+
+LO QUE NECESITAS DE OTROS:
+  - A Nikol: la consulta de gastos por periodo (C1) para tu dashboard, a fin de la semana 2;
+    la función de pagos por periodo (C5) para tus alertas, a fin de la semana 3.
+  - A Valeria: el ingreso mensual guardado (C3) para el dashboard, semana 2; su lista de
+    diferencias visuales (V5), semana 5.
+  - A las dos: confirmar versiones de PHP/Node (día 1), revisar las migraciones de su módulo
+    (semana 1) y estar en las pruebas integrales (semana 6).
+
+Cómo pedirlo: tarjeta "Pedido a <persona>" con qué necesitas, para qué tarea tuya (ID), para cuándo y qué contrato es. Ella o él responde en 24 horas con fecha de entrega; si no hay respuesta, escribes al grupo.
+
+----------------------------------------------------------------------
+3. TUS CARPETAS Y ARCHIVOS
+----------------------------------------------------------------------
+
+ARMAZÓN COMPARTIDO (solo tú; los demás piden cambios con una tarjeta "Pedido a Juan")
+  resources/views/layouts/{base,publico,app,admin}.blade.php
+  resources/views/components/{header,footer,sidebar,sidebar-admin,topbar,toast}.blade.php
+  public/css/style.css · public/js/shell.js
+  routes/web.php (índice) · database/migrations/*
+PÚBLICO / ACCESO
+  resources/views/publico/{crear-usuario,iniciar-sesion,recuperar-contrasena,restablecer-contrasena}.blade.php
+  public/js/crear-usuario.js · public/css/{crear-usuario,iniciar-sesion,recuperar-contrasena,restablecer-contrasena}.css
+  routes/modulos/auth.php
+PRIVADO
+  resources/views/app/dashboard.blade.php (css: dashboard-principal.css) · routes/modulos/panel.php
+  resources/views/app/metas/{index,invitaciones,show}.blade.php (css: metas-compartidas, invitaciones-metas, detalle-meta) · routes/modulos/metas.php
+ADMINISTRACIÓN
+  resources/views/admin/{usuarios,categorias,estadisticas}.blade.php (css: admin-usuarios, admin-categorias, admin-estadisticas) · routes/modulos/admin.php
+BACKEND
+  Migraciones y modelos de TODAS las tablas · semillas y fábricas
+  Controladores: Auth/*, DashboardController, MetaController, AporteMetaController, InvitacionMetaController, Admin/UsuarioController, Admin/CategoriaSistemaController, Admin/EstadisticaController
+  Servicios: ServicioMetas, ServicioNotificaciones, ServicioCuentas · comando diario de alertas (app/Console)
+  Middleware: CuentaActiva, Rol · Policies: todas · View Composer (app/Providers)
+  Requests de auth, metas y admin
+  Pruebas: Auth*, Metas*, Admin*, Permisos*, Aislamiento*, Alertas*
+
+TUS RUTAS (routes/web.php es el índice y solo tú lo cambias; URL y nombre definitivos)
+  web.php define los grupos: A pública · B sesión · C estándar/familiar · D solo familiar · E solo administrador
+  auth.php (Grupo A + logout)
+    GET     /iniciar-sesion                  login
+    POST    /iniciar-sesion                  login.entrar
+    GET     /crear-usuario                   registro
+    POST    /crear-usuario                   registro.guardar
+    GET     /recuperar-contrasena            password.request
+    POST    /recuperar-contrasena            password.email
+    GET     /restablecer-contrasena/{token}  password.reset
+    POST    /restablecer-contrasena          password.update
+    POST    /cerrar-sesion                   logout
+  panel.php (Grupo C)
+    GET     /panel                           panel
+  metas.php (Grupo D, solo familiar). /metas/invitaciones va ANTES de /metas/{meta}
+    GET     /metas                           metas.index
+    POST    /metas                           metas.store
+    GET     /metas/invitaciones              metas.invitaciones
+    POST    /metas/invitaciones/{participacion}/aceptar   metas.aceptar
+    POST    /metas/invitaciones/{participacion}/rechazar  metas.rechazar
+    GET     /metas/{meta}                    metas.show
+    POST    /metas/{meta}/invitar            metas.invitar
+    POST    /metas/{meta}/aportes            metas.aportes
+    POST    /metas/{meta}/finalizar          metas.finalizar
+    POST    /metas/{meta}/abandonar          metas.abandonar
+  admin.php (Grupo E, solo administrador). web.php ya pone el prefijo /admin y el
+  prefijo de nombre "admin.", así que dentro del archivo los nombres NO repiten "admin."
+    GET     /admin/usuarios                  admin.usuarios            (name 'usuarios')
+    PUT     /admin/usuarios/{usuario}/rol    admin.usuarios.rol
+    PUT     /admin/usuarios/{usuario}/estado admin.usuarios.estado
+    DELETE  /admin/usuarios/{usuario}        admin.usuarios.destroy
+    GET     /admin/categorias                admin.categorias          (name 'categorias')
+    POST    /admin/categorias                admin.categorias.store
+    PUT     /admin/categorias/{categoria}    admin.categorias.update
+    PATCH   /admin/categorias/{categoria}/desactivar  admin.categorias.desactivar
+    GET     /admin/estadisticas              admin.estadisticas        (name 'estadisticas')
+  Ya existen con vista (Route::view) o aviso "MAQUETA: esta acción aún no está
+  implementada". Reemplazas cada línea por su controlador, con el mismo nombre.
+  Mientras no exista J3, web.php simula un usuario de prueba (UsuarioMaqueta; se cambia
+  el rol con ?rol=estandar|familiar|administrador). Marcadores "// FASE 2" = donde entran
+  'auth', 'cuenta.activa' y 'rol:...'.
+LA CARPETA docs/backend (PARA QUÉ SIRVE)
+  Es solo documentación: planes escritos en comentarios, SIN código que se ejecute. Laravel no la
+  carga y no hay que modificarla ni borrarla. Se lee ANTES de escribir el backend de tu tarea (a ti te tocan sobre todo 00, 02, 03, 04, 05,
+  07 y 09; 01, 06 y 08 los comparte cada dueño de módulo):
+  dice qué crear, con qué nombres y en qué orden. Cada archivo es el plan de un tema:
+    00-rutas.php ................ rutas, nombres, URL y grupos de middleware (ya hechas en routes/)
+    01-controladores.php ........ qué controladores crear y qué hace cada método
+    02-modelos.php .............. modelos y relaciones
+    03-migraciones.php .......... tablas y columnas propuestas
+    04-middleware.php ........... cuenta.activa y rol
+    05-policies.php ............. quién puede ver/editar cada registro
+    06-servicios.php ............ lógica de negocio (CalculadoraCredito, GeneradorInforme, etc.)
+    07-alertas-programadas.php .. tarea diaria de alertas
+    08-validaciones.php ......... FormRequests de validación
+    09-view-composer.php ........ variables compartidas ($notificacionesPendientes)
+  Si lo que construyes cambia respecto a lo escrito allí, corrige el comentario en la misma
+  solicitud de unión (regla 2.6).
+
+
+----------------------------------------------------------------------
+4. REGLAS DE TRABAJO EN EQUIPO
+----------------------------------------------------------------------
+
+
+2.1 Repositorio y ramas
+  - Un solo repositorio (GitHub o GitLab), privado. Juan lo crea en J1.
+  - Rama "main": siempre funcional. NADIE sube directo a main.
+  - Una rama por tarea, con este nombre: feature/<persona>-<tarea>
+    Ejemplos: feature/nikol-n1-gastos · feature/valeria-v1-simulador ·
+    feature/juan-j5-metas.
+  - Se trabaja con ramas cortas (máximo una semana). Si una rama pasa de una
+    semana, se parte la tarea en dos.
+  - Antes de empezar cada día: traer lo último de main a tu rama.
+
+2.2 Solicitudes de unión (pull requests)
+  - Cada tarea termina en una solicitud de unión hacia main.
+  - Título: "[N1] Gastos: registrar, editar, eliminar y filtrar".
+  - Descripción: qué se hizo, qué archivos principales, cómo probarlo, qué
+    contratos usa o entrega, y capturas de pantalla a 1440 y 390 px.
+  - Quién revisa [PROPUESTA]:
+      * Lo de Nikol lo revisa Valeria (diseño y flujo) y Juan (seguridad y
+        permisos).
+      * Lo de Valeria lo revisa Nikol (diseño y flujo) y Juan (cálculo y permisos).
+      * Lo de Juan lo revisa Nikol o Valeria alternando (legibilidad y
+        pruebas de uso) y, en seguridad, el propio Juan hace una segunda revisión
+        con la lista de la sección 9.4.
+  - Máximo 24 horas para revisar una solicitud. Si hay comentarios, se
+    responden en el mismo día.
+  - Juan hace la unión final a main (quien más conoce el conjunto).
+
+2.3 Mensajes de commit
+  - En español, en presente, cortos: "Agrega filtro por mes en gastos".
+  - Un commit = un cambio con sentido. No subir "arreglos varios".
+
+2.4 Archivos compartidos: quién puede tocarlos
+  Estos archivos afectan a todos. Se cambian SOLO mediante solicitud de unión
+  aprobada por Juan, y avisando en el grupo:
+    - public/css/style.css (CSS global)
+    - resources/views/layouts/*  (base, publico, app, admin)
+    - resources/views/components/* (header, footer, sidebar, sidebar-admin, topbar, toast)
+    - public/js/shell.js
+    - routes/web.php (solo Juan; cada quien tiene su propio archivo de rutas, ver 3.2)
+    - database/migrations/* (solo Juan; ver 3.3)
+  Si necesitas un cambio ahí: abre una tarjeta "Pedido a Juan" con qué necesitas
+  y para qué. Si es urgente, escríbele; si no, espera a la reunión.
+
+2.5 Estilo y convenciones de código
+  - Vistas: seguir el formato de la plantilla (indentación de 2 espacios,
+    atributos largos uno por línea). No pegar HTML en una sola línea.
+  - PHP: formato estándar de Laravel (herramienta Pint). Antes de cada commit
+    ejecutar el formateo.
+  - Nombres de rutas, variables y campos: exactamente los de la plantilla (están
+    en los comentarios de cada vista). No inventar sinónimos.
+  - Colores y estilos: solo variables y clases del CSS global. Nada de colores
+    sueltos ni estilos escritos dentro de las etiquetas.
+  - Dinero: enteros en pesos. Textos de la interfaz en español.
+
+2.6 Comentarios: reglas para no perderse
+  - NO borrar el bloque de comentarios del inicio de cada archivo. Se ACTUALIZA:
+    cuando una tarea del bloque se termina, marcarla escribiendo "HECHO (fecha,
+    persona)" al lado.
+  - Si algo cambia respecto a lo escrito (nombre de ruta, de variable, de
+    campo), corregir el comentario en la misma solicitud de unión.
+  - Cada clase PHP nueva lleva un comentario inicial con: qué hace, quién la
+    usa, de qué depende y un ejemplo en texto.
+  - Los archivos LEEME.php de la plantilla (app/, routes/, database/) se
+    reemplazan por los archivos reales; el comentario de planeación se conserva
+    como cabecera del primer archivo real que lo sustituya.
+
+2.7 Pruebas
+  - Cada tarea incluye sus pruebas automáticas (carpeta tests/). Sin pruebas
+    de la regla principal no se acepta la tarea.
+  - Pruebas obligatorias por tema: cálculo de crédito (V1), privacidad de aportes
+    (J5), permisos por rol (J4), aislamiento entre usuarios (J4 y cada módulo), no
+    duplicar alertas (J6).
+
+2.8 Definición de terminado (una tarea está "Hecha" cuando...)
+  1. Hace lo que dice la sección de la guía de páginas (acciones, validaciones, mensajes).
+  2. Se ve igual a su code.html (o, si aún no existe, usa los componentes del CSS
+     global) a 1440, 768 y 390 px, sin scroll horizontal.
+  3. Usa los mensajes EXACTOS de la especificación.
+  4. Solo muestra datos del usuario que inició sesión (probado con dos usuarios).
+  5. Tiene estados vacío, error y éxito.
+  6. Tiene pruebas automáticas que pasan.
+  7. Actualizó los comentarios de cabecera de sus archivos.
+  8. Pasó revisión de otra persona y se unió a main.
+
+----------------------------------------------------------------------
+5. CONTRATOS QUE ENTREGAS Y QUE RECIBES
+----------------------------------------------------------------------
+
+Los contratos son acuerdos de qué se entrega y cómo se llama. Quien entrega lo documenta y lo mantiene estable; quien lo usa no lo modifica.
+
+CONTRATOS QUE TÚ ENTREGAS:
+
+C2  BLOQUE 50/30/20 DE CADA CATEGORÍA
+    Entrega: Nikol (N2) define el campo en el formulario de categorías; Juan (J2) lo
+    crea en la tabla y las semillas. Usa: Valeria (V3).
+    Qué debe cumplir: cada categoría pertenece a uno de tres bloques (necesidades,
+    discrecionales, ahorro). [DECISIÓN #12] se cierra antes (responsable Valeria,
+    con Nikol y Juan).
+    Cuándo: la tabla, fin de la semana 1; el formulario, semana 2.
+
+C4  SERVICIO DE NOTIFICACIONES
+    Entrega: Juan (J6). Usan: Nikol (N3 al marcar un pago, N4 en la pantalla), y la
+    campana de la barra superior (J1).
+    Qué debe cumplir: funciones para crear una notificación, cancelar las
+    pendientes ligadas a un pago de gasto fijo, marcar como leída y contar las
+    pendientes del usuario. Nikol NO crea notificaciones a mano: siempre usa este
+    servicio.
+    Cuándo: versión mínima (contar y cancelar) en la semana 2; completo en la semana 4.
+
+C6  METAS ACTIVAS DEL USUARIO
+    Entrega: Juan (J5), en ServicioMetas: "tieneMetasActivas(usuario)". Usa:
+    Valeria (V4: tipo de cuenta y eliminar cuenta).
+    Cuándo: semana 3.
+
+C7  CAMBIO DE TIPO DE CUENTA Y ELIMINACIÓN DE CUENTA
+    Entrega: Juan (J8), en ServicioCuentas: cambiar tipo (con la regla de metas
+    activas) y eliminar cuenta (borrado completo y manejo de metas). Usa: Valeria
+    (V4). Valeria solo arma la pantalla, la validación y llama al servicio.
+    Cuándo: semana 4.
+
+C8  VARIABLES DEL ARMAZÓN
+    Entrega: Juan (J1). Usan: todos.
+    Qué debe cumplir: la variable $notificacionesPendientes disponible en todas las
+    vistas privadas; el mensaje flash 'exito' que muestra <x-toast />; el usuario
+    autenticado con nombre y rol; la ruta "logout".
+
+C9  NOMBRES DE RUTAS
+    Entrega: Juan (J1) deja el índice con TODOS los nombres. Usan: todos.
+    Los nombres y URL no se cambian. Si hace falta uno nuevo, se agrega a
+    docs/backend/00-rutas.php y al comentario de su archivo de routes/modulos/ en la
+    misma solicitud de unión (el índice de TODOS los nombres es docs/backend/00-rutas.php).
+
+C10 PERMISOS (POLICIES Y MIDDLEWARE)
+    Entrega: Juan (J4). Usan: todos.
+    Qué debe cumplir: middleware "cuenta.activa" y "rol"; una Policy por recurso
+    (gasto, categoría, gasto fijo, simulación, notificación, informe, meta). Cada
+    controlador llama a la autorización antes de leer o modificar un registro.
+
+C11 CATEGORÍAS GLOBALES
+    Entrega: Juan (J2: semillas; J7: administración). Usan: Nikol (N1, N2), Valeria (V3).
+    Qué debe cumplir: categorías con usuario vacío = del sistema; se ven para todos y
+    no se editan desde la zona del usuario.
+
+CONTRATOS QUE TÚ RECIBES (de los que dependes):
+
+C1  CONSULTA DE GASTOS POR PERIODO
+    Entrega: Nikol (N1). Usan: Valeria (V3 informe), Juan (J8 dashboard).
+    Qué debe cumplir: una forma única de pedir "los gastos del usuario en un mes y
+    año" y "el total del mes", ya filtrada por usuario, que excluya gastos eliminados
+    y agrupable por categoría. Se llama, por ejemplo, el alcance "delPeriodo(año, mes)"
+    y el método "totalDelMes".
+    Cuándo: fin de la semana 2.
+
+C3  INGRESO MENSUAL DEL USUARIO
+    Entrega: Valeria (V4) guarda el ingreso en Ajustes > Perfil. Usan: Valeria
+    (simulador V1 e informes V3), Juan (dashboard J8).
+    Qué debe cumplir: un único campo "ingreso mensual" del usuario, en pesos
+    enteros, que puede estar vacío (las pantallas deben manejar el caso vacío).
+    Juan crea la columna en J2. Mientras V4 no esté lista, el simulador usa el
+    valor de la semilla de prueba.
+    Cuándo: V4 parte del ingreso, en la semana 2.
+
+C5  GENERACIÓN DE PAGOS POR PERIODO DE GASTOS FIJOS
+    Entrega: Nikol (N3), en ServicioGastosFijos. Usa: Juan (J6, la tarea diaria).
+    Qué debe cumplir: una función que, para una fecha dada, crea el pago del mes
+    de cada gasto fijo activo (uno por gasto y periodo, sin duplicar), marca los
+    vencidos y devuelve los pagos que vencen dentro del plazo de anticipación
+    (3 días). Juan solo la llama y genera las alertas.
+    Cuándo: fin de la semana 3.
+
+Mientras el backend de otra persona no esté listo se trabaja con "rutas de maqueta". NO hay un archivo
+aparte (no existe routes/maqueta.php): Juan deja en J1 cada archivo de routes/modulos/ con TODAS las rutas de su
+módulo, ya con el URL y el nombre definitivos. Cada una devuelve su vista (Route::view) o, si es POST/PUT/DELETE,
+el aviso "MAQUETA: esta acción aún no está implementada". Cuando llega el controlador real, el dueño del módulo
+reemplaza esa línea por [Controlador::class, 'metodo'] sin cambiar URL ni nombre. Si necesitas datos falsos,
+los pasas desde la misma ruta, por ejemplo: Route::get('/gastos', fn () => view('app.gastos.index', ['gastos' => $falsos]))->name('gastos.index').
+Mientras no exista el inicio de sesión (J3), web.php simula un usuario de prueba para que el menú y la barra
+superior funcionen; el rol se cambia con ?rol=estandar, ?rol=familiar o ?rol=administrador en la URL. Las semillas de prueba (usuarios, categorías, gastos de ejemplo) las crea Juan en J2.
+
+----------------------------------------------------------------------
+6. TU CALENDARIO SEMANA A SEMANA
+----------------------------------------------------------------------
+
+Duración orientativa: 7 semanas con dedicación parcial [PROPUESTA; ajustar a la disponibilidad real].
+
+SEMANA 0 (primeros 3 días): ARRANQUE
+  Tú: J1 completo (repositorio, Laravel, plantilla copiada, layouts funcionando, rutas de
+  maqueta, índice de rutas por módulo, View Composer básico).
+
+  Todos: reunión de decisiones (sección 12) para cerrar las que afectan las tablas: #1, #2, #6, #9, #10, #12, #14.
+
+SEMANA 1: LA BASE
+  Tú: J2 (tablas, modelos, semillas) y J4 (middleware y policies). Meta de la semana: dejar
+  en main las tablas y las semillas antes del jueves.
+
+SEMANA 2: AUTENTICACIÓN Y FLUJOS BÁSICOS
+  Tú: J3 (autenticación) y arranque de J5 (metas: modelo, reglas, invitar).
+
+SEMANA 3: MÓDULOS GRANDES
+  Tú: J5 (aceptar/rechazar, aportes, avance, finalizar, abandonar, privacidad).
+
+SEMANA 4: ALERTAS Y CUENTAS
+  Tú: J6 (alertas y notificaciones completas) y J8 parte "servicio de cuentas" (C7).
+
+SEMANA 5: ADMINISTRACIÓN, PANEL Y PULIDO
+  Tú: J7 (administración) y J8 (dashboard).
+
+SEMANA 6: INTEGRACIÓN
+  Tú: J9 (seguridad, despliegue, copias de seguridad, cron).
+
+  Todos: pruebas integrales con las listas de las secciones 9 y 10; correcciones.
+
+SEMANA 7: COLCHÓN
+  Sin tareas propias (apoyo y revisión si hace falta).
+
+----------------------------------------------------------------------
+7. TUS TAREAS EN DETALLE (con dependencias)
+----------------------------------------------------------------------
+
+======================================================================
+J1  PROYECTO, ENTORNO Y ARMAZÓN VISUAL  (5 puntos) · Semana 0
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - Nadie: es el arranque.
+    - Que Nikol y Valeria confirmen sus versiones de PHP, Composer, Node y base de datos
+      (pídeselo el día 1).
+  TRABAJAR EN CONJUNTO CON:
+    - Nikol y Valeria: 30 minutos para comprobar que clonan, instalan y ven la pantalla de
+      maqueta.
+  TÚ ENTREGAS A:
+    - Todas: rutas y nombres (C9), armazón y variables (C8), rutas de maqueta, tablero con
+      tarjetas.
+  MIENTRAS ESPERAS (plan B):
+    - Si algo del entorno falla a una de ellas, resolver primero eso: nadie avanza sin
+      proyecto corriendo.
+
+Objetivo: dejar el proyecto corriendo con las plantillas y los componentes para
+que Nikol y Valeria empiecen sin esperar.
+Archivos: raíz del proyecto, .env, routes/web.php, routes/modulos/*,
+  app/Providers/AppServiceProvider.php, resources/views/layouts/*, resources/views/components/*,
+  app/Providers (View Composer), public/ (CSS, JS, img).
+Pasos:
+  1. Crear el repositorio privado, la rama main protegida y el archivo de
+     instrucciones de instalación para el equipo (versiones de PHP, Composer, Node,
+     base de datos).
+  2. Crear el proyecto Laravel y copiar public/ y resources/ de la plantilla; mover
+     los LEEME.php a sus carpetas reales.
+  3. Configurar .env.example (sin secretos), base de datos local y zona horaria de
+     Colombia. Cada quien crea su propio .env; NUNCA se sube.
+  4. Descargar el logo y las imágenes externas a public/img y cambiar los src (ver
+     public/img/LEEME.txt).
+  5. Crear routes/web.php como índice (grupos A a E de docs/backend/00-rutas.php, hoy sin
+     middleware real) y routes/modulos/ con un archivo por módulo (sección 3.2) que ya declare
+     TODAS sus rutas con el URL y el nombre definitivos: Route::view para las pantallas y, para
+     los POST/PUT/DELETE, un aviso "MAQUETA: esta acción aún no está implementada". NO se crea
+     routes/maqueta.php: las rutas de maqueta son las mismas rutas definitivas.
+     En web.php, un middleware temporal (UsuarioMaqueta) simula un usuario con nombre y rol
+     (el menú lateral lee auth()->user()->rol y falla sin usuario); el rol se cambia con
+     ?rol=estandar|familiar|administrador. Dejar marcados con "// FASE 2" los lugares donde
+     entrarán 'auth', 'cuenta.activa' y 'rol:...'. admin.php va dentro de un grupo con
+     prefix('admin') y name('admin.'), así que sus nombres se escriben sin repetir "admin.".
+  6. Crear el View Composer (en app/Providers/AppServiceProvider.php) que comparte
+     $notificacionesPendientes con layouts.app, layouts.admin y components.topbar (al inicio
+     devuelve 0) y la ruta "logout" (POST /cerrar-sesion, en routes/modulos/auth.php).
+     En el .env de desarrollo usar SESSION_DRIVER=file y CACHE_STORE=file hasta que J2 deje
+     las tablas (con "database" la aplicación falla porque aún no existen).
+  7. Probar cada URL de la lista (php artisan route:list debe coincidir con
+     docs/backend/00-rutas.php: ni falta ni sobra ninguna) y abrir una pantalla de cada
+     plantilla (publico, app, admin): se ven menú, barra superior, toast y CSS.
+  8. Escribir en el tablero las tarjetas de TODAS las tareas con su ID y puntos.
+Se integra con: todos (C8, C9).
+Listo cuando: Nikol y Valeria clonan, instalan y ven su pantalla de maqueta en 30
+  minutos con las instrucciones escritas.
+
+======================================================================
+J2  BASE DE DATOS  (6 puntos) · Semana 1
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - La reunión de decisiones de la semana 0: #1 identificación, #2 ingreso, #10 categorías
+      globales, #14 saldo (tuyas) y las de ellas: #6 y #9 (Nikol), #12 (Valeria).
+    - Que Valeria confirme los campos de la simulación (nombre, monto, tasa, plazo, cuota,
+      total, intereses) y Nikol los de gasto fijo y pago.
+  TRABAJAR EN CONJUNTO CON:
+    - Nikol y Valeria: antes de unir, cada una revisa 30 minutos las migraciones de su
+      módulo.
+  TÚ ENTREGAS A:
+    - Todas: tablas, modelos, fábricas y semillas (tres cuentas de prueba: estándar, familiar y
+      administrador, con datos de ejemplo). Avisa en el grupo con la lista de tablas.
+  MIENTRAS ESPERAS (plan B):
+    - Si una decisión no está cerrada, usa la propuesta por defecto de la guía y déjala
+      anotada en el archivo de decisiones.
+
+Objetivo: crear todas las tablas, modelos y datos de prueba una sola vez y bien.
+Archivos: database/migrations/*, app/Models/*, database/seeders/*,
+  database/factories/*.
+Pasos:
+  1. ANTES de escribir nada: cerrar #1, #2, #6, #9, #10, #12, #14 con el equipo
+     (sección 12).
+  2. HECHO (2026-10-05, Juan): migraciones de users, categorias, gastos, gastos_fijos,
+     pagos_gasto_fijo, simulaciones_credito, informes, detalles_informe, metas,
+     participaciones_meta, aportes_meta y notificaciones (diccionario de datos en
+     docs/backend/03-migraciones.php). Se eliminaron saldo (#14) y cuota_credito (#4).
+  3. Dinero siempre en enteros. Llaves foráneas con borrado en cascada desde
+     usuarios, para poder eliminar una cuenta completa. Índices indicados.
+  4. Modelos con sus relaciones y un alcance "del usuario actual" en los modelos
+     financieros (apoya J4).
+  5. HECHO: semillas. CategoriaSeeder (14 categorías del sistema por bloque 50/30/20, siempre);
+     solo con APP_ENV=local: UsuariosSeeder (estandar@test.com, familiar@test.com, admin@test.com,
+     contraseña password) y DatosDePruebaSeeder (20 gastos por usuario).
+  6. HECHO: fábricas (User con estados familiar/administrador/inactivo/sinIngreso, Categoria, Gasto,
+     GastoFijo, PagoGastoFijo, SimulacionCredito, Meta, Notificacion) y pruebas en
+     tests/Feature/BaseDeDatosTest.php (20 pruebas).
+  7. Publicar en main y avisar al grupo con la lista de tablas y campos.
+Se integra con: N1, N2, N3, V1-V4 (todas leen estas tablas).
+Listo cuando: la migración desde cero con las semillas corre sin errores y
+  las otras dos pueden consultar gastos, categorías y simulaciones de ejemplo.
+
+======================================================================
+J3  AUTENTICACIÓN COMPLETA  (6 puntos) · Semana 2
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - J1 (armazón) y J2 (tabla de usuarios).
+  TRABAJAR EN CONJUNTO CON:
+    - Nikol: cuando ella termine la landing (N5), comprobar juntos que cada botón lleva a la
+      ruta correcta (con ?tipo=estandar o familiar).
+  TÚ ENTREGAS A:
+    - Todas: poder registrarse e iniciar sesión para probar sus pantallas.
+  MIENTRAS ESPERAS (plan B):
+    - Mientras J2 no esté: arma las vistas y validaciones sin guardar.
+
+Objetivo: registro, inicio y cierre de sesión, recuperación y restablecimiento
+de contraseña, con redirección por rol (RQF-01 a RQF-05).
+Archivos: resources/views/publico/{crear-usuario,iniciar-sesion,
+  recuperar-contrasena,restablecer-contrasena}.blade.php, public/js/crear-usuario.js,
+  routes/modulos/auth.php, app/Http/Controllers/Auth/*, app/Http/Requests de
+  auth, correo (plantilla de la notificación), tests/Feature/Auth*.
+Pasos:
+  1. Controladores de registro, login, logout, recuperar y restablecer (sigue los
+     comentarios de cada vista).
+  2. Reglas del registro: nombre e identificación [DECISIÓN #1], correo único,
+     contraseña mínima de 8 con confirmación, tipo de cuenta estándar o familiar,
+     consentimiento obligatorio con fecha guardada. Mensajes exactos de la guía.
+  3. Login: "Usuario o contraseña incorrectos"; rechazo de cuentas suspendidas;
+     límite de intentos fallidos; regenerar sesión; redirección por rol.
+  4. Recuperar contraseña con mensaje neutro (no revela si el correo existe);
+     enlace de un solo uso que vence; correo con identidad de la marca.
+  5. Si el servidor devuelve error con tipo familiar, la tarjeta correcta queda
+     marcada al volver (pequeño ajuste en crear-usuario.js).
+  6. En routes/web.php: quitar el usuario de prueba (UsuarioMaqueta: borrar app/Http/Middleware/UsuarioMaqueta.php y su línea), activar 'auth' y
+     'cuenta.activa' en los grupos B a E, y poner 'guest' en login, registro, recuperar y
+     restablecer. Reemplazar la ruta logout (POST /cerrar-sesion) por el controlador real.
+  7. Pruebas: registro válido por tipo; correo repetido; sin consentimiento;
+     login por cada rol; suspendido; recuperación.
+Se integra con: J1 (armazón), J4 (middleware de rol), N5 (la landing enlaza a
+  estas rutas).
+Listo cuando: un usuario nuevo se registra, entra a su panel y puede salir.
+
+======================================================================
+J4  ROLES, PERMISOS Y AISLAMIENTO  (5 puntos) · Semana 1-2
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - J2 (tablas y modelos).
+  TRABAJAR EN CONJUNTO CON:
+    - Nikol y Valeria: una sesión de 30 minutos para mostrar cómo se usa una Policy antes de
+      leer, editar o borrar; revisarás cada solicitud suya con esto en mente.
+  TÚ ENTREGAS A:
+    - Todas: middleware "cuenta.activa" y "rol", Policies y pruebas de aislamiento (C10).
+  MIENTRAS ESPERAS (plan B):
+    - Entrega primero el middleware y la Policy de gasto (la más urgente para Nikol) y luego
+      el resto.
+
+Objetivo: que ningún usuario vea ni toque datos de otro y que cada rol vea
+solo lo suyo (RQNF-01).
+Archivos: app/Http/Middleware/{CuentaActiva,Rol}.php, app/Policies/*, registro de
+  middleware, tests/Feature/Permisos*, tests/Feature/Aislamiento*.
+Pasos:
+  1. Middleware "cuenta.activa" (cierra la sesión de suspendidos) y "rol" (acepta
+     uno o varios roles; responde 403).
+  2. Policies base para: gasto, categoría, gasto fijo, simulación, notificación,
+     informe y meta (esta última con la regla de participantes).
+  3. Documentar en el comentario de app/Policies/LEEME.php cómo usarlas
+     ("antes de leer, editar o borrar, autorizar") con ejemplo en texto.
+  4. Pruebas de permisos: estándar a metas (403), estándar a administración
+     (403), administrador a rutas financieras (403), familiar a metas (permitido).
+  5. Pruebas de aislamiento: con dos usuarios, ninguno lista, abre, edita ni borra
+     registros del otro en gastos, categorías, gastos fijos, simulaciones,
+     notificaciones e informes. Estas pruebas se EXTIENDEN cada vez que un
+     módulo nuevo entra (parte de la definición de terminado).
+  6. Revisar en cada solicitud de unión de Nikol y Valeria que usan las Policies.
+  7. Registrar los alias 'cuenta.activa' y 'rol' en bootstrap/app.php y activarlos en
+     routes/web.php donde dice "// FASE 2": Grupo C ->middleware('rol:estandar,familiar'),
+     Grupo D ->middleware('rol:familiar'), Grupo E ->middleware('rol:administrador').
+Se integra con: todos (C10).
+Listo cuando: la batería de pruebas de permisos y aislamiento pasa y está
+  documentado cómo agregar un módulo nuevo a ella.
+
+======================================================================
+J5  METAS COMPARTIDAS  (10 puntos) · Semanas 2-3  (LA MÁS DIFÍCIL)
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - J2 (tablas de metas, participaciones y aportes), J4 (MetaPolicy) y J3 (usuarios
+      familiares para probar).
+    - Tus decisiones #7, #8 y #18 cerradas.
+  TRABAJAR EN CONJUNTO CON:
+    - Valeria: acordar el contrato C6 y qué mensaje ve el usuario al intentar cambiar a
+      estándar con metas activas.
+  TÚ ENTREGAS A:
+    - Valeria: "tieneMetasActivas(usuario)" (C6) antes de que ella haga el tipo de cuenta
+      (semana 4).
+    - J6: las invitaciones y rechazos generan notificaciones con el servicio.
+  MIENTRAS ESPERAS (plan B):
+    - Si J6 aún no está: crea las notificaciones de invitación con la versión mínima del
+      servicio (C4).
+
+Objetivo: metas entre DOS usuarios familiares con invitaciones, aportes, avance
+y privacidad de aportes (RQF-32 a RQF-39, reglas 7 a 17, RQNF-03).
+Archivos: resources/views/app/metas/{index,invitaciones,show}.blade.php, css
+  correspondientes, routes/modulos/metas.php (rutas metas.*, ver sección 3; /metas/invitaciones
+  antes de /metas/{meta}), MetaController, AporteMetaController,
+  InvitacionMetaController, app/Services/ServicioMetas, app/Policies/MetaPolicy,
+  Requests de metas, tests/Feature/Metas*.
+Pasos:
+  1. Cerrar #7 (fecha límite), #8 (gastos ligados a meta; propuesta: no en la primera
+     versión) y #18 (qué pasa si un participante abandona o elimina su cuenta).
+  2. Crear meta (nombre, monto objetivo > 0, fecha límite) con invitación al otro
+     usuario. Mensaje "Meta creada".
+  3. Invitar con las tres validaciones y mensajes EXACTOS de la guía: no existe,
+     es estándar, ya participa. Máximo 2 participantes.
+  4. Aceptar y rechazar invitaciones; notificar al creador.
+  5. Aportes: monto > 0; actualizar el acumulado conjunto; calcular el porcentaje de avance.
+  6. PRIVACIDAD: el detalle muestra el total conjunto y el aporte PROPIO; el aporte
+     individual del otro no aparece en la página, ni en datos ocultos, ni en
+     ninguna ruta. Las consultas calculan el total con suma, sin traer las filas del
+     otro. Prueba automática obligatoria.
+  7. Finalizar (cumplimiento o cancelación) y abandonar con confirmación. Conservar
+     el historial de aportes.
+  8. Contrato C6: función "tieneMetasActivas(usuario)" para Valeria.
+  9. Pruebas de todos los casos de la sección 28 de la especificación (metas).
+Se integra con: J4 (policy), J6 (notificaciones), V4 (C6/C7).
+Listo cuando: dos usuarios familiares crean una meta, se invitan, aportan, ven
+  solo el total conjunto y su propio aporte, y la prueba de privacidad pasa.
+
+======================================================================
+J6  ALERTAS AUTOMÁTICAS Y SERVICIO DE NOTIFICACIONES  (5 puntos) · Semanas 2 y 4
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - N3 de Nikol, parte C5 (función que crea los pagos del periodo y devuelve los que
+      vencen en 3 días) para la versión completa del comando.
+    - Tus decisiones #5 y #16 cerradas.
+  TRABAJAR EN CONJUNTO CON:
+    - Nikol: una sesión para fijar exactamente qué devuelve C5 y probar el comando con los
+      gastos fijos de ejemplo de ella.
+  TÚ ENTREGAS A:
+    - Nikol: servicio de notificaciones mínimo en la semana 2 (contar, cancelar por pago,
+      marcar leída) y completo en la semana 4 (C4).
+    - La campana de la barra superior ($notificacionesPendientes).
+  MIENTRAS ESPERAS (plan B):
+    - Antes de que llegue C5: prueba el comando con pagos creados a mano en las semillas.
+
+Objetivo: generar a tiempo y sin duplicar las alertas de gastos fijos (RQF-26,
+RQNF-05) y ofrecer el servicio de notificaciones a los demás.
+Archivos: app/Services/ServicioNotificaciones, app/Console/* (comando diario y su
+  registro en el programador), tests/Feature/Alertas*.
+Pasos:
+  1. Cerrar #5 (cuotas de crédito: propuesta, no en la primera versión) y #16 (cuántas
+     veces se repite la alerta: propuesta, una a los 3 días y una de vencido).
+  2. Versión mínima del servicio (semana 2): contar pendientes, cancelar las
+     ligadas a un pago, marcar leída (contrato C4).
+  3. Comando diario (semana 4): llama a la función de Nikol (C5) para crear los
+     pagos del periodo y detectar los que vencen en 3 días o menos y no están
+     pagados; crea la notificación; no duplica; registra lo enviado.
+  4. Debe ser idempotente: correrlo dos veces el mismo día no crea dos alertas.
+  5. Pruebas con fechas simuladas: viernes, fin de mes, febrero, pago ya hecho, pago
+     eliminado.
+  6. Dejar escrito para el despliegue (J9) el cron que ejecuta el programador cada
+     minuto.
+Se integra con: N3 (C5), N4 (C4), barra superior (C8).
+Listo cuando: con un gasto fijo que vence en 3 días, al ejecutar el comando aparece
+  una sola notificación; al marcarlo pagado se cancela.
+
+======================================================================
+J7  ADMINISTRACIÓN  (4 puntos) · Semana 5
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - J4 (permisos) y el servicio de cuentas de J8 (para eliminar usuarios).
+    - El campo bloque de las categorías (C2) ya en la tabla.
+    - Tus decisiones #11 y #20.
+  TRABAJAR EN CONJUNTO CON:
+    - Nikol: las categorías del sistema que crees deben aparecer en su pantalla N2 con
+      candado y sin editar.
+  TÚ ENTREGAS A:
+    - Nadie directamente; las categorías del sistema las consumen N1, N2 y V3.
+  MIENTRAS ESPERAS (plan B):
+    - Si el servicio de cuentas aún no está: deja "eliminar" documentado y activa solo
+      suspender y cambiar rol.
+
+Objetivo: usuarios y roles, categorías del sistema y estadísticas agregadas
+(RQF-08 a RQF-12).
+Archivos: resources/views/admin/*, css, routes/modulos/admin.php (prefijo /admin y nombres admin.* ya puestos por web.php),
+  Admin/UsuarioController, Admin/CategoriaSistemaController, Admin/EstadisticaController,
+  tests/Feature/Admin*.
+Pasos:
+  1. Cerrar #11 (rol soporte: no se construye) y #20 (el administrador no tiene
+     finanzas personales en la primera versión).
+  2. Listado con filtros por rol, estado y búsqueda; cambiar rol; suspender y
+     reactivar; eliminar con confirmación. Mensajes de la guía.
+  3. Regla: nunca dejar el sistema sin un administrador activo (al suspender, eliminar
+     o cambiar de rol). Eliminar usa el servicio de cuentas (J8).
+  4. Categorías del sistema: crear, editar, desactivar (no borrar).
+  5. Estadísticas: solo conteos agregados (usuarios por rol y estado, alertas
+     enviadas). Ninguna consulta une usuarios con montos.
+  6. Registro de acciones del administrador (quién, qué, cuándo) [PROPUESTA].
+  7. Pruebas: el administrador recibe 403 en gastos, créditos, metas e informes;
+     no puede eliminar al último administrador.
+Se integra con: J4, J8 (eliminación).
+Listo cuando: el administrador gestiona cuentas sin ver ningún dato financiero.
+
+======================================================================
+J8  DASHBOARD Y SERVICIO DE CUENTAS  (4 puntos) · Semanas 4-5
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - Dashboard: C1 de Nikol (N1, fin de la semana 2), C3 de Valeria (V4 perfil), C4 (tuyo)
+      y J5 para la tarjeta de metas.
+    - Servicio de cuentas: J5 (necesita saber de metas activas).
+    - Tu decisión #14 (disponible del mes).
+  TRABAJAR EN CONJUNTO CON:
+    - Valeria: probar juntos cambio de tipo de cuenta y eliminar cuenta (borrado completo).
+  TÚ ENTREGAS A:
+    - Valeria: ServicioCuentas (C7) en la semana 4; ella solo arma la pantalla y lo llama.
+  MIENTRAS ESPERAS (plan B):
+    - Si falta C1 o C3: arma el dashboard con datos de las semillas y conéctalo cuando
+      lleguen.
+
+Objetivo: panel principal y reglas de cuentas.
+Archivos: resources/views/app/dashboard.blade.php, css, routes/modulos/panel.php (GET /panel → panel),
+  DashboardController, app/Services/ServicioCuentas, tests.
+Pasos:
+  1. ServicioCuentas (semana 4, contrato C7): cambiar tipo de cuenta (familiar a
+     estándar bloqueado con metas activas, con el mensaje exacto); eliminar cuenta
+     con borrado completo y manejo de metas del otro participante (#18); impedir
+     quedarse sin administrador.
+  2. Dashboard (semana 5): métricas del mes (ingreso, gastos, disponible = ingreso
+     menos gastos [DECISIÓN #14], fijos pendientes), barra 50/30/20 del mes,
+     próximos vencimientos, últimos gastos, notificaciones recientes, accesos
+     rápidos; tarjeta de metas solo si es familiar; tarjeta de bienvenida para
+     usuarios nuevos. Usa C1 (gastos), C3 (ingreso), C4 (notificaciones).
+Se integra con: N1 (C1), V4 (C3), J6 (C4), J5.
+Listo cuando: un usuario nuevo ve la bienvenida; uno con datos ve sus métricas
+  correctas y ninguna del resto.
+
+======================================================================
+J9  SEGURIDAD, INTEGRACIÓN FINAL Y DESPLIEGUE  (5 puntos) · Semanas 5-7
+======================================================================
+>>> DEPENDENCIAS DE ESTA TAREA
+  ESPERAR A (no avances esa parte hasta que...):
+    - Todas las solicitudes de unión terminadas y revisadas.
+  TRABAJAR EN CONJUNTO CON:
+    - Nikol y Valeria: pruebas integrales (recorridos A-E de la sección 9.3), con Nikol
+      validar la landing (#21) y con Valeria la lista de diferencias visuales (V5).
+  TÚ ENTREGAS A:
+    - El equipo: sitio publicado, copias de seguridad y documento de operación.
+  MIENTRAS ESPERAS (plan B):
+    - Si alguna tarea de ellas se atrasa, no bloquees el despliegue de lo que sí está
+      terminado: publica por módulos si hace falta.
+
+Objetivo: dejar el sistema seguro, probado de punta a punta y publicado.
+Archivos: todo el proyecto; configuración del servidor; .env de producción.
+Pasos:
+  1. Revisión de seguridad con la lista de la sección 9.4.
+  2. Unir en orden las solicitudes pendientes, resolver conflictos y mantener main verde.
+  3. Pruebas integrales de la sección 9.3 y arreglos.
+  4. Limpieza: confirmar que no quede ninguna ruta con Route::view de maqueta ni aviso
+     "MAQUETA" en routes/modulos/ ni el usuario de prueba en routes/web.php; comparar
+     php artisan route:list con docs/backend/00-rutas.php; borrar los LEEME.php ya cubiertos,
+     datos de prueba y enlaces "#"; confirmar que no queden imágenes externas.
+  5. Despliegue: servidor con HTTPS, variables secretas fuera del código, cron del
+     programador, correo real, copias de seguridad diarias, monitoreo de caída y modo
+     producción sin errores visibles (RQNF-06).
+  6. Validar las promesas de la landing (AES-256, cifras, "cero reportes") o corregir
+     el texto, junto con Nikol (#21).
+  7. Documento final de operación: cómo desplegar, cómo restaurar copias y a quién avisar.
+Listo cuando: el sitio publicado pasa todas las listas y el equipo puede repetir
+  el despliegue siguiendo el documento.
+
+----------------------------------------------------------------------
+8. DECISIONES QUE TE TOCA LLEVAR
+----------------------------------------------------------------------
+
+Reunión de la semana 0: #1 identificación (¿se conserva en el registro? el diseño ya la trae), #2 dónde se registra el ingreso (propuesta: Ajustes > Perfil), #10 categorías globales (usuario vacío = del sistema), #14 saldo (propuesta: no guardarlo; calcular "disponible del mes").
+Antes de cada módulo: #7 fecha límite de meta · #8 gastos ligados a meta (propuesta: no en la primera versión) · #18 qué pasa con la meta si un participante sale · #5 alertas de cuotas de crédito (propuesta: no) · #16 repetición de alertas (propuesta: una a los 3 días y una de vencido) · #11 rol soporte (no se construye) · #20 finanzas del administrador (no en la primera versión) · #21 cifras de la landing y textos legales (con Nikol).
+Cerrada: #22 moneda COP. Descartada: #19 modo demo (no se construye).
+
+Cada decisión se escribe en el archivo de decisiones del repositorio con fecha, qué se decidió y por qué. Hasta que se decida, se usa la propuesta por defecto de la guía.
+
+----------------------------------------------------------------------
+9. REVISIONES, INTEGRACIÓN Y COMUNICACIÓN
+----------------------------------------------------------------------
+
+Quién revisa a quién:
+  J1, J3, J7, J8 → revisa Nikol
+  J2, J4, J5, J6, J9 → revisa Valeria y, para las partes de seguridad, ambas leen la lista de seguridad (al final de este documento)
+
+9.1 Orden de unión a main (para minimizar conflictos)
+  1. J1 (armazón, rutas) · 2. J2 (tablas, modelos, semillas) · 3. J4 (permisos) ·
+  4. J3 (autenticación) · 5. N1 → N2 → V1 → V2 → V4 (perfil) · 6. N3 · J5 · V3 ·
+  7. J6 · N4 · J8 · V4 (resto) · 8. J7 · N5 · 9. V5 y J9.
+  Regla: lo que otros necesitan se une primero.
+
+9.2 Después de cada unión
+  - Quien unió ejecuta las migraciones y las pruebas en main y avisa en el grupo.
+  - Si algo se rompe, esa persona lo arregla ese mismo día o revierte la unión.
+
+
+10.1 Canales
+  - Grupo de chat del equipo: dudas rápidas y avisos.
+  - Tablero (Trello o GitHub Projects) con columnas Por hacer · En curso · En revisión ·
+    Bloqueado · Hecho. Una tarjeta por tarea (J1..V5) con puntos, dueño y fecha.
+    Máximo 2 tarjetas "En curso" por persona.
+  - Repositorio: todo cambio de código y su discusión técnica en la solicitud de unión.
+
+10.2 Ritmo
+  - Mensaje diario corto de cada persona (3 líneas): hice · haré · me bloquea.
+  - Lunes (30 min): plan de la semana, repaso de contratos que se entregan, ajuste de puntos.
+  - Jueves (30 min): demostración de lo hecho funcionando, revisión de bloqueos.
+  - Al cerrar cada semana: Juan actualiza el avance en puntos y se lo muestra al grupo.
+
+10.3 Plantilla para avisar un bloqueo
+  "Bloqueo en [ID de la tarea]: no puedo avanzar porque [motivo]. Necesito [qué] de
+  [persona] para [fecha]. Mientras tanto estoy haciendo [alternativa]."
+  Regla: si llevas más de 2 horas atascada/o, avisas. No se espera a la reunión.
+
+10.4 Plantilla de solicitud de unión
+  Título: "[ID] resumen corto". Descripción: 1) qué se hizo; 2) archivos principales;
+  3) contratos que entrega o usa; 4) cómo probarlo paso a paso; 5) capturas a 1440 y
+  390 px; 6) lista de la definición de terminado marcada.
+
+10.5 Cuando hay desacuerdo
+  Se explica la propuesta con una frase, se vota entre los tres y se anota la decisión en
+  el archivo de decisiones del repositorio (fecha, qué se decidió, por qué). Lo decidido
+  no se reabre sin un motivo nuevo.
+
+9.4 Lista de seguridad (Juan, J9)
+  - Contraseñas con hash; ninguna visible en registros ni en correos.
+  - Token de formulario en TODOS los formularios; ninguna ruta que modifique datos usa GET.
+  - Autorización en cada controlador; pruebas de aislamiento extendidas a todos los módulos.
+  - Mensajes de error genéricos hacia afuera; detalles solo en el registro interno.
+  - Límite de intentos en login y recuperación.
+  - HTTPS, variables secretas fuera del repositorio, modo producción.
+  - Copia de seguridad diaria y prueba de restauración.
+  - Consentimiento de datos guardado con fecha y política publicada.
+
+9.3 Pruebas integrales (semana 6): recorridos de punta a punta
+  A. Usuario estándar: registrarse → configurar ingreso → crear categoría → registrar gastos
+     → crear gasto fijo → recibir alerta → marcarlo pagado → ver informe → simular un crédito
+     y guardarlo → cambiar a familiar.
+  B. Dos familiares: crear meta → invitar → aceptar → aportar los dos → comprobar que cada
+     uno ve solo el total conjunto y lo suyo → finalizar.
+  C. Administrador: iniciar sesión → ver solo administración → cambiar rol → suspender y
+     comprobar que no puede entrar → no puede eliminar al último administrador.
+  D. Permisos por URL: escribir a mano rutas de otros roles y de otros usuarios (todas deben
+     dar 403 o 404).
+  E. Móvil: los cinco recorridos en 390 px.
+
+
+  - Semáforo semanal por persona: verde (al día), amarillo (hasta 3 días de atraso),
+    rojo (más de 3 días o bloqueando a otro).
+  - Amarillo: se avisa en el grupo y se acuerda qué se recorta sin perder los requisitos
+    de prioridad Alta (primero se recorta lo "[PROPUESTA]", no lo exigido por la especificación).
+  - Rojo: reunión inmediata; Juan o la otra compañera toma parte de la tarea. Para mantener
+    el equilibrio, lo que se mueve se anota con sus puntos.
+  - Tareas que se pueden mover primero (livianas, sin bloquear a nadie): N5, V5, V2,
+    parte del dashboard (J8) y el registro de acciones del administrador (J7).
+  - Tareas que NO se mueven a nadie más: J5 (metas), J4 (permisos), J2 (base de datos),
+    J9 (seguridad). Si Juan se atrasa en estas, se mueven las suyas livianas a Nikol o Valeria
+    para liberar su tiempo.
+  - Si alguien termina antes: toma una tarjeta "Por hacer" de las livianas, o revisa y
+    amplía las pruebas del resto.
+
+----------------------------------------------------------------------
+10. TU LISTA ANTES DE PEDIR UNA UNIÓN
+----------------------------------------------------------------------
+
+[ ] Hace lo que dice la guía de la pantalla (acciones, validaciones y mensajes exactos)
+[ ] Se ve igual al diseño en 1440, 768 y 390 px, sin scroll horizontal
+[ ] Solo muestra datos del usuario que inició sesión (probado con dos usuarios)
+[ ] Tiene estados vacío, error y éxito
+[ ] Tiene pruebas y pasan
+[ ] Actualicé los comentarios de cabecera de mis archivos
+[ ] Formateé el código; no dejé enlaces "#" ni textos de relleno
+[ ] Los contratos que entrego están documentados y avisé a quien los usa
+[ ] Avisé en el grupo y moví mi tarjeta del tablero
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================

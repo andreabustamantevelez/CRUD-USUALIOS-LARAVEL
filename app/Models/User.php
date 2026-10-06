@@ -17,7 +17,7 @@ class User extends Authenticatable
 
     // Campos que se pueden llenar con create()/update(). 'rol' y 'activo' NO van aquí a propósito:
     // así nadie puede ponerse administrador mandando un campo extra en un formulario (J3/J4).
-    protected $fillable = ['nombre', 'cedula', 'email', 'password', 'ingreso_mensual'];
+    protected $fillable = ['nombre', 'cedula', 'email', 'password', 'ingreso_mensual', 'consentimiento_datos_at'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -27,6 +27,7 @@ class User extends Authenticatable
             'password'        => 'hashed',   // Laravel aplica Hash automáticamente al guardar
             'activo'          => 'boolean',
             'ingreso_mensual' => 'integer',
+            'consentimiento_datos_at' => 'datetime',
         ];
     }
 

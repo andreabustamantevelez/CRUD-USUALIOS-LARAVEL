@@ -29,6 +29,7 @@ class UserFactory extends Factory
             'rol'             => 'estandar',
             'activo'          => true,
             'ingreso_mensual' => fake()->numberBetween(15, 80) * 100000,   // 1.500.000 a 8.000.000 COP
+            'consentimiento_datos_at' => now(),
             'remember_token'  => Str::random(10),
         ];
     }

@@ -12,7 +12,7 @@
  *   - MetaPolicy: solo participantes. Aportes: solo ver los propios.
  * QUÉ HAY QUE HACER (en orden):
  *   1. Llamar $this->authorize() en cada controlador.
- *   2. Ejemplo textual: GastoPolicy@update permite editar solo si gasto.usuario_id es el del
+ *   2. Ejemplo textual: GastoPolicy@update permite editar solo si gasto.user_id es el del
  *      usuario autenticado.
  * ==============================================================================
  */
