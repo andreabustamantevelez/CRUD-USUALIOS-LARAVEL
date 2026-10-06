@@ -29,7 +29,7 @@
     const amountSlider = document.getElementById('amountSlider');
     const rateInput = document.getElementById('rateInput');
     const eaRateDisplay = document.getElementById('eaRateDisplay');
-    const termValueLabel = document.getElementById('termValueLabel');
+    const termInput = document.getElementById('termInput');
     const installmentDisplay = document.getElementById('installmentDisplay');
     const totalPaymentDisplay = document.getElementById('totalPaymentDisplay');
     const totalInterestDisplay = document.getElementById('totalInterestDisplay');
@@ -162,16 +162,50 @@
 
     // Botones de plazo (12, 24, 36, 48, 60 meses)
     termButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            termButtons.forEach(b => {
-                b.className = 'term-btn py-2.5 rounded-lg bg-surface-container font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-all text-center';
-            });
-            this.className = 'term-btn py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-sm transition-all text-center';
-            currentTerm = parseInt(this.getAttribute('data-term'), 10);
-            termValueLabel.textContent = currentTerm;
-            window.recalculateLoan();
+    btn.addEventListener('click', function() {
+        currentTerm = parseInt(this.getAttribute('data-term'), 10);
+
+        termInput.value = currentTerm;
+
+        termButtons.forEach(b => {
+            b.className = 'term-btn py-2.5 rounded-lg bg-surface-container font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-all text-center';
         });
+
+        this.className = 'term-btn py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-sm transition-all text-center';
+
+        window.recalculateLoan();
     });
+});
+termInput.addEventListener('change', function() {
+    let value = parseInt(this.value, 10);
+
+    if (isNaN(value)) {
+        value = 36;
+    }
+
+    if (value < 2) {
+        value = 2;
+    }
+
+    if (value > 60) {
+        value = 60;
+    }
+
+    this.value = value;
+    currentTerm = value;
+
+    termButtons.forEach(btn => {
+        const buttonTerm = parseInt(btn.getAttribute('data-term'), 10);
+
+        if (buttonTerm === currentTerm) {
+            btn.className = 'term-btn py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-sm transition-all text-center';
+        } else {
+            btn.className = 'term-btn py-2.5 rounded-lg bg-surface-container font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-all text-center';
+        }
+    });
+
+    window.recalculateLoan();
+});
 
     // Mostrar / ocultar la tabla de amortización
     let tableOpen = true;
@@ -189,22 +223,33 @@
     });
 
     // Limpiar: vuelve a los valores iniciales del formulario
-    resetBtn.addEventListener('click', function() {
-        loanNameInput.value = 'Crédito Libre Inversión';
-        amountInput.value = 15000000;
-        amountSlider.value = 15000000;
-        rateInput.value = 1.80;
-        currentTerm = 36;
-        termValueLabel.textContent = 36;
-        termButtons.forEach(btn => {
-            if (btn.getAttribute('data-term') === '36') {
-              btn.className = 'term-btn py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-sm transition-all text-center';
-            } else {
-              btn.className = 'term-btn py-2.5 rounded-lg bg-surface-container font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-all text-center';
-            }
-        });
-        window.recalculateLoan();
+resetBtn.addEventListener('click', function() {
+    loanNameInput.value = '';
+    amountInput.value = '';
+    amountSlider.value = 0;
+    rateInput.value = '';
+    termInput.value = '';
+    currentTerm = 0;
+
+    termButtons.forEach(btn => {
+        btn.className = 'term-btn ... inactive ...';
     });
+
+    installmentDisplay.textContent = '$0';
+    totalPaymentDisplay.textContent = '$0';
+    totalInterestDisplay.textContent = '$0';
+
+    capitalBarSegment.style.width = '0%';
+    interestBarSegment.style.width = '0%';
+
+    debtRatioDisplay.textContent = '0.0%';
+    debtRatioBar.style.width = '0%';
+
+    endYearDisplay.textContent = '-';
+    costMultiplierDisplay.textContent = '-';
+
+    amortizationBody.innerHTML = '';
+});
 
     // ---------------------------------------------------------------------------
     // TODO(backend) GUARDAR SIMULACIÓN. Hoy solo muestra un aviso (demo): NO guarda nada.
@@ -215,16 +260,17 @@
     //   5. Cuando esto funcione, borrar el aviso temporal de abajo (toast simulado).
     // ---------------------------------------------------------------------------
     saveSimBtn.addEventListener('click', function() {
-        let simName = loanNameInput.value || 'Cotización Personalizada';
-        toastMessage.textContent = `"${simName}" guardada en tu historial de simulaciones.`;
-        saveToast.classList.remove('opacity-0', 'pointer-events-none');
-        saveToast.classList.add('opacity-100');
+    const simName = loanNameInput.value || 'Cotización Personalizada';
+    const saveForm = document.getElementById('saveSimForm');
 
-        setTimeout(() => {
-            saveToast.classList.add('opacity-0', 'pointer-events-none');
-            saveToast.classList.remove('opacity-100');
-          }, 3500);
-    });
+    saveForm.querySelector('[name="nombre"]').value = simName;
+    saveForm.querySelector('[name="monto"]').value = amountInput.value;
+    saveForm.querySelector('[name="tasa"]').value = rateInput.value;
+    saveForm.querySelector('[name="plazo"]').value = currentTerm;
+
+    saveForm.submit();
+});
+
 
     // Carga una simulación guardada en el formulario. La llama el botón de cada tarjeta del historial (los datos vienen de la base de datos).
     window.loadPreset = function(name, amount, rate, term) {
@@ -233,7 +279,7 @@
       amountSlider.value = amount;
       rateInput.value = rate;
       currentTerm = term;
-      termValueLabel.textContent = term;
+      termInput.value = term;
 
       termButtons.forEach(btn => {
           if (parseInt(btn.getAttribute('data-term'), 10) === term) {
