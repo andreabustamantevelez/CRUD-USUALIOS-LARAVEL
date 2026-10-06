@@ -2,24 +2,18 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Datos REALES que la aplicación necesita siempre (también en producción):
+        $this->call([CategoriaSeeder::class]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Datos de PRUEBA: solo en entorno local, nunca en producción.
+        if (app()->environment('local')) {
+            $this->call([UsuariosSeeder::class, DatosDePruebaSeeder::class]);
+        }
     }
 }

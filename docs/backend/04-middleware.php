@@ -7,7 +7,7 @@
  * ARCHIVO : docs/backend/04-middleware.php  (SOLO PLAN: el archivo real se crea en app/Http/Middleware/...)
  * QUÉ ES  : Middleware propios. Vacío a propósito.
  * DATOS QUE LLEGAN DEL CONTROLADOR:
- *   - cuenta.activa: rechaza usuarios suspendidos (cierra su sesión).
+ *   - cuenta.activa: rechaza usuarios inactivos (users.activo = false = cuenta suspendida; cierra su sesión).
  *   - rol: recibe uno o varios roles permitidos (estandar, familiar, administrador) y responde 403
  *     si no coincide.
  * QUÉ HAY QUE HACER (en orden):

@@ -1,0 +1,165 @@
+[1mdiff --git a/docs/backend/02-modelos.php b/docs/backend/02-modelos.php[m
+[1mindex a92838c..d666f65 100644[m
+[1m--- a/docs/backend/02-modelos.php[m
+[1m+++ b/docs/backend/02-modelos.php[m
+[36m@@ -4,19 +4,28 @@[m
+ [m
+ /*[m
+  * ==============================================================================[m
+[31m- * ARCHIVO : docs/backend/02-modelos.php  (SOLO PLAN: el archivo real se crea en app/Models/...)[m
+[31m- * QUÉ ES  : Modelos Eloquent y sus relaciones. Vacío a propósito.[m
+[31m- * DATOS QUE LLEGAN DEL CONTROLADOR:[m
+[31m- *   - Usuario (tabla usuarios): tiene muchos Gasto, GastoFijo, SimulacionCredito, Notificacion,[m
+[31m- *     InformeMensual; pertenece a muchas MetaAhorro (por ParticipacionMeta).[m
+[31m- *   - CategoriaGasto (usuario_id NULL = global) · Gasto · GastoFijo → tiene muchos PagoGastoFijo ·[m
+[31m- *     Notificacion[m
+[31m- *   - SimulacionCredito · MetaAhorro → tiene muchos ParticipacionMeta y AporteMeta ·[m
+[31m- *     InformeMensual → tiene muchos DetalleInforme[m
+[31m- * QUÉ HAY QUE HACER (en orden):[m
+[31m- *   1. Crear con migración y factory (para pruebas).[m
+[31m- *   2. Agregar un alcance global "del usuario actual" a los modelos financieros para que olvidar[m
+[31m- *      un filtro no filtre datos ajenos.[m
+[31m- *   3. AporteMeta: nunca exponer filas del otro participante (RQNF-03).[m
+[32m+[m[32m * ARCHIVO : docs/backend/02-modelos.php[m
+[32m+[m[32m * ESTADO  : HECHO (2026-10-05, Juan) - tarea J2. Los modelos REALES están en app/Models/.[m
+[32m+[m[32m * MODELOS (clase -> tabla) Y RELACIONES[m
+[32m+[m[32m *   User -> users: tiene muchos Gasto, Categoria (propias), GastoFijo, SimulacionCredito, Informe,[m
+[32m+[m[32m *     Notificacion. Pertenece a muchas Meta por ParticipacionMeta.[m
+[32m+[m[32m *   Categoria -> categorias: user_id NULL = del sistema (esDelSistema()). Constante Categoria::BLOQUES[m
+[32m+[m[32m *     (C2). Tiene muchos Gasto.[m
+[32m+[m[32m *   Gasto -> gastos: pertenece a User y Categoria. scopeDelUsuario($userId) y fecha/monto con cast.[m
+[32m+[m[32m *   GastoFijo -> gastos_fijos: pertenece a User y Categoria; tiene muchos PagoGastoFijo.[m
+[32m+[m[32m *   PagoGastoFijo -> pagos_gasto_fijo: pertenece a GastoFijo y User.[m
+[32m+[m[32m *   SimulacionCredito -> simulaciones_credito: pertenece a User.[m
+[32m+[m[32m *   Informe -> informes: pertenece a User; tiene muchos DetalleInforme.[m
+[32m+[m[32m *   DetalleInforme -> detalles_informe (sin timestamps): pertenece a Informe.[m
+[32m+[m[32m *   Meta -> metas: creador (User), tiene muchas ParticipacionMeta y AporteMeta. totalConjunto().[m
+[32m+[m[32m *   ParticipacionMeta -> participaciones_meta · AporteMeta -> aportes_meta (privacidad, RQNF-03).[m
+[32m+[m[32m *   Notificacion -> notificaciones: pertenece a User; opcional PagoGastoFijo y Meta.[m
+[32m+[m[32m * REGLAS[m
+[32m+[m[32m *   - Todos tienen HasFactory (fábricas en database/factories). El User tiene $fillable SIN rol ni[m
+[32m+[m[32m *     activo (no se pueden asignar desde un formulario); los demás usan $guarded = [] y los controladores[m
+[32m+[m[32m *     SIEMPRE usan $request->validated().[m
+[32m+[m[32m *   - Toda consulta de datos financieros parte del usuario autenticado (Gasto::delUsuario(auth()->id())).[m
+[32m+[m[32m *     Falta el "alcance global" automático: lo hace J4.[m
+[32m+[m[32m *   - Pruebas de la base: tests/Feature/BaseDeDatosTest.php (php artisan test --filter=BaseDeDatosTest).[m
+  * ==============================================================================[m
+  */[m
+[1mdiff --git a/docs/backend/03-migraciones.php b/docs/backend/03-migraciones.php[m
+[1mindex 15574c3..f8d4e34 100644[m
+[1m--- a/docs/backend/03-migraciones.php[m
+[1m+++ b/docs/backend/03-migraciones.php[m
+[36m@@ -4,33 +4,59 @@[m
+ [m
+ /*[m
+  * ==============================================================================[m
+[31m- * ARCHIVO : docs/backend/03-migraciones.php  (SOLO PLAN: el archivo real se crea en database/migrations/...)[m
+[31m- * QUÉ ES  : Tablas y columnas propuestas (corrigen los 14 huecos de la especificación). Vacío a[m
+[31m- *           propósito.[m
+[31m- * DATOS QUE LLEGAN DEL CONTROLADOR:[m
+[31m- *   - usuarios: id, nombre, identificacion (decisión #1), correo único, password, rol[m
+[31m- *     (estandar|familiar|administrador), estado (activo|suspendido), ingreso_mensual (nullable),[m
+[31m- *     consentimiento_datos_at, timestamps[m
+[31m- *   - categorias_gasto: id, nombre, bloque (necesidades|discrecionales|ahorro), peso_recomendado,[m
+[31m- *     usuario_id (NULL = global), activa · único (usuario_id, nombre)[m
+[31m- *   - gastos: id, usuario_id, categoria_id, monto (entero en pesos), fecha, descripcion[m
+[31m- *   - gastos_fijos: id, usuario_id, categoria_id, nombre, monto, dia_pago, descripcion,[m
+[31m- *     periodicidad (mensual), activo[m
+[31m- *   - pagos_gasto_fijo: id, gasto_fijo_id, periodo, fecha_vencimiento, estado[m
+[31m- *     (pendiente|pagado|vencido), fecha_pago · único (gasto_fijo_id, periodo)[m
+[31m- *   - notificaciones: id, usuario_id, tipo, mensaje, estado (pendiente|leida), pago_gasto_fijo_id[m
+[31m- *     (nullable), timestamps[m
+[31m- *   - simulaciones_credito: id, usuario_id, nombre, monto, tasa, plazo, cuota, total, intereses,[m
+[31m- *     timestamps[m
+[31m- *   - metas_ahorro: id, creador_id, nombre, monto_objetivo, monto_actual, estado, fecha_limite ·[m
+[31m- *     participaciones_meta: id, meta_id, usuario_id, estado_invitacion, fecha_union (máx. 2 por[m
+[31m- *     meta) · aportes_meta: id, meta_id, usuario_id, monto, fecha[m
+[31m- *   - informes_mensuales: id, usuario_id, periodo · detalle_informe: id, informe_id, categoria_id[m
+[31m- *     o bloque, monto, porcentaje_real, porcentaje_recomendado, excede[m
+[31m- * QUÉ HAY QUE HACER (en orden):[m
+[31m- *   1. Cerrar las decisiones de la guía (sección 12) ANTES de crear estas migraciones.[m
+[31m- *   2. Dinero = enteros (pesos), nunca flotantes. Llaves foráneas con borrado en cascada para[m
+[31m- *      poder eliminar una cuenta completa.[m
+[31m- *   3. Índices: (usuario_id, fecha) en gastos; (usuario_id, estado) en notificaciones.[m
+[32m+[m[32m * ARCHIVO : docs/backend/03-migraciones.php[m
+[32m+[m[32m * ESTADO  : HECHO (2026-10-05, Juan) - tarea J2. Las migraciones REALES están en database/migrations/.[m
+[32m+[m[32m *           Este archivo es ahora el DICCIONARIO DE DATOS: lo que existe de verdad. Si cambias una tabla,[m
+[32m+[m[32m *           crea una migración NUEVA (nunca edites una que ya esté en main) y actualiza este archivo.[m
+[32m+[m[32m * REGLAS GENERALES[m
+[32m+[m[32m *   - Dinero = enteros en pesos COP (unsignedBigInteger). Nunca decimales. Solo tasa_mensual usa decimal(5,2).[m
+[32m+[m[32m *   - Llaves foráneas: al borrar un usuario se borran sus datos (cascade). Una categoría con gastos NO se[m
+[32m+[m[32m *     puede borrar (restrict): primero se mueven los gastos (decisión #17).[m
+[32m+[m[32m *   - Estados son texto validado en la aplicación (no enum).[m
+[32m+[m[32m *   - Fechas de creación/edición = created_at / updated_at en todas las tablas (salvo detalles_informe).[m
+[32m+[m[32m *[m
+[32m+[m[32m * TABLAS Y COLUMNAS (llave primaria = id en todas)[m
+[32m+[m[32m *   users: nombre, cedula (único), email (único), password (hash), rol (estandar|familiar|administrador),[m
+[32m+[m[32m *     activo (boolean; false = cuenta suspendida), ingreso_mensual (nullable; vacío = no registrado, C3),[m
+[32m+[m[32m *     consentimiento_datos_at (nullable; migración 000009), remember_token, timestamps[m
+[32m+[m[32m *   categorias: user_id (NULL = del sistema), nombre, bloque (necesidades|discrecionales|ahorro, C2),[m
+[32m+[m[32m *     peso_recomendado (nullable), timestamps · nombre único por usuario SE VALIDA EN LA APLICACIÓN[m
+[32m+[m[32m *   gastos: user_id, categoria_id (restrict), monto, fecha, descripcion (nullable), timestamps ·[m
+[32m+[m[32m *     índice (user_id, fecha)[m
+[32m+[m[32m *   gastos_fijos: user_id, categoria_id (restrict), nombre, monto, dia_vencimiento (1-31),[m
+[32m+[m[32m *     periodicidad ('mensual'), descripcion (nullable), activo, timestamps[m
+[32m+[m[32m *   pagos_gasto_fijo: user_id, gasto_fijo_id, periodo ('AAAA-MM'), fecha_vencimiento,[m
+[32m+[m[32m *     estado (pendiente|pagado|vencido), fecha_pago (nullable), monto, timestamps ·[m
+[32m+[m[32m *     ÚNICO (gasto_fijo_id, periodo)[m
+[32m+[m[32m *   simulaciones_credito: user_id, nombre, monto, tasa_mensual (%), plazo_meses, cuota, total_pagar,[m
+[32m+[m[32m *     intereses, timestamps (created_at = fecha de la simulación)[m
+[32m+[m[32m *   informes: user_id, anio, mes, ingreso, total_gastado, timestamps · ÚNICO (user_id, anio, mes)[m
+[32m+[m[32m *     (es una FOTO del mes: no cambia si luego se editan gastos)[m
+[32m+[m[32m *   detalles_informe (sin timestamps): informe_id, categoria_id (nullable; null si la categoría se[m
+[32m+[m[32m *     eliminó), categoria_nombre, bloque, monto_gastado, porcentaje_real (decimal 5,2),[m
+[32m+[m[32m *     porcentaje_recomendado, excede (boolean)[m
+[32m+[m[32m *   metas: creador_id, nombre, monto_objetivo, fecha_limite (nullable), estado (activa|completada|[m
+[32m+[m[32m *     cancelada), timestamps · NO guarda monto_actual: el avance se calcula con Meta::totalConjunto()[m
+[32m+[m[32m *   participaciones_meta: meta_id, user_id, estado_invitacion (pendiente|aceptada|rechazada|abandonada),[m
+[32m+[m[32m *     fecha_union (nullable), timestamps · ÚNICO (meta_id, user_id) · máximo 2 participantes por meta[m
+[32m+[m[32m *     (se valida en la aplicación)[m
+[32m+[m[32m *   aportes_meta: meta_id, user_id, monto, fecha, timestamps · índice (meta_id, user_id)[m
+[32m+[m[32m *     PRIVACIDAD (RQNF-03): nunca enviar a una vista los aportes del otro participante.[m
+[32m+[m[32m *   notificaciones: user_id, tipo, mensaje (255), estado (pendiente|leida|cancelada),[m
+[32m+[m[32m *     pago_gasto_fijo_id (nullable), meta_id (nullable), clave_unica (nullable), timestamps ·[m
+[32m+[m[32m *     ÚNICO (user_id, clave_unica) para que el comando diario (J6) no duplique alertas ·[m
+[32m+[m[32m *     clave sugerida: 'por_vencer:{pago_id}:{periodo}'[m
+[32m+[m[32m *   Tablas de Laravel: sessions, password_reset_tokens, cache, cache_locks, jobs, job_batches,[m
+[32m+[m[32m *     failed_jobs, migrations.[m
+[32m+[m[32m *[m
+[32m+[m[32m * DIFERENCIAS CON EL PLAN ORIGINAL (decididas el 2026-10-05; ver DECISIONES.md)[m
+[32m+[m[32m *   - ELIMINADAS: la tabla saldo (#14: el "disponible del mes" se calcula) y cuota_credito (#4: el[m
+[32m+[m[32m *     crédito es solo simulación).[m
+[32m+[m[32m *   - Nombres: usuarios -> users, categorias_gasto -> categorias, metas_ahorro -> metas,[m
+[32m+[m[32m *     informes_mensuales -> informes, detalle_informe -> detalles_informe, usuario_id -> user_id,[m
+[32m+[m[32m *     identificacion -> cedula, correo -> email, estado (activo|suspendido) -> activo (boolean),[m
+[32m+[m[32m *     dia_pago -> dia_vencimiento, tasa/plazo/total -> tasa_mensual/plazo_meses/total_pagar.[m
+[32m+[m[32m *   - Se quitó categorias.activa y metas.monto_actual; se agregaron pagos_gasto_fijo.gasto_fijo_id y[m
+[32m+[m[32m *     monto, informes.id/anio/mes/ingreso/total_gastado y notificaciones.clave_unica.[m
+  * ==============================================================================[m
+  */[m
+[1mdiff --git a/docs/backend/04-middleware.php b/docs/backend/04-middleware.php[m
+[1mindex 131d3b0..19271a8 100644[m
+[1m--- a/docs/backend/04-middleware.php[m
+[1m+++ b/docs/backend/04-middleware.php[m
+[36m@@ -7,7 +7,7 @@[m
+  * ARCHIVO : docs/backend/04-middleware.php  (SOLO PLAN: el archivo real se crea en app/Http/Middleware/...)[m
+  * QUÉ ES  : Middleware propios. Vacío a propósito.[m
+  * DATOS QUE LLEGAN DEL CONTROLADOR:[m
+[31m- *   - cuenta.activa: rechaza usuarios suspendidos (cierra su sesión).[m
+[32m+[m[32m *   - cuenta.activa: rechaza usuarios inactivos (users.activo = false = cuenta suspendida; cierra su sesión).[m
+  *   - rol: recibe uno o varios roles permitidos (estandar, familiar, administrador) y responde 403[m
+  *     si no coincide.[m
+  * QUÉ HAY QUE HACER (en orden):[m
+[1mdiff --git a/docs/backend/05-policies.php b/docs/backend/05-policies.php[m
+[1mindex 8fd1e5a..fc04adf 100644[m
+[1m--- a/docs/backend/05-policies.php[m
+[1m+++ b/docs/backend/05-policies.php[m
+[36m@@ -12,7 +12,7 @@[m
+  *   - MetaPolicy: solo participantes. Aportes: solo ver los propios.[m
+  * QUÉ HAY QUE HACER (en orden):[m
+  *   1. Llamar $this->authorize() en cada controlador.[m
+[31m- *   2. Ejemplo textual: GastoPolicy@update permite editar solo si gasto.usuario_id es el del[m
+[32m+[m[32m *   2. Ejemplo textual: GastoPolicy@update permite editar solo si gasto.user_id es el del[m
+  *      usuario autenticado.[m
+  * ==============================================================================[m
+  */[m
