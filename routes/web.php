@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\UsuarioMaqueta;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -9,11 +8,9 @@ use Illuminate\Support\Facades\Route;
  * Cada módulo vive en routes/modulos/<modulo>.php y lo escribe su dueño.
  * Los NOMBRES de ruta salen de docs/backend/00-rutas.php y NO se cambian.
  *
- * FASE 1 (ahora): sin login real. Cada ruta devuelve su vista (maqueta) y el
- *   middleware App\Http\Middleware\UsuarioMaqueta simula un usuario para que menú y barra superior
- *   no fallen.
- * FASE 2: J3 agrega 'auth'; J4 registra 'cuenta.activa' y 'rol' y se quitan
- *   los marcadores  // FASE 2  de abajo. Al llegar J3 se borra el middleware UsuarioMaqueta.
+ * J3 HECHO (2026-10-06): login real. Todo el bloque privado exige 'auth' (sin sesión -> /iniciar-sesion)
+ *   y el middleware temporal UsuarioMaqueta ya no existe.
+ * PENDIENTE J4: registrar 'cuenta.activa' y 'rol' y quitar los marcadores  // FASE 2  de abajo.
  * ==============================================================================
  */
 
@@ -22,7 +19,7 @@ require __DIR__.'/modulos/publico.php';   // Nikol (N5)
 require __DIR__.'/modulos/auth.php';      // Juan  (J3)
 
 // GRUPOS B a E - PRIVADAS
-Route::middleware([UsuarioMaqueta::class /* FASE 2: 'auth', 'cuenta.activa' */])->group(function () {
+Route::middleware(['auth' /* J4: agregar 'cuenta.activa' */])->group(function () {
 
     // GRUPO B - todos los roles con sesión
     require __DIR__.'/modulos/ajustes.php';          // Valeria (V4)

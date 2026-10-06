@@ -7,20 +7,18 @@
   DATOS QUE LLEGAN DEL CONTROLADOR:
     - old() y $errors (los pone Laravel solo)
     - request('tipo') opcional: estandar | familiar (viene de la landing)
-  BASE DE DATOS: usuarios: nombre, identificacion, correo (único), password (hash), rol,
-            estado=activo, consentimiento_datos_at.
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear RegistroController@create (muestra esta vista) y @store (guarda).
-    2. Crear StoreRegistroRequest con las reglas: nombre y identificacion obligatorios, correo
-       email único, password mínimo 8 y confirmed, tipo_cuenta in:estandar,familiar,
-       consentimiento accepted.
-    3. En @store: password con Hash::make, rol = tipo_cuenta, estado = activo, guardar la fecha
-       del consentimiento (Ley 1581).
-    4. Mensajes exactos de la especificación: "Este correo ya se encuentra registrado" y "Registro
-       exitoso". Después de crear: iniciar sesión y redirigir según rol.
-    5. Decidir (decisión #1) si la identificación se conserva; el diseño ya la trae. Si sí:
-       columna en usuarios + permitir login con correo o identificación.
-    6. La página legal "politica" debe existir (enlace de la casilla de consentimiento).
+  ESTADO  : HECHO (J3, 2026-10-06, Juan). Controlador: Auth\RegistroController. Validación:
+            Auth\RegistroRequest.
+  BASE DE DATOS: users: nombre, cedula (viene del campo "identificacion"), email (viene del campo
+            "correo"), password (hash), rol (= tipo_cuenta: estandar|familiar), activo=true,
+            consentimiento_datos_at.
+  QUÉ SE HIZO:
+    - El formulario NO cambia sus name=; el controlador traduce identificacion -> cedula y
+      correo -> email.
+    - Mensajes exactos: "Este correo ya se encuentra registrado" y "Registro exitoso".
+    - Tras crear la cuenta se inicia sesión y se va al panel.
+    - Decisión #1: la identificación se conserva (users.cedula, única).
+    - La página legal "politica" es el enlace de la casilla de consentimiento.
   CÓMO HACERLO / NOTAS:
     - No hay modo demo: se eliminó el botón y la ruta "demo".
     - tipo_cuenta es un campo oculto que el JS (crear-usuario.js) actualiza al tocar cada tarjeta.
@@ -143,7 +141,6 @@
                 method="POST"
                 action="{{ route('registro.guardar') }}"
               >
-                {{-- TODO(backend): action = registro.guardar. Cada name= debe coincidir con las reglas de StoreRegistroRequest. --}}
                 @csrf
                 <input
                   hidden
@@ -339,6 +336,11 @@
                 <!-- Consent & Legal Guarantee (RQNF-06 & Ley 1581) -->
                 <div class="pt-2 space-y-3">
                   <label class="flex items-start gap-3 cursor-pointer group"><input name="consentimiento" value="1" {{ old('consentimiento') ? 'checked' : '' }} class="mt-1 w-4 h-4 rounded text-primary focus:ring-0 cursor-pointer accent-primary" required="" type="checkbox"> <span class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed"> Acepto el tratamiento de mis datos personales de acuerdo con la <strong class="text-on-surface">Ley 1581 de 2012</strong> y la <a class="text-primary underline hover:text-primary-container" href="{{ route('politica') }}">Política de Privacidad</a> de Cuentas Claras. </span> </label>
+                  @error('consentimiento')
+                    <p class="font-body-sm text-body-sm text-error flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[16px]">error</span>{{ $message }}
+                    </p>
+                  @enderror
                   <!-- Confidentiality Note Banner -->
                   <div class="p-3.5 bg-surface-container-low rounded-lg flex items-start gap-3">
                     <span

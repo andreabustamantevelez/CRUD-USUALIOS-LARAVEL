@@ -35,6 +35,23 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 | Consentimiento | `users.consentimiento_datos_at` (migración 000009) | El registro exige guardar la fecha de aceptación |
 | Categorías: nombre único | Se valida en la aplicación (sin distinguir mayúsculas) | SQLite distingue mayúsculas y trata los vacíos como distintos en un índice único |
 
+## Decisiones tomadas al hacer J3 — Autenticación (2026-10-06, Juan)
+
+| Tema | Qué se decidió | Por qué |
+|------|----------------|---------|
+| Nombres de campos | Los formularios mantienen `correo` e `identificacion`; el controlador los traduce a las columnas `email` y `cedula` | El diseño y los nombres de campo no se cambian; las columnas siguen lo que espera el login de Laravel |
+| Rol al registrarse | Sale de la tarjeta del registro (`tipo_cuenta`): solo `estandar` o `familiar`. **`administrador` nunca se acepta desde un formulario**; el primer administrador lo crea el seeder o una persona con acceso a la base | La cabecera de la vista ya definía `rol = tipo_cuenta`; la tarjeta de Jira decía "siempre estándar" y se dejó la de la vista |
+| Asignar rol y activo | Se asignan a mano en el controlador (no son `fillable`) | Evita que alguien mande `rol=administrador` en un formulario |
+| Contraseña | Mínimo 8 caracteres, máximo 72, con confirmación. El medidor visual del formulario es solo una ayuda | Lo pide la tarjeta de J3; 72 es el límite real de bcrypt |
+| Mensaje de error de login | Siempre "Usuario o contraseña incorrectos" | No revelar si el correo existe |
+| Cuenta suspendida | Se avisa "Tu cuenta está suspendida…" **solo si la contraseña era correcta** | Mensaje claro para el dueño sin delatar qué correos existen |
+| Límite de intentos | 5 fallos por minuto por correo + IP en el login (en `LoginRequest`); 5 peticiones por minuto en recuperar y restablecer (`throttle:5,1`) | Protege contra adivinar contraseñas |
+| Recuperar contraseña | Mensaje neutro; enlace de un solo uso que vence a los 60 min; correo en español (`RestablecerContrasena`) | No revelar correos; el correo por defecto de Laravel viene en inglés |
+| Login con cédula (#1) | **No se hizo.** Se entra solo con correo | Se deja para decidir después si realmente se necesita |
+| "Recordarme" | El código lo soporta (campo `recordarme`) pero la vista no tiene casilla | Cambiar el diseño no estaba en el alcance |
+| `UsuarioMaqueta` | Eliminado. Todo el bloque privado de `routes/web.php` exige `auth` | Ya hay sesión real |
+| Hueco temporal | Hasta J4 no existen `cuenta.activa` ni `rol:…`: un administrador con sesión puede abrir rutas de estándar y una cuenta suspendida con sesión abierta no se expulsa | J4 es la siguiente tarea |
+
 ## Otras decisiones cerradas
 
 | # | Decisión | Fecha | Por qué |
@@ -51,5 +68,6 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 - N2: #17 eliminar categoría con gastos (propuesta: pedir a qué categoría moverlos).
 - N3: #15 estado "vencido".
 - V1: #3 semáforo (hasta 20 % saludable, 20–30 % moderado, más de 30 % riesgo) · #13 tasa mensual vencida, sistema francés, redondeo final a pesos enteros.
-- J7: #20 finanzas del administrador.
+- J4: cerrar el hueco temporal de J3 (`cuenta.activa` y `rol`).
+- J7: #20 finanzas del administrador · #23 columna `categorias.activa` (decidir antes de J7).
 - N5/J9: #21 cifras de la landing y textos legales.

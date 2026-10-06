@@ -1,0 +1,680 @@
+======================================================================
+CUENTAS CLARAS - ARQUITECTURA DEL PROYECTO
+Documento de contexto para cualquier persona o IA que vaya a trabajar en el código
+======================================================================
+Leer completo antes de escribir código. Resume QUÉ es el sistema, QUÉ está hecho,
+QUÉ falta, CÓMO está organizado, TODAS las rutas y las reglas que no se pueden romper.
+Versión: después de J3 (armazón + rutas + BASE DE DATOS + AUTENTICACIÓN). Fecha: 2026-10-06.
+Cambios respecto a la versión del 2026-10-05: J3 hecha (login, registro, recuperar contraseña),
+UsuarioMaqueta eliminado, rutas privadas con 'auth' (secciones 2, 5, 7, 8, 11, 13, 15, 16).
+Cambios del 2026-10-05: J2 hecha, modelo de datos real (sección 9), decisiones cerradas (14).
+
+
+----------------------------------------------------------------------
+1. QUÉ ES EL SISTEMA
+----------------------------------------------------------------------
+Cuentas Claras es una aplicación web de finanzas personales y familiares, en español y en
+pesos colombianos (COP, siempre enteros, nunca decimales). Permite:
+  - Registrar gastos diarios y administrar categorías (propias y del sistema).
+  - Registrar gastos fijos mensuales (arriendo, servicios...) con vencimientos y alertas
+    automáticas 3 días antes.
+  - Simular créditos (sistema francés) y guardar las simulaciones.
+  - Ver un informe mensual contra la regla 50/30/20 (necesidades / discrecionales / ahorro).
+  - Metas de ahorro compartidas entre DOS usuarios de tipo "familiar", con privacidad de aportes.
+  - Administración (usuarios, roles, categorías del sistema, estadísticas agregadas).
+El diseño visual YA ESTÁ HECHO (vistas Blade + CSS + JS). El trabajo que falta es el "motor":
+base de datos, inicio de sesión, permisos, reglas de negocio y conectar cada pantalla con
+datos reales. EL DISEÑO NO SE CAMBIA: debe quedar igual a los code.html originales.
+
+Equipo: Juan (base, seguridad, reglas), Nikol (dinero del día a día), Valeria (cálculo y
+análisis). Tareas J1..J9, N1..N5, V1..V5 (ver Reparto_Trabajo_Cuentas_Claras_Detallado.txt).
+
+
+----------------------------------------------------------------------
+2. ESTADO ACTUAL (QUÉ ESTÁ HECHO Y QUÉ NO)
+----------------------------------------------------------------------
+HECHO (J1 - Fase 1):
+  [x] Proyecto Laravel creado, plantilla copiada (public/ y resources/ y docs/).
+  [x] app.php con zona horaria America/Bogota; .env con APP_LOCALE=es, APP_FALLBACK_LOCALE=es.
+  [x] routes/web.php como índice + 11 archivos en routes/modulos/ con las 60 rutas declaradas
+      (verificado con php artisan route:list --except-vendor => "Showing [60] routes").
+  [x] Cada ruta devuelve su vista (Route::view) o, si es POST/PUT/DELETE, un aviso
+      "MAQUETA: esta acción aún no está implementada".
+  [x] (Reemplazado en J3) El middleware temporal UsuarioMaqueta ya NO existe: ahora el menú lee
+      el usuario real de la sesión.
+  [x] View Composer en app/Providers/AppServiceProvider.php: comparte $notificacionesPendientes
+      (hoy siempre 0) con layouts.app, layouts.admin y components.topbar.
+  [x] Modo demo DESCARTADO: no existe la ruta "demo" ni sus botones (header, landing, registro).
+
+HECHO (J2 - Base de datos, 2026-10-05, Juan; ya está en main):
+  [x] 20 tablas creadas con migraciones (12 del proyecto, contando users, y 8 de Laravel:
+      password_reset_tokens, sessions, cache, cache_locks, jobs, job_batches, failed_jobs, migrations). Detalle en la sección 9.
+  [x] 12 modelos en app/Models con sus relaciones (User, Categoria, Gasto, GastoFijo,
+      PagoGastoFijo, SimulacionCredito, Informe, DetalleInforme, Meta, ParticipacionMeta,
+      AporteMeta, Notificacion).
+  [x] Fábricas (database/factories) para User, Categoria, Gasto, GastoFijo, PagoGastoFijo,
+      SimulacionCredito, Meta y Notificacion.
+  [x] Semillas: CategoriaSeeder (14 categorías del sistema, siempre). UsuariosSeeder y
+      DatosDePruebaSeeder SOLO si APP_ENV=local (cuentas estandar@test.com, familiar@test.com,
+      admin@test.com, contraseña "password").
+  [x] tests/Feature/BaseDeDatosTest.php: 20 pruebas, 68 aserciones, todas pasan
+      (php artisan test). Comando para rehacer todo: php artisan migrate:fresh --seed
+  [x] Campo users.consentimiento_datos_at (lo exige J3) añadido con una migración nueva.
+  [x] Decisiones registradas en DECISIONES.md y .env.example actualizado.
+
+HECHO (J3 - Autenticación, 2026-10-06, Juan; 32 pruebas, 108 aserciones, todas pasan):
+  [x] Registro (registro / registro.guardar): crea el usuario, guarda cedula y la fecha de
+      consentimiento, inicia sesión y va al panel con el mensaje "Registro exitoso".
+  [x] Login (login / login.entrar): error único "Usuario o contraseña incorrectos"; cuenta
+      suspendida (users.activo = false) rechazada solo si la contraseña era correcta; límite de
+      5 intentos fallidos por minuto por correo + IP; vuelve a la URL protegida que se intentó abrir.
+      Redirección: estandar/familiar -> panel; administrador -> admin.estadisticas.
+  [x] Logout por POST (logout): invalida la sesión y regenera el token CSRF.
+  [x] Recuperar contraseña (password.request/email/reset/update): enlace de un solo uso que vence a
+      los 60 min, mensaje neutro (no revela si el correo existe), correo en español. En desarrollo
+      el enlace aparece en storage/logs/laravel.log (MAIL_MAILER=log).
+  [x] Todo el bloque privado (grupos B-E) exige 'auth': sin sesión redirige a /iniciar-sesion.
+      Las rutas de login/registro/recuperar llevan 'guest'.
+  [x] Seguridad: el rol sale de la tarjeta del registro y solo admite estandar o familiar
+      (administrador nunca se acepta desde un formulario); rol y activo no son asignables en masa.
+
+NO HECHO (todo lo demás):
+  [ ] Middleware 'cuenta.activa' y 'rol' y las Policies (J4). SIGUIENTE TAREA DE JUAN. Mientras
+      no exista: un administrador con sesión puede abrir rutas de estándar/familiar y una cuenta
+      suspendida que ya tenía sesión abierta no se expulsa.
+  [ ] Controladores, FormRequests y servicios de los demás módulos (ver sección 10); solo existen
+      los de autenticación.
+  [ ] Metas, alertas, administración, dashboard con datos reales.
+  [ ] Pruebas de comportamiento de cada módulo (solo existen las de la base de datos).
+  [ ] Imágenes: public/img está vacía; las vistas enlazan imágenes externas temporales
+      (lh3.googleusercontent.com). Hay que descargarlas y usar asset('img/...').
+  [ ] Pantallas con marca "DISEÑO PENDIENTE" (solo estructura): ver sección 6.
+
+PUNTO ABIERTO DETECTADO (decisión #23, sección 14): la tabla categorias NO tiene columna "activa",
+pero la sección 11 y la ruta admin.categorias.desactivar hablan de "desactivar" categorías del
+sistema. Hay que decidir antes de J7.
+
+.env DE DESARROLLO (cada persona crea el suyo desde .env.example; NUNCA se sube):
+  Copiar .env.example a .env, ejecutar php artisan key:generate, dejar APP_ENV=local,
+  APP_DEBUG=true, APP_LOCALE=es, DB_CONNECTION=sqlite, SESSION_DRIVER=database,
+  CACHE_STORE=database, QUEUE_CONNECTION=database (ya funcionan porque las tablas existen).
+  Con APP_ENV distinto de "local" NO se crean las cuentas de prueba.
+  Primera vez: php artisan migrate:fresh --seed
+
+
+----------------------------------------------------------------------
+3. STACK Y CONFIGURACIÓN
+----------------------------------------------------------------------
+  Backend ........ PHP + Laravel 11/12 (estructura con bootstrap/app.php, sin Kernel.php).
+  Vistas ......... Blade (resources/views). Sin Vite ni Tailwind compilado por ahora.
+  Estilos ........ public/css/style.css (global, 5 secciones: tokens, base, armazón, componentes,
+                   utilidades que imitan nombres de Tailwind) + un CSS por pantalla (@push('styles')).
+  Scripts ........ public/js/shell.js (menús, toast), simulador-de-creditos.js, crear-usuario.js.
+  Fuentes/íconos . Plus Jakarta Sans y Material Symbols (Google Fonts, cargadas en layouts/base).
+  Base de datos .. SQLite en desarrollo (database/database.sqlite, ignorado por git); la definitiva
+                   se decide en el despliegue (J9). Pruebas: SQLite en memoria (phpunit.xml). Sesión,
+                   caché y colas en "database".
+  Idioma/moneda .. español; COP en enteros. Zona horaria America/Bogota.
+  Entorno local .. php artisan serve  (http://localhost:8000).
+
+
+----------------------------------------------------------------------
+4. ROLES (3) Y QUÉ PUEDE HACER CADA UNO
+----------------------------------------------------------------------
+  estandar ........ gastos, categorías, gastos fijos, notificaciones, simulador, informes,
+                    panel y ajustes. NO entra a metas ni a administración.
+  familiar ........ todo lo del estándar + metas compartidas (máx. 2 participantes por meta).
+  administrador ... SOLO administración y ajustes. NUNCA ve montos ni datos financieros de
+                    nadie (ni siquiera estadísticas que unan usuarios con montos). Recibe 403 en
+                    gastos, créditos, metas e informes.
+Estado de cuenta: columna users.activo (booleano). activo = true entra; false = suspendido (no
+entra; se cierra su sesión). Por seguridad "rol" y "activo" NO son asignables en masa: solo los
+cambia ServicioCuentas / administración, nunca un formulario del usuario.
+Nunca puede quedar el sistema sin un administrador activo.
+Ocultar un enlace del menú NO protege: la protección real es middleware + Policies.
+
+
+----------------------------------------------------------------------
+5. ESTRUCTURA DE CARPETAS
+----------------------------------------------------------------------
+  (R) = ya existe · (F) = falta crearlo durante el desarrollo
+
+  app/
+    Http/Controllers/ ........ (R) Auth/{RegistroController, LoginController, PasswordResetController}
+                               · (F) un controlador por cada otro módulo
+    Http/Middleware/ ......... (F) CuentaActiva, Rol (J4). UsuarioMaqueta fue eliminado en J3
+    Http/Requests/ ........... (R) Auth/{RegistroRequest, LoginRequest, SolicitarEnlaceRequest,
+                               RestablecerContrasenaRequest} · (F) los de los demás módulos
+    Notifications/ ........... (R) RestablecerContrasena (correo de recuperar contraseña en español)
+    Models/ .................. (R) User, Categoria, Gasto, GastoFijo, PagoGastoFijo, SimulacionCredito,
+                               Informe, DetalleInforme, Meta, ParticipacionMeta, AporteMeta, Notificacion
+    Policies/ ................ (F) una por recurso
+    Providers/AppServiceProvider.php ... (R) View Composer de $notificacionesPendientes
+    Services/ ................ (F) CalculadoraCredito, GeneradorInforme, ServicioMetas,
+                               ServicioGastosFijos, ServicioNotificaciones, ServicioCuentas
+    Console/ ................. (F) comando diario de alertas
+  bootstrap/app.php .......... (F) registrar alias 'cuenta.activa' y 'rol' (J4)
+  database/migrations|seeders|factories ... (R) hechos en J2 (migraciones NO se editan una vez unidas a main)
+  routes/
+    web.php .................. (R) ÍNDICE: solo Juan lo cambia. Define grupos A-E.
+    modulos/ ................. (R) un archivo por módulo (ver tabla de rutas)
+  resources/views/
+    layouts/ ................. base, publico, app, admin   (Juan)
+    components/ .............. header, footer, sidebar, sidebar-admin, topbar, toast  (Juan)
+    publico/ ................. landing, crear-usuario, iniciar-sesion, recuperar-contrasena,
+                               restablecer-contrasena, politica-de-privacidad, terminos-y-condiciones
+    app/ ..................... dashboard, gastos/, categorias/, gastos-fijos/, notificaciones/,
+                               creditos/{simulador,historial}, informes/{actual,historial},
+                               metas/{index,invitaciones,show}, ajustes/{perfil,tipo-cuenta,eliminar-cuenta}
+    admin/ ................... usuarios, categorias, estadisticas
+  public/css|js|img ........... estilos, scripts, imágenes
+  docs/backend/ ............... SOLO documentación (planes en comentarios, sin código). No se
+                               carga ni se borra. 00-rutas, 01-controladores, 02-modelos,
+                               03-migraciones, 04-middleware, 05-policies, 06-servicios,
+                               07-alertas-programadas, 08-validaciones, 09-view-composer.
+  tests/ ...................... (R) tests/Feature/BaseDeDatosTest.php · (F) pruebas de cada módulo
+  DECISIONES.md ............... (R) raíz del repositorio: registro de decisiones con fecha
+
+ARCHIVOS COMPARTIDOS (solo Juan; los demás piden cambios con una tarjeta "Pedido a Juan"):
+  public/css/style.css · public/js/shell.js · resources/views/layouts/* ·
+  resources/views/components/* · routes/web.php · database/migrations/*
+
+Cada archivo de la plantilla trae al inicio un bloque de comentarios con QUÉ ES, QUÉ HAY QUE HACER,
+CÓMO HACERLO y CÓMO SE COMPRUEBA. NO se borra: se actualiza y se marca "HECHO (fecha, persona)".
+
+
+----------------------------------------------------------------------
+6. PANTALLAS: VISTA, CSS Y DUEÑO
+----------------------------------------------------------------------
+  Vista (resources/views/...)             CSS (public/css/...)                 Dueño
+  publico/landing                         landing-page                         Nikol N5
+  publico/politica-de-privacidad          politica-de-privacidad               Nikol N5
+  publico/terminos-y-condiciones          terminos-y-condiciones               Nikol N5
+  publico/iniciar-sesion                  iniciar-sesion                       Juan J3
+  publico/crear-usuario (+crear-usuario.js) crear-usuario                      Juan J3
+  publico/recuperar-contrasena            recuperar-contrasena                 Juan J3
+  publico/restablecer-contrasena          restablecer-contrasena               Juan J3
+  app/dashboard                           dashboard-principal                  Juan J8
+  app/gastos/index                        gastos                               Nikol N1
+  app/categorias/index                    categorias                           Nikol N2
+  app/gastos-fijos/index                  gastos-fijos                         Nikol N3
+  app/notificaciones/index                notificaciones                       Nikol N4
+  app/creditos/simulador (+simulador-de-creditos.js)  simulador-de-creditos    Valeria V1
+  app/creditos/historial                  historial-simulaciones               Valeria V2
+  app/informes/actual                     informes-50-30-20                    Valeria V3
+  app/informes/historial                  informes-historial                   Valeria V3
+  app/ajustes/{perfil,tipo-cuenta,eliminar-cuenta}  ajustes                    Valeria V4
+  app/metas/index                         metas-compartidas                    Juan J5
+  app/metas/invitaciones                  invitaciones-metas                   Juan J5
+  app/metas/show                          detalle-meta                         Juan J5
+  admin/usuarios                          admin-usuarios                       Juan J7
+  admin/categorias                        admin-categorias                     Juan J7
+  admin/estadisticas                      admin-estadisticas                   Juan J7
+Diseño original (code.html) existe para: landing, crear-usuario, simulador y los componentes.
+El resto son estructuras marcadas "DISEÑO PENDIENTE" que usan los componentes del CSS global.
+
+Layouts: todas las vistas hacen @extends de un layout, @section('titulo'), @push('styles') con su CSS
+y @section('content') con su <main>. layouts.publico (páginas públicas), layouts.app (zona privada
+estándar/familiar), layouts.admin (administrador), layouts.base (raíz: <head>, CSS global, toast).
+Zonas dinámicas de las vistas están marcadas "DINÁMICO" con data-dinamico="variable".
+
+
+----------------------------------------------------------------------
+7. RUTAS: LAS 60 (URL Y NOMBRE DEFINITIVOS, NO SE CAMBIAN)
+----------------------------------------------------------------------
+Fuente de verdad: docs/backend/00-rutas.php y routes/modulos/*.php. Verificadas con
+php artisan route:list --except-vendor => "Showing [60] routes".
+
+Cómo están organizadas:
+  - routes/web.php incluye los archivos de routes/modulos/ dentro de grupos (A-E).
+  - Desde J3 los grupos B-E llevan 'auth'. En "// FASE 2" entran 'cuenta.activa' y 'rol:...' (J4).
+  - admin.php va dentro de Route::prefix('admin')->name('admin.'): dentro de ese archivo los
+    nombres se escriben SIN "admin." (ej. ->name('usuarios') produce admin.usuarios).
+  - ajustes.php va dentro de un grupo con prefijo /ajustes y nombre 'ajustes.': ahí se escribe
+    ->name('perfil') y produce ajustes.perfil.
+  - Segmentos fijos antes que los de parámetro: /gastos/nuevo antes de /gastos/{gasto};
+    /metas/invitaciones antes de /metas/{meta}.
+  - Las vistas llaman las rutas SIEMPRE con route('nombre'). Si falta una, Laravel dice
+    "Route [x] not defined".
+  - Formularios: @csrf, y @method('PUT'|'DELETE'|'PATCH') cuando corresponda. Ninguna ruta que
+    modifica datos usa GET.
+
+  GRUPO A  PUBLICAS .............. sin sesion (login/registro/recuperar llevan middleware 'guest' desde J3)
+  ----------------------------------------------------------------------------------------------------------------------
+  GET    /                                                inicio                           [Nikol N5 · routes/modulos/publico.php]
+         vista: publico.landing                          controlador futuro: (estática)
+  GET    /politica-de-privacidad                          politica                         [Nikol N5 · routes/modulos/publico.php]
+         vista: publico.politica-de-privacidad           controlador futuro: (estática)
+  GET    /terminos                                        terminos                         [Nikol N5 · routes/modulos/publico.php]
+         vista: publico.terminos-y-condiciones           controlador futuro: (estática)
+  GET    /iniciar-sesion                                  login                            [Juan J3 · routes/modulos/auth.php]
+         vista: publico.iniciar-sesion                   controlador futuro: Auth\LoginController@create
+  POST   /iniciar-sesion                                  login.entrar                     [Juan J3 · routes/modulos/auth.php]
+         vista: -                                        controlador futuro: Auth\LoginController@store
+  GET    /crear-usuario                                   registro                         [Juan J3 · routes/modulos/auth.php]
+         vista: publico.crear-usuario                    controlador futuro: Auth\RegistroController@create
+  POST   /crear-usuario                                   registro.guardar                 [Juan J3 · routes/modulos/auth.php]
+         vista: -                                        controlador futuro: Auth\RegistroController@store
+  GET    /recuperar-contrasena                            password.request                 [Juan J3 · routes/modulos/auth.php]
+         vista: publico.recuperar-contrasena             controlador futuro: Auth\PasswordController (sugerido)
+  POST   /recuperar-contrasena                            password.email                   [Juan J3 · routes/modulos/auth.php]
+         vista: -                                        controlador futuro: Auth\PasswordController (sugerido)
+  GET    /restablecer-contrasena/{token}                  password.reset                   [Juan J3 · routes/modulos/auth.php]
+         vista: publico.restablecer-contrasena           controlador futuro: Auth\PasswordController (sugerido)
+  POST   /restablecer-contrasena                          password.update                  [Juan J3 · routes/modulos/auth.php]
+         vista: -                                        controlador futuro: Auth\PasswordController (sugerido)
+
+  GRUPO B  CON SESION ............ auth + cuenta.activa (cualquier rol, incluido administrador)
+  ----------------------------------------------------------------------------------------------------------------------
+  POST   /cerrar-sesion                                   logout                           [Juan J3 · routes/modulos/auth.php]
+         vista: -                                        controlador futuro: Auth\LoginController@destroy
+  GET    /ajustes/perfil                                  ajustes.perfil                   [Valeria V4 · routes/modulos/ajustes.php]
+         vista: app.ajustes.perfil                       controlador futuro: AjustesController@perfil
+  PUT    /ajustes/perfil                                  ajustes.perfil.update            [Valeria V4 · routes/modulos/ajustes.php]
+         vista: -                                        controlador futuro: AjustesController@actualizarPerfil
+  GET    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta              [Valeria V4 · routes/modulos/ajustes.php]
+         vista: app.ajustes.tipo-cuenta                  controlador futuro: AjustesController@tipoCuenta
+  PUT    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta.update       [Valeria V4 · routes/modulos/ajustes.php]
+         vista: -                                        controlador futuro: AjustesController@cambiarTipo
+  GET    /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta          [Valeria V4 · routes/modulos/ajustes.php]
+         vista: app.ajustes.eliminar-cuenta              controlador futuro: AjustesController@eliminar
+  DELETE /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta.destroy  [Valeria V4 · routes/modulos/ajustes.php]
+         vista: -                                        controlador futuro: AjustesController@destruir
+
+  GRUPO C  ESTANDAR Y FAMILIAR ... auth + cuenta.activa + rol:estandar,familiar
+  ----------------------------------------------------------------------------------------------------------------------
+  GET    /panel                                           panel                            [Juan J8 · routes/modulos/panel.php]
+         vista: app.dashboard                            controlador futuro: DashboardController@index
+  GET    /gastos                                          gastos.index                     [Nikol N1 · routes/modulos/gastos.php]
+         vista: app.gastos.index                         controlador futuro: GastoController@index
+  GET    /gastos/nuevo                                    gastos.create                    [Nikol N1 · routes/modulos/gastos.php]
+         vista: app.gastos.index                         controlador futuro: GastoController@index (misma vista, formulario abierto)
+  POST   /gastos                                          gastos.store                     [Nikol N1 · routes/modulos/gastos.php]
+         vista: -                                        controlador futuro: GastoController@store
+  PUT    /gastos/{gasto}                                  gastos.update                    [Nikol N1 · routes/modulos/gastos.php]
+         vista: -                                        controlador futuro: GastoController@update
+  DELETE /gastos/{gasto}                                  gastos.destroy                   [Nikol N1 · routes/modulos/gastos.php]
+         vista: -                                        controlador futuro: GastoController@destroy
+  GET    /categorias                                      categorias.index                 [Nikol N2 · routes/modulos/gastos.php]
+         vista: app.categorias.index                     controlador futuro: CategoriaController@index
+  POST   /categorias                                      categorias.store                 [Nikol N2 · routes/modulos/gastos.php]
+         vista: -                                        controlador futuro: CategoriaController@store
+  PUT    /categorias/{categoria}                          categorias.update                [Nikol N2 · routes/modulos/gastos.php]
+         vista: -                                        controlador futuro: CategoriaController@update
+  DELETE /categorias/{categoria}                          categorias.destroy               [Nikol N2 · routes/modulos/gastos.php]
+         vista: -                                        controlador futuro: CategoriaController@destroy
+  GET    /gastos-fijos                                    gastos-fijos.index               [Nikol N3 · routes/modulos/gastos-fijos.php]
+         vista: app.gastos-fijos.index                   controlador futuro: GastoFijoController@index
+  POST   /gastos-fijos                                    gastos-fijos.store               [Nikol N3 · routes/modulos/gastos-fijos.php]
+         vista: -                                        controlador futuro: GastoFijoController@store
+  PUT    /gastos-fijos/{gastoFijo}                        gastos-fijos.update              [Nikol N3 · routes/modulos/gastos-fijos.php]
+         vista: -                                        controlador futuro: GastoFijoController@update
+  DELETE /gastos-fijos/{gastoFijo}                        gastos-fijos.destroy             [Nikol N3 · routes/modulos/gastos-fijos.php]
+         vista: -                                        controlador futuro: GastoFijoController@destroy
+  POST   /gastos-fijos/{gastoFijo}/pagar                  gastos-fijos.pagar               [Nikol N3 · routes/modulos/gastos-fijos.php]
+         vista: -                                        controlador futuro: GastoFijoController@pagar
+  GET    /notificaciones                                  notificaciones.index             [Nikol N4 · routes/modulos/notificaciones.php]
+         vista: app.notificaciones.index                 controlador futuro: NotificacionController@index
+  POST   /notificaciones/leer                             notificaciones.leer              [Nikol N4 · routes/modulos/notificaciones.php]
+         vista: -                                        controlador futuro: NotificacionController@leer
+  GET    /creditos/simulador                              creditos.simulador               [Valeria V1 · routes/modulos/creditos.php]
+         vista: app.creditos.simulador                   controlador futuro: SimulacionCreditoController@index
+  POST   /creditos                                        creditos.guardar                 [Valeria V1 · routes/modulos/creditos.php]
+         vista: -                                        controlador futuro: SimulacionCreditoController@store
+  GET    /creditos/historial                              creditos.historial               [Valeria V2 · routes/modulos/creditos.php]
+         vista: app.creditos.historial                   controlador futuro: SimulacionCreditoController@historial
+  DELETE /creditos/{simulacion}                           creditos.eliminar                [Valeria V2 · routes/modulos/creditos.php]
+         vista: -                                        controlador futuro: SimulacionCreditoController@destroy
+  GET    /informes                                        informes.actual                  [Valeria V3 · routes/modulos/informes.php]
+         vista: app.informes.actual                      controlador futuro: InformeController@actual
+  GET    /informes/historial                              informes.historial               [Valeria V3 · routes/modulos/informes.php]
+         vista: app.informes.historial                   controlador futuro: InformeController@historial
+
+  GRUPO D  SOLO FAMILIAR ......... auth + cuenta.activa + rol:familiar
+  ----------------------------------------------------------------------------------------------------------------------
+  GET    /metas                                           metas.index                      [Juan J5 · routes/modulos/metas.php]
+         vista: app.metas.index                          controlador futuro: MetaController@index
+  POST   /metas                                           metas.store                      [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador futuro: MetaController@store
+  GET    /metas/invitaciones                              metas.invitaciones               [Juan J5 · routes/modulos/metas.php]
+         vista: app.metas.invitaciones                   controlador futuro: InvitacionMetaController@index
+  POST   /metas/invitaciones/{participacion}/aceptar      metas.aceptar                    [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador futuro: InvitacionMetaController@aceptar
+  POST   /metas/invitaciones/{participacion}/rechazar     metas.rechazar                   [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador futuro: InvitacionMetaController@rechazar
+  GET    /metas/{meta}                                    metas.show                       [Juan J5 · routes/modulos/metas.php]
+         vista: app.metas.show                           controlador futuro: MetaController@show
+  POST   /metas/{meta}/invitar                            metas.invitar                    [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador futuro: InvitacionMetaController@store (sugerido)
+  POST   /metas/{meta}/aportes                            metas.aportes                    [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador futuro: AporteMetaController@store
+  POST   /metas/{meta}/finalizar                          metas.finalizar                  [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador futuro: MetaController@finalizar
+  POST   /metas/{meta}/abandonar                          metas.abandonar                  [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador futuro: MetaController@abandonar
+
+  GRUPO E  SOLO ADMINISTRADOR .... auth + cuenta.activa + rol:administrador ; prefijo /admin ; nombres admin.*
+  ----------------------------------------------------------------------------------------------------------------------
+  GET    /admin/usuarios                                  admin.usuarios                   [Juan J7 · routes/modulos/admin.php]
+         vista: admin.usuarios                           controlador futuro: Admin\UsuarioController@index
+  PUT    /admin/usuarios/{usuario}/rol                    admin.usuarios.rol               [Juan J7 · routes/modulos/admin.php]
+         vista: -                                        controlador futuro: Admin\UsuarioController@rol
+  PUT    /admin/usuarios/{usuario}/estado                 admin.usuarios.estado            [Juan J7 · routes/modulos/admin.php]
+         vista: -                                        controlador futuro: Admin\UsuarioController@estado
+  DELETE /admin/usuarios/{usuario}                        admin.usuarios.destroy           [Juan J7 · routes/modulos/admin.php]
+         vista: -                                        controlador futuro: Admin\UsuarioController@destroy
+  GET    /admin/categorias                                admin.categorias                 [Juan J7 · routes/modulos/admin.php]
+         vista: admin.categorias                         controlador futuro: Admin\CategoriaSistemaController@index
+  POST   /admin/categorias                                admin.categorias.store           [Juan J7 · routes/modulos/admin.php]
+         vista: -                                        controlador futuro: Admin\CategoriaSistemaController@store
+  PUT    /admin/categorias/{categoria}                    admin.categorias.update          [Juan J7 · routes/modulos/admin.php]
+         vista: -                                        controlador futuro: Admin\CategoriaSistemaController@update
+  PATCH  /admin/categorias/{categoria}/desactivar         admin.categorias.desactivar      [Juan J7 · routes/modulos/admin.php]
+         vista: -                                        controlador futuro: Admin\CategoriaSistemaController@desactivar
+  GET    /admin/estadisticas                              admin.estadisticas               [Juan J7 · routes/modulos/admin.php]
+         vista: admin.estadisticas                       controlador futuro: Admin\EstadisticaController@index
+
+Notas de la tabla:
+  - "vista: -" significa que la ruta no devuelve vista: valida, actúa y redirige con mensaje.
+  - Los nombres de controlador son el plan de docs/backend/01-controladores.php; los marcados
+    "(sugerido)" no estaban en el plan y los decide quien implementa (sin cambiar URL ni nombre).
+  - Hoy todas las rutas son "de maqueta": Route::view o aviso. El dueño reemplaza SOLO su línea.
+  - La ruta "demo" ya NO existe.
+
+
+----------------------------------------------------------------------
+8. CÓMO PASAR UNA RUTA DE MAQUETA A REAL
+----------------------------------------------------------------------
+  Antes (en routes/modulos/gastos.php):
+      Route::view('/gastos', 'app.gastos.index')->name('gastos.index');
+  Después:
+      Route::get('/gastos', [GastoController::class, 'index'])->name('gastos.index');
+  Reglas: mismo URL, mismo nombre; el controlador valida con un FormRequest, delega la lógica a
+  un servicio, autoriza con la Policy ANTES de leer o modificar, y devuelve la vista o una
+  redirección con ->with('exito', 'mensaje exacto'). Quitar el aviso "MAQUETA" de esa ruta.
+  Si se necesitan datos falsos mientras llega el backend, se pasan desde la misma ruta:
+      Route::get('/gastos', fn () => view('app.gastos.index', ['gastos' => $falsos]))->name('gastos.index');
+
+
+----------------------------------------------------------------------
+9. MODELO DE DATOS (REAL, YA IMPLEMENTADO EN J2)
+----------------------------------------------------------------------
+Fuente de verdad: database/migrations/*. Diccionario completo: docs/backend/03-migraciones.php.
+Diagrama: diagrama_tablas.png. Guía para el equipo: Guia_BD_para_el_equipo.txt.
+Dinero = enteros en pesos (unsignedBigInteger); la única columna decimal es tasa_mensual (5,2) y
+los porcentajes del informe. Llaves foráneas con borrado en cascada desde users (para poder
+eliminar una cuenta completa). Los nombres de tablas y columnas están en español, salvo users.
+
+  users ............... id, nombre, cedula (única), email (único), password (hash), rol
+                        (estandar|familiar|administrador, por defecto estandar), activo (bool, por
+                        defecto true), ingreso_mensual (nullable, entero), consentimiento_datos_at
+                        (nullable), remember_token, timestamps
+  password_reset_tokens, sessions ... tablas de Laravel (recuperar contraseña y sesiones)
+  categorias .......... id, user_id (NULL = del sistema), nombre (50), bloque
+                        (necesidades|discrecionales|ahorro), peso_recomendado (nullable, 50/30/20),
+                        timestamps · índice (user_id, nombre). La unicidad del nombre por usuario se
+                        valida en la aplicación. NO tiene columna "activa" (ver decisión #23).
+  gastos .............. id, user_id, categoria_id (restrict), monto, fecha, descripcion (200,
+                        nullable), timestamps · índice (user_id, fecha)
+  gastos_fijos ........ id, user_id, categoria_id (restrict), nombre, monto, dia_vencimiento (1-31),
+                        periodicidad (por defecto mensual), descripcion (nullable), activo, timestamps
+  pagos_gasto_fijo .... id, user_id, gasto_fijo_id (cascade), periodo ("AAAA-MM"), fecha_vencimiento,
+                        estado (pendiente|pagado|vencido, por defecto pendiente), fecha_pago
+                        (nullable), monto · único (gasto_fijo_id, periodo)
+  simulaciones_credito  id, user_id, nombre, monto, tasa_mensual (5,2), plazo_meses, cuota,
+                        total_pagar, intereses, timestamps
+  informes ............ id, user_id, anio, mes, ingreso, total_gastado, timestamps
+                        · único (user_id, anio, mes)
+  detalles_informe .... id, informe_id (cascade), categoria_id (nullable, nullOnDelete),
+                        categoria_nombre, bloque, monto_gastado, porcentaje_real (5,2),
+                        porcentaje_recomendado, excede (bool). Sin timestamps. Guarda una COPIA
+                        del nombre para que el informe cerrado no cambie si se borra la categoría.
+  metas ............... id, creador_id, nombre, monto_objetivo, fecha_limite (nullable), estado
+                        (por defecto activa), timestamps. NO guarda monto_actual: el total
+                        conjunto se calcula sumando aportes_meta (Meta::totalConjunto()).
+  participaciones_meta  id, meta_id, user_id, estado_invitacion (por defecto pendiente), fecha_union
+                        (nullable) · único (meta_id, user_id) (máx. 2 participantes por meta se
+                        valida en ServicioMetas)
+  aportes_meta ........ id, meta_id, user_id, monto, fecha, timestamps
+  notificaciones ...... id, user_id, tipo (30), mensaje (255), estado (pendiente|leida|cancelada),
+                        pago_gasto_fijo_id (nullable), meta_id (nullable), clave_unica (nullable)
+                        · único (user_id, clave_unica) (evita alertas duplicadas: idempotencia)
+  cache, jobs ......... tablas de Laravel (CACHE_STORE y QUEUE_CONNECTION = database)
+
+ELIMINADAS del diagrama original (decisiones cerradas): "saldo" (#14, el disponible se calcula) y
+"cuota_credito" (#4, solo simulaciones, sin créditos reales).
+
+Relaciones (en los modelos):
+  User tiene muchos gastos, categorias (propias), gastosFijos, simulaciones, informes y
+  notificaciones. Categoria pertenece a User (o a nadie si es del sistema) y tiene muchos Gasto.
+  GastoFijo tiene muchos PagoGastoFijo. Informe tiene muchos DetalleInforme. Meta tiene muchas
+  ParticipacionMeta y AporteMeta, y pertenece a su creador.
+Constantes y ayudas útiles: Categoria::BLOQUES (contrato C2), Categoria::esDelSistema(),
+  Gasto::delUsuario($id) (scope), Meta::totalConjunto(). Los modelos de dominio usan $guarded = []
+  (la validación va en los FormRequests); User sí usa $fillable y NO incluye rol ni activo.
+Alcance global "del usuario actual": aún NO está implementado como global scope; hoy cada consulta
+  parte de auth()->user() o usa Gasto::delUsuario(). Se evalúa en J4.
+
+Semillas (database/seeders):
+  CategoriaSeeder ..... 14 categorías del sistema. Necesidades (50): Arriendo, Servicios públicos,
+                        Mercado, Transporte, Salud, Educación. Discrecionales (30): Restaurantes,
+                        Entretenimiento, Ropa, Suscripciones, Viajes. Ahorro (20): Ahorro, Inversión,
+                        Pago extra de deudas. Se ejecuta SIEMPRE (también en producción).
+  UsuariosSeeder ...... solo en local: estandar@test.com, familiar@test.com, admin@test.com
+                        (contraseña "password"). Los datos se generan con las fábricas.
+  DatosDePruebaSeeder . solo en local: 20 gastos por cada usuario estándar y familiar.
+  DatabaseSeeder ...... decide qué se ejecuta según APP_ENV.
+Fábricas: UserFactory con estados familiar(), administrador(), inactivo(), sinIngreso();
+  CategoriaFactory con delSistema(). Las pruebas deben crear sus datos con fábricas, nunca con
+  datos escritos a mano ni dependiendo de los seeders de prueba.
+Caso de referencia del simulador (SimulacionCreditoFactory): $10.000.000, 1,5 % mensual, 24 meses
+  => cuota $499.241, total $11.981.784, intereses $1.981.784.
+
+
+----------------------------------------------------------------------
+10. SERVICIOS Y CONTRATOS ENTRE MÓDULOS (C1-C11)
+----------------------------------------------------------------------
+Los módulos no tocan el código interno del otro: se llaman por "contratos" con nombre acordado.
+Servicios (app/Services): CalculadoraCredito · GeneradorInforme · ServicioMetas ·
+ServicioGastosFijos · ServicioNotificaciones · ServicioCuentas.
+
+  C1  Consulta de gastos por periodo ... Nikol (N1) -> Valeria (informes) y Juan (dashboard).
+      Alcance "delPeriodo(año, mes)" y método "totalDelMes", filtrado por usuario, sin gastos eliminados.
+  C2  Bloque 50/30/20 de cada categoría  Nikol (N2 formulario) + Juan (J2, HECHO) -> Valeria.
+      Real: categorias.bloque con los valores de Categoria::BLOQUES (necesidades, discrecionales, ahorro).
+  C3  Ingreso mensual del usuario ...... Valeria (V4, Ajustes > Perfil) -> Valeria y Juan. Puede estar vacío.
+      Real: users.ingreso_mensual (entero, nullable; la columna ya existe, V4 solo la edita).
+  C4  Servicio de notificaciones ....... Juan (J6) -> Nikol y la campana. Crear, cancelar las ligadas a
+      un pago, marcar leída, contar pendientes. Nadie crea notificaciones a mano.
+  C5  Pagos del periodo de gastos fijos  Nikol (N3, ServicioGastosFijos) -> Juan (comando diario).
+      Crea el pago del mes de cada gasto fijo activo sin duplicar, marca vencidos y devuelve los que
+      vencen en 3 días o menos y siguen sin pagar.
+  C6  "Tiene metas activas" ............ Juan (J5, ServicioMetas::tieneMetasActivas) -> Valeria.
+  C7  Cambiar tipo de cuenta y eliminar  Juan (J8, ServicioCuentas) -> Valeria (solo arma la pantalla).
+  C8  Variables del armazón ............ Juan: $notificacionesPendientes, mensaje flash 'exito'
+      (lo muestra <x-toast />), usuario autenticado con nombre y rol, ruta "logout".
+  C9  Nombres de rutas ................. Juan. No se cambian; uno nuevo se agrega a docs/backend/00-rutas.php.
+  C10 Permisos ......................... Juan (J4): middleware 'cuenta.activa' y 'rol' + una Policy por
+      recurso (gasto, categoría, gasto fijo, simulación, notificación, informe, meta).
+  C11 Categorías globales .............. Juan (J2 semillas HECHO, J7 admin): categorias.user_id vacío = del sistema;
+      se ven para todos y no se editan desde la zona del usuario.
+
+
+----------------------------------------------------------------------
+11. REGLAS DE NEGOCIO QUE NO SE PUEDEN ROMPER
+----------------------------------------------------------------------
+Seguridad y privacidad
+  - Toda consulta de datos parte del usuario autenticado. Se prueba con dos usuarios: ninguno
+    lista, abre, edita ni borra registros del otro (otro usuario -> 403 o 404).
+  - Policy antes de leer, editar o borrar. Contraseñas con hash. Token CSRF en todos los formularios.
+  - Mensajes de error genéricos hacia afuera; detalle solo en el registro interno.
+  - Límite de intentos en login y recuperación. Recuperar contraseña con mensaje neutro (no revela
+    si el correo existe); enlace de un solo uso que vence.
+  - Consentimiento de datos obligatorio en el registro, guardado con fecha.
+Metas compartidas
+  - Entre DOS usuarios familiares (máx. 2 participantes). Invitar valida: no existe, es estándar,
+    ya participa (mensajes exactos de la guía).
+  - PRIVACIDAD: el detalle muestra el total conjunto y el aporte PROPIO; el aporte individual del
+    otro NO aparece en la página, ni en datos ocultos, ni en ninguna ruta. Las consultas calculan el
+    total con suma, sin traer las filas del otro. Prueba automática obligatoria.
+  - Cambiar de familiar a estándar se bloquea con metas activas.
+Gastos fijos y alertas
+  - Solo mensuales (decisión #6). Si el mes no tiene ese día, vence el último día del mes.
+  - Una alerta a los 3 días y una de vencido (decisión #16). El comando diario es IDEMPOTENTE:
+    correrlo dos veces el mismo día no duplica alertas. Marcar pagado cancela la alerta pendiente.
+  - En producción el programador de Laravel debe correr cada minuto por cron; sin eso no hay alertas.
+Simulador de créditos
+  - Tasa mensual vencida, sistema francés, redondeo al final a pesos enteros, sin comisiones ni
+    seguros (decisión #13). El cálculo oficial es del servidor y debe dar lo mismo que el JS.
+  - Semáforo de endeudamiento: hasta 20 % saludable, 20-30 % moderado, más de 30 % riesgo (#3).
+  - Si el ingreso mensual es 0 o vacío: invitación a registrarlo en Ajustes en lugar del semáforo.
+  - Solo simulaciones, no créditos reales (#4).
+Informes 50/30/20
+  - Se agrupan los gastos del mes por bloque y por categoría; % real vs recomendado (50/30/20);
+    "excede" cuando el % real supera al recomendado. El informe guardado NO se recalcula en meses
+    cerrados (editar un gasto después no lo cambia).
+Dashboard
+  - "Disponible del mes" = ingreso menos gastos; no se guarda saldo (#14).
+Administración
+  - El administrador nunca ve datos financieros individuales. Estadísticas: solo conteos agregados.
+  - Las categorías del sistema se desactivan, no se borran (PENDIENTE: falta la columna
+    categorias.activa, decisión #23). Rol "soporte": no se construye (#11).
+Categorías
+  - Nombre único entre las del usuario. Eliminar una con gastos: el modal pide mover los gastos a
+    otra categoría (#17).
+
+Mensajes EXACTOS conocidos (no inventar sinónimos): "Gasto guardado" · "Gasto actualizado" ·
+"Gasto eliminado" · "Meta creada" · "Gasto fijo pagado" · "Esta categoría ya se encuentra
+registrada" · "Este correo ya se encuentra registrado" · "Usuario o contraseña incorrectos" ·
+"No hay gastos registrados en este periodo" · "No tienes simulaciones guardadas" ·
+"No hay datos suficientes para generar el informe" · "No tienes notificaciones pendientes".
+Los demás están en los comentarios de cabecera de cada vista.
+
+
+----------------------------------------------------------------------
+12. CONVENCIONES DE CÓDIGO
+----------------------------------------------------------------------
+  - Nombres de rutas, variables y campos: EXACTAMENTE los de la plantilla (están en los comentarios
+    de cada vista). El campo name= de los formularios debe coincidir con la validación.
+  - Vistas: indentación de 2 espacios, atributos largos uno por línea, nada de HTML en una línea.
+  - Formularios: @csrf, @error bajo cada campo, old() para conservar valores.
+  - Éxito: redirect()->with('exito', 'texto'); se muestra con <x-toast />.
+  - Colores y estilos: SOLO variables y clases del CSS global (style.css, sección 1). Nada de
+    hexadecimales sueltos ni estilos dentro de las etiquetas. Si una pantalla necesita un estilo
+    nuevo, va en el CSS de esa pantalla, no en style.css.
+  - PHP: formato estándar de Laravel (Pint) antes de cada commit.
+  - Cada clase PHP nueva lleva comentario inicial: qué hace, quién la usa, de qué depende y un ejemplo.
+  - Dinero: enteros en pesos. Textos de interfaz en español. Sin enlaces "#" ni texto de relleno.
+  - Responsive: debe verse bien en 1440, 768 y 390 px, sin scroll horizontal; botones de al menos
+    40 px de alto.
+  - Git: nadie sube directo a main (activar en GitHub la regla "Require a pull request before
+    merging"); una rama por tarea con el nombre persona/id-tarea, por ejemplo
+    juan/j2-base-de-datos o nikol/n1-gastos; commits en español, en presente, cortos; una
+    solicitud de unión (PR) por tarea. Antes de empezar: git checkout main && git pull.
+  - Migraciones: una migración ya unida a main NO se edita; el cambio va en una migración nueva
+    (php artisan make:migration agregar_x_a_tabla). Solo Juan crea migraciones.
+  - Nunca se suben .env ni database/database.sqlite ni APP_KEY. Cada quien tiene el suyo.
+  - Definición de terminado: hace lo que dice la guía de la pantalla; igual al diseño; mensajes
+    exactos; solo datos del usuario autenticado; estados vacío/error/éxito; pruebas que pasan;
+    comentarios de cabecera actualizados; revisada y unida a main.
+
+
+----------------------------------------------------------------------
+13. ORDEN DE CONSTRUCCIÓN
+----------------------------------------------------------------------
+  1. J1 armazón y rutas (HECHO)          2. J2 base de datos (HECHO 2026-10-05)
+  3. J3 autenticación (HECHO 2026-10-06)   4. J4 permisos (SIGUIENTE)
+  5. N1 -> N2 -> V1 -> V2 -> V4 (perfil e ingreso)
+  6. N3, J5, V3                          7. J6 alertas, N4, J8 (dashboard y cuentas), V4 (resto)
+  8. J7 administración, N5 landing       9. V5 revisión visual y J9 seguridad/despliegue
+Regla: lo que otros necesitan se une primero. Si alguien depende de algo que aún no existe, usa
+datos falsos o un servicio simulado y avanza. Como J2 ya está, Nikol y Valeria pueden usar los
+modelos y las fábricas (Gasto::factory(), Categoria::factory()...) para sus pantallas y pruebas.
+J3 ya borró UsuarioMaqueta.php y activó 'auth'. Al terminar J4: activar 'cuenta.activa' en el grupo
+privado y 'rol:...' en los grupos C, D y E.
+Antes de J7: cerrar la decisión #23 (columna categorias.activa) con una migración nueva.
+Al terminar todo (J9): no debe quedar ningún aviso "MAQUETA", ni Route::view de maqueta, ni imágenes
+externas, ni routes/maqueta.php (nunca existió); comparar php artisan route:list con docs/backend/00-rutas.php.
+
+
+----------------------------------------------------------------------
+14. DECISIONES
+----------------------------------------------------------------------
+  #1  identificación (cédula): se conserva en el registro (users.cedula, única). CERRADA 2026-10-05.
+  #2  ingreso mensual: users.ingreso_mensual, editable en Ajustes > Perfil. CERRADA 2026-10-05.
+  #3  semáforo de endeudamiento: 20 % / 30 %.            #4  solo simulaciones (sin cuota_credito). CERRADA.
+  #5  alertas de cuotas de crédito: NO APLICA (no existen créditos reales, #4).
+  #6  gastos fijos solo mensuales. CERRADA 2026-10-05.    #7  fecha límite de meta: a cerrar por Juan (J5).
+  #8  gastos ligados a meta: no en la primera versión.
+  #9  el pago lleva la clave de su gasto fijo (pagos_gasto_fijo.gasto_fijo_id): sí. CERRADA 2026-10-05.
+  #10 categorías globales: categorias.user_id vacío = del sistema. CERRADA 2026-10-05.
+  #11 rol soporte: no se construye.
+  #12 bloque 50/30/20: necesidades, discrecionales, ahorro. CERRADA 2026-10-05.
+  #13 fórmula: tasa mensual vencida, francés, redondeo final.
+  #14 no guardar saldo (tabla saldo eliminada). CERRADA 2026-10-05.
+  #15 estado "vencido": sí.   #16 una alerta a los 3 días y una de vencido.   #17 mover gastos al borrar categoría.
+  #18 qué pasa con la meta si un participante sale: pendiente (Juan, J5).
+  #19 modo demo: DESCARTADO, no se construye.   #20 el administrador no tiene finanzas personales.
+  #21 cifras de la landing y textos legales: pendiente (Nikol y Juan). La landing no puede prometer
+      nada que el sistema no cumpla (AES-256, cifras, "cero reportes").   #22 moneda COP (cerrada).
+  #23 ABIERTA: "desactivar" categorías del sistema. La tabla categorias no tiene columna activa y
+      la ruta PATCH /admin/categorias/{categoria}/desactivar existe. Opciones: (a) migración nueva
+      que agrega activa boolean default true (recomendada; no se edita la migración ya unida);
+      (b) cambiar la regla a "no se pueden borrar" y quitar la ruta. Decide Juan antes de J7.
+Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué y por qué.
+
+
+----------------------------------------------------------------------
+15. INSTRUCCIONES PARA UNA IA QUE TRABAJE EN ESTE PROYECTO
+----------------------------------------------------------------------
+  1. Antes de tocar un archivo, léelo entero, sobre todo su bloque de comentarios de cabecera, y
+     lee el plan correspondiente en docs/backend/.
+  2. No cambies el diseño: no reescribas HTML/CSS de las vistas salvo para reemplazar zonas
+     marcadas "DINÁMICO" por datos reales. No agregues colores ni estilos nuevos al CSS global.
+  3. No cambies URL ni nombres de ruta, ni nombres de variables y campos. No inventes rutas.
+  4. No edites archivos compartidos (style.css, shell.js, layouts, components, routes/web.php,
+     migraciones) si la tarea es de Nikol o Valeria; pide el cambio a Juan. NUNCA edites una
+     migración ya unida a main: si falta una columna, se pide una migración nueva a Juan.
+  5. Toda consulta parte de auth()->user(); autoriza con Policy antes de leer/modificar.
+  6. Usa los mensajes exactos; texto de interfaz en español; dinero en enteros.
+  7. Escribe pruebas junto con el código (aislamiento entre dos usuarios, permisos por rol y la
+     regla principal de la tarea).
+  8. No uses GET para modificar datos; todo formulario lleva @csrf.
+  9. Si algo de este documento contradice un comentario de cabecera de un archivo, avisa y corrige
+     el documento en la misma solicitud de unión; no elijas en silencio.
+ 10. No dejes enlaces "#", imágenes externas, ni textos de relleno.
+ 11. Usa los nombres REALES de la base de datos (sección 9): users (no usuarios), Categoria (no
+     CategoriaGasto), user_id (no usuario_id), email (no correo), cedula, dia_vencimiento,
+     tasa_mensual, plazo_meses, total_pagar, metas (no metas_ahorro), informes.
+ 12. En las pruebas crea datos con fábricas y usa RefreshDatabase. No dependas de los seeders de
+     prueba (usuarios @test.com): solo existen en local.
+ 13. Nunca asignes rol ni activo desde un formulario (no son fillable). No subas .env,
+     database.sqlite ni claves. No empujes a main: rama persona/id-tarea y PR.
+ 14. El usuario autenticado es auth()->user(); nunca vuelvas a simular un usuario. En pruebas usa
+     $this->actingAs(User::factory()->create()) (o ->administrador()). Los campos del formulario de
+     acceso se llaman correo e identificacion, pero las columnas son email y cedula: tradúcelos en
+     el controlador, no cambies el formulario. Correos se guardan en minúsculas.
+ 15. Para enviar correos usa notificaciones en español (ver app/Notifications). Nunca muestres si un
+     correo existe o no (mensajes neutros).
+
+
+----------------------------------------------------------------------
+16. DOCUMENTOS RELACIONADOS
+----------------------------------------------------------------------
+  Reparto_Trabajo_Cuentas_Claras_Resumen_Equipo.txt .. versión corta del reparto
+  Reparto_Trabajo_Cuentas_Claras_Detallado.txt ....... reparto completo, calendario y reglas de equipo
+  Tareas_JUAN.txt · Tareas_NIKOL.txt · Tareas_VALERIA.txt ... guía personal por persona
+  DECISIONES.md (raíz del repositorio) ............... registro de decisiones con fecha
+  Guia_BD_para_el_equipo.txt ......................... cómo usar la base de datos ya hecha (J2)
+  J3_Autenticacion_Documentacion.txt ................. qué cambió en J3, cómo probarlo y cómo lo usan los demás
+  diagrama_tablas.png / .svg ......................... diagrama de las 20 tablas y su contenido
+  docs/backend/03-migraciones.php .................... diccionario de datos real (HECHO 2026-10-05)
+  docs/backend/*.php ................................. planes técnicos por tema
+  Plan_Jira_Cuentas_Claras.txt / .csv ................ plan de tareas por sprint (53 tareas, 8 sprints)
+  Guia_Tareas_Jira_Sprint2_en_adelante.txt ........... qué escribir en cada tarea de Jira
+  .env.example ....................................... plantilla de configuración local
+  README.txt (de la plantilla) ....................... cómo se acopla la plantilla a Laravel
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================

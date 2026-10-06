@@ -1,0 +1,214 @@
+======================================================================
+J2 - BASE DE DATOS  ·  DOCUMENTACIÓN DE LO QUE CAMBIÓ
+Responsable: Juan · Fecha: 2026-10-05 · Ramas: juan/j2-base-de-datos y juan/j2-docs-y-decisiones
+======================================================================
+Estado: HECHO. php artisan migrate:fresh --seed funciona (20 tablas) y
+php artisan test => 20 pruebas, 68 aserciones, todas pasan.
+
+
+----------------------------------------------------------------------
+1. QUÉ SE HIZO (en una frase por pieza)
+----------------------------------------------------------------------
+  Migraciones ......... crean las 20 tablas (12 del proyecto, contando users, + 8 de Laravel).
+  Modelos ............. 12 clases en app/Models con sus relaciones.
+  Fábricas ............ generan datos de prueba realistas (usuarios, gastos, metas...).
+  Semillas ............ 14 categorías del sistema siempre; 3 cuentas y gastos de prueba solo en local.
+  Pruebas ............. 20 pruebas que comprueban tablas, restricciones, relaciones y semillas.
+  Documentación ....... docs/backend, DECISIONES.md y .env.example actualizados a los nombres reales.
+  Diagrama original ... corregido (se quitaron saldo y cuota_credito, entre otros cambios).
+
+
+----------------------------------------------------------------------
+2. ARCHIVOS NUEVOS Y MODIFICADOS
+----------------------------------------------------------------------
+MIGRACIONES (database/migrations)
+  0001_01_01_000000_create_users_table ........ REEMPLAZA la de Laravel: users con cedula, rol, activo,
+                                                 ingreso_mensual; más password_reset_tokens y sessions
+  2026_10_05_000001 ........................... categorias
+  2026_10_05_000002 ........................... gastos
+  2026_10_05_000003 ........................... gastos_fijos
+  2026_10_05_000004 ........................... pagos_gasto_fijo
+  2026_10_05_000005 ........................... simulaciones_credito
+  2026_10_05_000006 ........................... informes y detalles_informe
+  2026_10_05_000007 ........................... metas, participaciones_meta y aportes_meta
+  2026_10_05_000008 ........................... notificaciones
+  2026_10_05_000009 ........................... agrega users.consentimiento_datos_at (J3 la necesita)
+  (cache y jobs son las migraciones estándar de Laravel; no se tocaron.)
+
+MODELOS (app/Models)
+  User (REEMPLAZA el de Laravel), Categoria, Gasto, GastoFijo, PagoGastoFijo, SimulacionCredito,
+  Informe, DetalleInforme, Meta, ParticipacionMeta, AporteMeta, Notificacion
+
+FÁBRICAS (database/factories)
+  UserFactory (REEMPLAZA la de Laravel; estados familiar(), administrador(), inactivo(), sinIngreso()),
+  CategoriaFactory (delSistema()), GastoFactory, GastoFijoFactory, PagoGastoFijoFactory,
+  SimulacionCreditoFactory, MetaFactory, NotificacionFactory
+
+SEMILLAS (database/seeders)
+  CategoriaSeeder, UsuariosSeeder, DatosDePruebaSeeder, DatabaseSeeder (decide según APP_ENV)
+
+PRUEBAS
+  tests/Feature/BaseDeDatosTest.php
+
+DOCUMENTACIÓN Y CONFIGURACIÓN
+  docs/backend/02-modelos.php y 03-migraciones.php ...... nombres reales; 03 es el diccionario de datos
+  docs/backend/04-middleware.php y 05-policies.php ...... nombres reales de tablas y columnas
+  docs/Tareas_JUAN.txt y Reparto_Trabajo_..._Detallado ... nombres reales; J2 marcada HECHO
+  DECISIONES.md (raíz) ................................... decisiones con fecha y tablas eliminadas
+  .env.example ........................................... APP_ENV=local, idioma es, nombre de la app,
+                                                            sesión/caché/colas en database
+
+NO SE TOCÓ: el diseño (HTML/CSS), las rutas ni sus nombres.
+
+
+----------------------------------------------------------------------
+3. LAS 20 TABLAS
+----------------------------------------------------------------------
+Dinero = enteros en pesos COP (unsignedBigInteger). La única columna decimal es tasa_mensual (5,2)
+y los porcentajes del informe. Las llaves foráneas desde users borran en cascada, para poder eliminar
+una cuenta completa.
+
+  users ................. id, nombre, cedula (única), email (único), password (hash), rol (estandar |
+                          familiar | administrador; por defecto estandar), activo (por defecto true),
+                          ingreso_mensual (opcional), consentimiento_datos_at (opcional),
+                          remember_token, timestamps
+  password_reset_tokens . recuperar contraseña (Laravel)
+  sessions .............. sesiones (Laravel)
+  categorias ............ user_id (vacío = del sistema), nombre, bloque (necesidades | discrecionales |
+                          ahorro), peso_recomendado (50/30/20, opcional)
+  gastos ................ user_id, categoria_id, monto, fecha, descripcion (opcional)
+  gastos_fijos .......... user_id, categoria_id, nombre, monto, dia_vencimiento, periodicidad (mensual),
+                          descripcion, activo
+  pagos_gasto_fijo ...... user_id, gasto_fijo_id, periodo ("AAAA-MM"), fecha_vencimiento, estado
+                          (pendiente | pagado | vencido), fecha_pago, monto · único (gasto_fijo_id, periodo)
+  simulaciones_credito .. user_id, nombre, monto, tasa_mensual, plazo_meses, cuota, total_pagar, intereses
+  informes .............. user_id, anio, mes, ingreso, total_gastado · único (user_id, anio, mes)
+  detalles_informe ...... informe_id, categoria_id (opcional), categoria_nombre, bloque, monto_gastado,
+                          porcentaje_real, porcentaje_recomendado, excede
+  metas ................. creador_id, nombre, monto_objetivo, fecha_limite, estado (por defecto activa)
+  participaciones_meta .. meta_id, user_id, estado_invitacion, fecha_union · único (meta_id, user_id)
+  aportes_meta .......... meta_id, user_id, monto, fecha
+  notificaciones ........ user_id, tipo, mensaje, estado (pendiente | leida | cancelada),
+                          pago_gasto_fijo_id, meta_id, clave_unica · único (user_id, clave_unica)
+  cache, cache_locks, jobs, job_batches, failed_jobs .... de Laravel
+  migrations ............ la que Laravel usa para saber qué migraciones ya corrieron (la 20.ª)
+
+Diccionario completo con tipos: docs/backend/03-migraciones.php. Dibujo: diagrama_tablas.png.
+
+
+----------------------------------------------------------------------
+4. QUÉ CAMBIÓ RESPECTO AL DIAGRAMA ORIGINAL Y POR QUÉ
+----------------------------------------------------------------------
+  Eliminada "saldo" ............. decisión #14: el "disponible del mes" se calcula (ingreso - gastos);
+                                  un saldo guardado se desactualiza y puede contradecir los gastos.
+  Eliminada "cuota_credito" ..... decisión #4: el crédito es solo simulación; no hay créditos reales.
+  credito -> simulaciones_credito  se quitó cupo_credito; se agregaron cuota, total_pagar e intereses.
+  Dinero en enteros ............. SQLite guarda decimales como coma flotante y da errores de redondeo.
+  metas sin monto_actual ........ el avance se calcula con Meta::totalConjunto(); no se desincroniza y
+                                  protege la privacidad de los aportes.
+  metas.creador_id .............. solo el creador invita.
+  informes ...................... único por (usuario, año, mes); antes la llave era solo la fecha y dos
+                                  usuarios chocaban.
+  detalles_informe .............. guarda categoria_nombre y bloque: el historial no cambia si luego se
+                                  renombra o elimina la categoría.
+  notificaciones.clave_unica .... el comando diario de alertas (J6) no duplica avisos.
+  Nombres de Laravel ............ usuarios->users, correo->email, contraseña->password,
+                                  usuario_id->user_id. El login de Laravel espera esos nombres; en
+                                  pantalla se sigue viendo "Correo" y "Contraseña".
+  users.activo .................. booleano en lugar de texto activo/suspendido (false = suspendida).
+  users.consentimiento_datos_at . migración 000009; el registro exige guardar la fecha de aceptación.
+  Nombre de categoría único ..... se valida en la aplicación (SQLite distingue mayúsculas y trata los
+                                  vacíos como distintos en un índice único).
+
+
+----------------------------------------------------------------------
+5. SEMILLAS Y DATOS DE PRUEBA
+----------------------------------------------------------------------
+  CategoriaSeeder ..... 14 categorías del sistema. SIEMPRE se ejecuta (también en producción).
+      Necesidades (50): Arriendo, Servicios públicos, Mercado, Transporte, Salud, Educación
+      Discrecionales (30): Restaurantes, Entretenimiento, Ropa, Suscripciones, Viajes
+      Ahorro (20): Ahorro, Inversión, Pago extra de deudas
+  UsuariosSeeder ...... SOLO si APP_ENV=local: estandar@test.com, familiar@test.com, admin@test.com,
+                        contraseña "password". Por qué están escritos en el código: son cuentas de
+                        PRUEBA (los correos son fijos para poder entrar fácil; los demás datos los
+                        generan las fábricas). En producción no se crean.
+  DatosDePruebaSeeder . SOLO si APP_ENV=local: 20 gastos por cada usuario estándar y familiar.
+  DatabaseSeeder ...... ejecuta CategoriaSeeder siempre y los otros dos solo en local.
+  Caso de referencia del simulador (SimulacionCreditoFactory): $10.000.000 al 1,5 % mensual a 24 meses
+      => cuota $499.241, total $11.981.784, intereses $1.981.784.
+
+
+----------------------------------------------------------------------
+6. SEGURIDAD Y REGLAS QUE QUEDARON EN LA BASE
+----------------------------------------------------------------------
+  rol y activo no son asignables en masa (no están en $fillable de User): nadie se vuelve
+      administrador mandando un campo extra en un formulario.
+  La contraseña usa el cast 'hashed': se guarda siempre con hash.
+  Cédula y correo únicos; un usuario no puede participar dos veces en la misma meta; un pago no se
+      duplica por (gasto fijo, periodo); un informe no se duplica por (usuario, año, mes); una alerta
+      no se duplica por (usuario, clave_unica).
+  Categorías y gastos: una categoría con gastos NO se borra por accidente (restrict).
+  Al eliminar un usuario se borra todo lo suyo (cascade).
+  Las pruebas corren en SQLite en memoria (phpunit.xml): no tocan tu base real. Si alguien comenta
+      las líneas DB_CONNECTION=sqlite y DB_DATABASE=:memory:, las pruebas podrían BORRAR la base de
+      desarrollo. No se comentan.
+
+
+----------------------------------------------------------------------
+7. CÓMO LO USAN LOS DEMÁS (Nikol y Valeria)
+----------------------------------------------------------------------
+  - Rehacer la base de cero con datos de prueba:  php artisan migrate:fresh --seed
+    (necesita APP_ENV=local en el .env).
+  - Cada quien tiene su propio .env (copiar .env.example, luego php artisan key:generate) y su propio
+    database/database.sqlite. NUNCA se suben a GitHub.
+  - Crear datos en pruebas con fábricas:
+      $u = User::factory()->create();            Gasto::factory()->count(5)->create(['user_id' => $u->id]);
+      Categoria::factory()->delSistema()->create();   User::factory()->familiar()->create();
+  - Todas las consultas parten del usuario actual: Gasto::delUsuario($id) o $usuario->gastos().
+  - Una migración ya unida a main NO se edita. Si falta una columna, se pide a Juan una migración
+    nueva (php artisan make:migration agregar_x_a_tabla). Solo Juan crea migraciones.
+  - Si cambió la base y algo falla: git pull, luego php artisan migrate:fresh --seed.
+
+
+----------------------------------------------------------------------
+8. CÓMO PROBARLO
+----------------------------------------------------------------------
+  1. php artisan migrate:fresh --seed        => sin errores; con APP_ENV=local crea las 3 cuentas.
+  2. php artisan db:show                     => 20 tablas.
+  3. php artisan test --filter=BaseDeDatosTest  => 20 pruebas verdes.
+  4. Comprobar que en un entorno que no es local solo se crean las 14 categorías.
+
+
+----------------------------------------------------------------------
+9. LIMITACIONES Y PUNTOS ABIERTOS
+----------------------------------------------------------------------
+  - Decisión #23 abierta: la tabla categorias NO tiene columna "activa", pero la regla "las categorías
+    del sistema se desactivan, no se borran" y la ruta admin.categorias.desactivar la suponen. Opción
+    recomendada: una migración nueva que agregue activa (boolean, por defecto true). Se cierra antes de J7.
+  - La unicidad del nombre de categoría por usuario se valida en la aplicación (N2), no en la base.
+  - "Máximo 2 participantes por meta" se valida en ServicioMetas (J5), no en la base.
+  - El alcance global "solo mis datos" aún no es un global scope: cada consulta parte de auth()->user()
+    o de Gasto::delUsuario(). Se evalúa en J4.
+  - Nota de proceso: J2 se subió directo a main antes de crear la rama, porque main aún no estaba
+    protegido. Se recomienda activar "Require a pull request before merging" en GitHub.
+
+
+----------------------------------------------------------------------
+10. TEXTO PARA EL PULL REQUEST (referencia; J2 ya está en main)
+----------------------------------------------------------------------
+Título: [J2] Base de datos
+
+Qué se hizo
+- 20 tablas con migraciones; 12 modelos con relaciones; 8 fábricas; semillas (14 categorías siempre,
+  cuentas y gastos de prueba solo en local); 20 pruebas.
+- Se eliminaron las tablas saldo (#14) y cuota_credito (#4); nombres adaptados a Laravel.
+- Documentación (docs/backend, DECISIONES.md, .env.example) actualizada.
+
+Cómo probar: php artisan migrate:fresh --seed; php artisan test --filter=BaseDeDatosTest (20 pruebas).
+
+Lista de terminado: [x] migraciones corren de cero  [x] relaciones  [x] semillas  [x] pruebas pasan
+[x] documentación actualizada  [ ] revisada por otra persona
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================
