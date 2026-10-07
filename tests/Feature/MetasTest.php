@@ -24,7 +24,7 @@ class MetasTest extends TestCase
     {
         $ana  = User::factory()->familiar()->create(['nombre' => 'Ana']);
         $beto = User::factory()->familiar()->create(['nombre' => 'Beto']);
-        $meta = Meta::factory()->create(['creador_id' => $ana->id, 'monto_objetivo' => $objetivo]);
+        $meta = Meta::factory()->create(['creador_id' => $ana->id, 'monto_objetivo' => $objetivo, 'compartida' => true]);
 
         foreach ([$ana, $beto] as $u) {
             ParticipacionMeta::create(['meta_id' => $meta->id, 'user_id' => $u->id,
@@ -66,7 +66,7 @@ class MetasTest extends TestCase
         $ana  = User::factory()->familiar()->create();
         $beto = User::factory()->familiar()->create(['email' => 'beto@test.com']);
 
-        $respuesta = $this->actingAs($ana)->post('/metas', [
+        $respuesta = $this->actingAs($ana)->post('/metas', ['compartida' => '1', 
             'nombre' => 'Viaje', 'monto_objetivo' => '$ 4.000.000', 'fecha_limite' => now()->addMonth()->toDateString(),
             'correo' => 'BETO@test.com',
         ]);
@@ -85,13 +85,13 @@ class MetasTest extends TestCase
         User::factory()->familiar()->create(['email' => 'beto@test.com']);
 
         $this->actingAs($ana);
-        $this->post('/metas', ['nombre' => '', 'monto_objetivo' => '1000', 'correo' => 'beto@test.com'])->assertSessionHasErrors('nombre');
-        $this->post('/metas', ['nombre' => 'X', 'monto_objetivo' => '0', 'correo' => 'beto@test.com'])->assertSessionHasErrors('monto_objetivo');
-        $this->post('/metas', ['nombre' => 'X', 'monto_objetivo' => '-500', 'correo' => 'beto@test.com'])->assertSessionHasErrors('monto_objetivo');
-        $this->post('/metas', ['nombre' => 'X', 'monto_objetivo' => 'abc', 'correo' => 'beto@test.com'])->assertSessionHasErrors('monto_objetivo');
-        $this->post('/metas', ['nombre' => 'X', 'monto_objetivo' => '1000', 'fecha_limite' => now()->subDay()->toDateString(), 'correo' => 'beto@test.com'])
+        $this->post('/metas', ['compartida' => '1', 'nombre' => '', 'monto_objetivo' => '1000', 'correo' => 'beto@test.com'])->assertSessionHasErrors('nombre');
+        $this->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '0', 'correo' => 'beto@test.com'])->assertSessionHasErrors('monto_objetivo');
+        $this->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '-500', 'correo' => 'beto@test.com'])->assertSessionHasErrors('monto_objetivo');
+        $this->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => 'abc', 'correo' => 'beto@test.com'])->assertSessionHasErrors('monto_objetivo');
+        $this->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '1000', 'fecha_limite' => now()->subDay()->toDateString(), 'correo' => 'beto@test.com'])
             ->assertSessionHasErrors('fecha_limite');
-        $this->post('/metas', ['nombre' => 'X', 'monto_objetivo' => '1000'])->assertSessionHasErrors('correo');
+        $this->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '1000'])->assertSessionHasErrors('correo');
 
         $this->assertSame(0, Meta::count());
     }
@@ -100,7 +100,7 @@ class MetasTest extends TestCase
     {
         $ana = User::factory()->familiar()->create();
 
-        $this->actingAs($ana)->post('/metas', ['nombre' => 'X', 'monto_objetivo' => '1000', 'correo' => 'nadie@test.com'])
+        $this->actingAs($ana)->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '1000', 'correo' => 'nadie@test.com'])
             ->assertSessionHasErrors(['correo' => ServicioMetas::MSG_NO_EXISTE]);
 
         $this->assertSame(0, Meta::count());
@@ -109,7 +109,7 @@ class MetasTest extends TestCase
 
     public function test_un_estandar_no_puede_crear_metas(): void
     {
-        $this->actingAs(User::factory()->create())->post('/metas', ['nombre' => 'X', 'monto_objetivo' => '1000', 'correo' => 'a@a.com'])->assertForbidden();
+        $this->actingAs(User::factory()->create())->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '1000', 'correo' => 'a@a.com'])->assertForbidden();
         $this->assertSame(0, Meta::count());
     }
 
@@ -138,7 +138,7 @@ class MetasTest extends TestCase
         $beto = User::factory()->familiar()->create(['email' => 'beto@test.com']);
         $caro = User::factory()->familiar()->create(['email' => 'caro@test.com']);
 
-        $this->actingAs($ana)->post('/metas', ['nombre' => 'X', 'monto_objetivo' => '1000', 'correo' => 'beto@test.com']);
+        $this->actingAs($ana)->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '1000', 'correo' => 'beto@test.com']);
         $meta = Meta::firstOrFail();
 
         $this->post("/metas/{$meta->id}/invitar", ['correo' => 'caro@test.com'])->assertSessionHasErrors(['correo' => ServicioMetas::MSG_LLENA]);
@@ -164,7 +164,7 @@ class MetasTest extends TestCase
     {
         $ana  = User::factory()->familiar()->create(['nombre' => 'Ana']);
         $beto = User::factory()->familiar()->create(['nombre' => 'Beto', 'email' => 'beto@test.com']);
-        $this->actingAs($ana)->post('/metas', ['nombre' => 'Casa', 'monto_objetivo' => '1000000', 'correo' => 'beto@test.com']);
+        $this->actingAs($ana)->post('/metas', ['compartida' => '1', 'nombre' => 'Casa', 'monto_objetivo' => '1000000', 'correo' => 'beto@test.com']);
         $meta = Meta::firstOrFail();
         $part = $meta->participaciones()->where('user_id', $beto->id)->firstOrFail();
 
@@ -374,6 +374,114 @@ class MetasTest extends TestCase
         $this->actingAs($ana)->get("/metas/{$meta->id}")->assertOk();           // la otra persona sí (solo lectura)
     }
 
+
+    // ------------------------------------------------------------ metas individuales
+
+    public function test_crear_meta_individual_no_invita_a_nadie(): void
+    {
+        $ana = User::factory()->familiar()->create();
+
+        // Casilla "compartir" sin marcar y sin correo.
+        $this->actingAs($ana)->post('/metas', ['nombre' => 'Moto', 'monto_objetivo' => '3000000'])
+            ->assertSessionHasNoErrors();
+
+        $meta = Meta::firstOrFail();
+        $this->assertFalse($meta->esCompartida());
+        $this->assertSame(1, $meta->participaciones()->count());
+        $this->assertSame($ana->id, (int) $meta->participaciones()->value('user_id'));
+        $this->assertSame(0, Notificacion::count());
+    }
+
+    public function test_en_una_meta_individual_se_ignora_el_correo(): void
+    {
+        $ana = User::factory()->familiar()->create();
+        User::factory()->familiar()->create(['email' => 'beto@test.com']);
+
+        $this->actingAs($ana)->post('/metas', ['nombre' => 'Moto', 'monto_objetivo' => '3000000', 'correo' => 'beto@test.com'])
+            ->assertSessionHasNoErrors();
+
+        $meta = Meta::firstOrFail();
+        $this->assertFalse($meta->esCompartida());
+        $this->assertSame(1, $meta->participaciones()->count());   // Beto NO fue invitado
+        $this->assertSame(0, Notificacion::count());
+    }
+
+    public function test_si_se_comparte_el_correo_es_obligatorio(): void
+    {
+        $this->actingAs(User::factory()->familiar()->create())
+            ->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '1000'])
+            ->assertSessionHasErrors('correo');
+        $this->assertSame(0, Meta::count());
+    }
+
+    public function test_una_meta_individual_no_admite_invitaciones(): void
+    {
+        $ana = User::factory()->familiar()->create();
+        User::factory()->familiar()->create(['email' => 'beto@test.com']);
+        $this->actingAs($ana)->post('/metas', ['nombre' => 'Moto', 'monto_objetivo' => '3000000']);
+        $meta = Meta::firstOrFail();
+
+        $this->post("/metas/{$meta->id}/invitar", ['correo' => 'beto@test.com'])->assertForbidden();
+        $this->assertSame(1, $meta->participaciones()->count());
+
+        // Tampoco por la vía del servicio.
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        app(ServicioMetas::class)->invitar($meta, 'beto@test.com');
+    }
+
+    public function test_meta_individual_aportes_avance_finalizar_y_cancelar(): void
+    {
+        $ana = User::factory()->familiar()->create();
+        $this->actingAs($ana)->post('/metas', ['nombre' => 'Moto', 'monto_objetivo' => '1000']);
+        $meta = Meta::firstOrFail();
+
+        $this->post("/metas/{$meta->id}/aportes", ['monto' => '400'])->assertSessionHas('exito', 'Aporte registrado');
+        $this->assertSame(40, $meta->fresh()->porcentaje());
+        $this->get("/metas/{$meta->id}")->assertOk()->assertSee('Meta individual')->assertDontSee('Enviar invitación');
+
+        $this->post("/metas/{$meta->id}/finalizar")->assertSessionHasErrors('meta');
+        $this->post("/metas/{$meta->id}/aportes", ['monto' => '600']);
+        $this->post("/metas/{$meta->id}/finalizar")->assertSessionHas('exito', 'Meta finalizada');
+        $this->assertSame('completada', $meta->fresh()->estado);
+    }
+
+    public function test_cancelar_una_meta_individual(): void
+    {
+        $ana = User::factory()->familiar()->create();
+        $this->actingAs($ana)->post('/metas', ['nombre' => 'Moto', 'monto_objetivo' => '1000']);
+        $meta = Meta::firstOrFail();
+        $this->post("/metas/{$meta->id}/aportes", ['monto' => '100']);
+
+        $this->post("/metas/{$meta->id}/abandonar")->assertRedirect(route('metas.index'))->assertSessionHas('exito', 'Meta cancelada');
+
+        $this->assertSame('cancelada', $meta->fresh()->estado);
+        $this->assertSame(1, AporteMeta::count());   // el historial se conserva
+    }
+
+    public function test_una_meta_individual_es_privada_para_otros_familiares(): void
+    {
+        $ana = User::factory()->familiar()->create();
+        $otra = User::factory()->familiar()->create();
+        $this->actingAs($ana)->post('/metas', ['nombre' => 'Secreta', 'monto_objetivo' => '1000']);
+        $meta = Meta::firstOrFail();
+        $this->post("/metas/{$meta->id}/aportes", ['monto' => '777']);
+
+        $this->actingAs($otra)->get("/metas/{$meta->id}")->assertForbidden();
+        $this->post("/metas/{$meta->id}/aportes", ['monto' => '5'])->assertForbidden();
+        $this->get('/metas')->assertOk()->assertDontSee('Secreta');
+        $this->assertSame(1, AporteMeta::count());
+    }
+
+    public function test_el_listado_distingue_individuales_y_compartidas(): void
+    {
+        [$compartida, $ana] = $this->metaDeDos();
+        $compartida->update(['compartida' => true, 'nombre' => 'Casa juntos']);
+        $this->actingAs($ana)->post('/metas', ['nombre' => 'Moto propia', 'monto_objetivo' => '1000']);
+
+        $this->get('/metas')->assertOk()->assertSee('Casa juntos')->assertSee('Moto propia')
+            ->assertSee('Compartida')->assertSee('Individual');
+    }
+
     // ------------------------------------------------------------ contrato C6
 
     public function test_tiene_metas_activas(): void
@@ -381,6 +489,11 @@ class MetasTest extends TestCase
         [$meta, $ana, $beto] = $this->metaDeDos();
         $otro = User::factory()->familiar()->create();
         $servicio = app(ServicioMetas::class);
+
+        // Una meta individual activa también cuenta (el estándar no puede usar metas).
+        $this->actingAs($otro)->post('/metas', ['nombre' => 'Solo mía', 'monto_objetivo' => '1000']);
+        $this->assertTrue($servicio->tieneMetasActivas($otro));
+        Meta::where('creador_id', $otro->id)->update(['estado' => 'cancelada']);
 
         $this->assertTrue($servicio->tieneMetasActivas($ana));
         $this->assertTrue($servicio->tieneMetasActivas($beto));

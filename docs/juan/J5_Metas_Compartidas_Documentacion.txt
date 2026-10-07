@@ -2,19 +2,24 @@
 J5 - METAS COMPARTIDAS  ·  DOCUMENTACIÓN DE LO QUE CAMBIÓ
 Responsable: Juan · Fecha: 2026-10-07 · Rama sugerida: juan/j5-metas-compartidas
 ======================================================================
-Estado: HECHO. php artisan test => 103 pruebas, 464 aserciones, todas pasan (77 anteriores + 26 de MetasTest).
+Estado: HECHO. php artisan test => 111 pruebas, 504 aserciones, todas pasan (77 anteriores + 34 de MetasTest).
+Incluye metas individuales o compartidas. Requiere correr: php artisan migrate.
 
 
 ----------------------------------------------------------------------
 1. QUÉ SE HIZO (en una frase por pieza)
 ----------------------------------------------------------------------
-  Crear meta .......... nombre, monto objetivo > 0, fecha límite opcional y correo de la otra persona.
-  Invitar ............. por correo, con 5 validaciones; máximo 2 participantes.
+  Tipos de meta ....... INDIVIDUAL (solo la persona que la crea) o COMPARTIDA (con otra persona); lo decide
+                        quien la crea con la casilla "Compartir esta meta con otra persona" (sin marcar = individual).
+  Crear meta .......... nombre, monto objetivo > 0, fecha límite opcional; si es compartida, el correo de la otra persona.
+  Invitar ............. solo en metas compartidas, por correo, con 5 validaciones; máximo 2 participantes.
+                        Una meta individual no admite invitados (403, y el servicio también lo rechaza).
   Aceptar / rechazar .. solo la persona invitada; se avisa a quien creó la meta.
   Aportes ............. monto entero en COP > 0, solo participantes y con la meta activa.
   Avance .............. total conjunto (suma en SQL) y porcentaje con tope 100; no se guarda.
   Privacidad .......... cada quien ve SU historial y el TOTAL; el aporte del otro no llega a la vista.
   Finalizar / abandonar  finalizar solo al llegar al objetivo; abandonar cancela la meta (decisión #18).
+                        En una individual "abandonar" se muestra como "Cancelar meta" (mensaje "Meta cancelada").
   Contrato C6 ......... tieneMetasActivas() y Meta::aportesDelUsuario() para Valeria y el panel.
 
 
@@ -22,6 +27,8 @@ Estado: HECHO. php artisan test => 103 pruebas, 464 aserciones, todas pasan (77 
 2. ARCHIVOS
 ----------------------------------------------------------------------
 NUEVOS
+  database/migrations/2026_10_07_100000_add_compartida_to_metas_table.php  columna metas.compartida (boolean,
+                                                   default true: lo que ya existía queda compartido)
   app/Services/ServicioMetas.php ................. toda la lógica (crear, invitar, aceptar, rechazar,
                                                    aportar, avance, finalizar, abandonar, C6)
   app/Policies/MetaPolicy.php .................... solo participantes; invitar solo la creadora
@@ -34,7 +41,7 @@ NUEVOS
   tests/Feature/MetasTest.php
 
 MODIFICADOS
-  app/Models/Meta.php ............. + scopeDelParticipante, esParticipante, porcentaje,
+  app/Models/Meta.php ............. + cast compartida y esCompartida(), scopeDelParticipante, esParticipante, porcentaje,
                                     objetivoAlcanzado, aportesDelUsuario (C6)
   app/Models/AporteMeta.php ....... + trait PerteneceAUsuario (scope delUsuario)
   routes/modulos/metas.php ........ de maqueta a controladores (mismos nombres de ruta)
@@ -42,13 +49,19 @@ MODIFICADOS
   public/css/{metas-compartidas, invitaciones-metas, detalle-meta}.css
   docs/DECISIONES.md .............. decisiones #7, #8, #18 y las de J5
 
-NO SE TOCÓ: migraciones (las tablas de J2 ya servían), routes/web.php, bootstrap/app.php.
+NO SE TOCÓ: la migración original de metas (no se edita lo ya unido a main; la columna nueva va en una
+  migración nueva), routes/web.php, bootstrap/app.php.
 
 
 ----------------------------------------------------------------------
 3. REGLAS DE NEGOCIO
 ----------------------------------------------------------------------
   - Solo usuarios familiares (rol:familiar en la ruta + MetaPolicy). Estándar y administrador: 403.
+    (Si más adelante el estándar debe tener metas individuales: mover la ruta de grupo D a C y ajustar
+    MetaPolicy::before; es un cambio pequeño.)
+  - Meta individual: la creadora es la única participante; aportes, avance, finalizar y cancelar funcionan
+    igual; es privada (otro familiar recibe 403). Si el formulario trae correo pero no marcó compartir,
+    el correo se ignora y no se invita a nadie.
   - La creadora queda como participante aceptada al crear la meta.
   - Invitar valida en este orden y con estos mensajes (constantes ServicioMetas::MSG_*):
       1. no existe (o está suspendido o es administrador) ... "No existe un usuario registrado con ese correo"
@@ -88,6 +101,8 @@ NO SE TOCÓ: migraciones (las tablas de J2 ya servían), routes/web.php, bootstr
   Aportes y avance .... aporte válido; 0, negativo, texto, fecha futura; meta inactiva; tope 100 %.
   Privacidad .......... detalle de ambos, listado, política de aportes, contrato C6.
   Ajenos .............. 403 en todas las rutas de la meta.
+  Individuales ........ crear sin invitar; correo ignorado; correo obligatorio si se comparte; no admite
+                        invitaciones; aportes, finalizar y cancelar; privada; el listado distingue ambas.
   Finalizar/abandonar . finalizar solo al llegar al objetivo; abandonar cancela, conserva aportes y avisa.
   C6 .................. tieneMetasActivas.
 
@@ -95,11 +110,13 @@ NO SE TOCÓ: migraciones (las tablas de J2 ya servían), routes/web.php, bootstr
 ----------------------------------------------------------------------
 6. CÓMO PROBAR A MANO CON DOS CUENTAS
 ----------------------------------------------------------------------
-  1. Entra como familiar@test.com. En Metas, crea una meta e invita a otro familiar (crea antes un
+  0. Antes de probar: php artisan migrate (agrega la columna metas.compartida a tu base local).
+  1. Entra como familiar@test.com. En Metas, crea una meta, marca "Compartir" e invita a otro familiar (crea antes un
      segundo familiar desde "Crear cuenta" con tipo Familiar, o con php artisan tinker).
   2. Abre otra ventana privada, entra como esa segunda persona: Invitaciones > Aceptar.
-  3. Cada una registra un aporte. Comprueba que cada una ve solo el suyo y el total.
-  4. Con estandar@test.com abre /metas: debe dar 403.
+  3. Prueba también una meta SIN marcar "Compartir": no pide correo, no invita y no muestra invitar.
+  4. Cada una registra un aporte. Comprueba que cada una ve solo el suyo y el total.
+  5. Con estandar@test.com abre /metas: debe dar 403.
 
 
 ----------------------------------------------------------------------

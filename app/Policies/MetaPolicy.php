@@ -10,7 +10,7 @@ use App\Models\User;
  *   - Administrador: nunca (before). Estándar: nunca (solo familiar).
  *   - ver / aportar / finalizar / abandonar: participante aceptado (aportar, finalizar y abandonar
  *     además exigen meta activa).
- *   - invitar: solo quien CREÓ la meta, y con la meta activa.
+ *   - invitar: solo quien CREÓ la meta, con la meta COMPARTIDA y activa (una meta individual no admite invitados).
  * Privacidad de aportes: la Policy de AporteMeta (solo el dueño ve su aporte) y las consultas por
  * usuario hacen el resto; ver la meta NO da acceso a los aportes del otro.
  */
@@ -38,7 +38,8 @@ class MetaPolicy
 
     public function invitar(User $usuario, Meta $meta): bool
     {
-        return $meta->estaActiva() && $usuario->id === (int) $meta->creador_id && $meta->esParticipante($usuario);
+        return $meta->esCompartida() && $meta->estaActiva()
+            && $usuario->id === (int) $meta->creador_id && $meta->esParticipante($usuario);
     }
 
     public function aportar(User $usuario, Meta $meta): bool

@@ -5,6 +5,8 @@ Documento de contexto para cualquier persona o IA que vaya a trabajar en el cód
 Leer completo antes de escribir código. Resume QUÉ es el sistema, QUÉ está hecho,
 QUÉ falta, CÓMO está organizado, TODAS las rutas y las reglas que no se pueden romper.
 Versión: después de J5 (armazón + rutas + BASE DE DATOS + AUTENTICACIÓN + PERMISOS + METAS). Fecha: 2026-10-07.
+Actualización 2026-10-07: las metas pueden ser INDIVIDUALES o COMPARTIDAS (columna nueva metas.compartida,
+migración 2026_10_07_100000); MetasTest pasa a 34 pruebas (111 en total, todas pasan).
 Cambios respecto a la versión anterior (J4): J5 hecha: metas compartidas completas (ServicioMetas, MetaPolicy,
 ParticipacionMetaPolicy, AporteMetaPolicy, 3 controladores, 3 FormRequests, vistas con datos reales, 26 pruebas);
 decisiones #7, #8 y #18 cerradas; contrato C6 entregado (secciones 2, 5, 9, 10, 11, 12, 13, 14, 16).
@@ -101,9 +103,11 @@ HECHO (J4 - Roles, permisos y aislamiento, 2026-10-06, Juan; con J3 y J2 suman 7
 HECHO (J5 - Metas compartidas, 2026-10-07, Juan; en total 103 pruebas, 464 aserciones, todas pasan):
   [x] ServicioMetas: crear, invitar, aceptar, rechazar, aportar, avance, finalizar, abandonar,
       tieneMetasActivas (C6). Los controladores solo llaman al servicio.
-  [x] Crear meta (nombre, monto > 0, fecha límite opcional >= hoy, correo de la otra persona); la creadora
-      queda como participante aceptada; si la invitación falla no queda meta (transacción).
-  [x] Invitar: solo la creadora; valida no existe / es ella misma / es estándar / ya participa / cupo
+  [x] Metas INDIVIDUALES o COMPARTIDAS (metas.compartida; la persona decide al crear). Individual: sin
+      invitados, privada, mismos aportes/avance/finalizar; "abandonar" se muestra como "Cancelar meta".
+  [x] Crear meta (nombre, monto > 0, fecha límite opcional >= hoy; si es compartida, correo de la otra
+      persona); la creadora queda como participante aceptada; si la invitación falla no queda meta.
+  [x] Invitar: solo la creadora y solo en metas compartidas; valida no existe / es ella misma / es estándar / ya participa / cupo
       (máximo 2 entre aceptados y pendientes). Reinvitar a quien rechazó reactiva su fila.
   [x] Aceptar y rechazar: solo la persona invitada y mientras esté pendiente. Notifica a la creadora.
   [x] Aportes: monto entero > 0, solo participantes y con la meta activa. Avance = suma en SQL;
@@ -116,7 +120,7 @@ HECHO (J5 - Metas compartidas, 2026-10-07, Juan; en total 103 pruebas, 464 aserc
   [x] Notificaciones de metas: versión mínima en ServicioMetas::notificar() (tipos invitacion_meta,
       respuesta_meta, meta_finalizada, meta_abandonada) hasta que exista el servicio de J6.
   [x] Contrato C6: ServicioMetas::tieneMetasActivas($usuario) y Meta::aportesDelUsuario($id, $desde, $hasta).
-  [x] Pruebas: MetasTest (26).
+  [x] Pruebas: MetasTest (34).
   [ ] Pendiente menor: confirmar los textos exactos de los mensajes de invitación contra la
       especificación (constantes ServicioMetas::MSG_*). Las 3 pantallas usan clases globales porque
       su diseño original aún no existe.
@@ -481,7 +485,7 @@ eliminar una cuenta completa). Los nombres de tablas y columnas están en españ
                         categoria_nombre, bloque, monto_gastado, porcentaje_real (5,2),
                         porcentaje_recomendado, excede (bool). Sin timestamps. Guarda una COPIA
                         del nombre para que el informe cerrado no cambie si se borra la categoría.
-  metas ............... id, creador_id, nombre, monto_objetivo, fecha_limite (nullable), estado
+  metas ............... id, creador_id, nombre, monto_objetivo, fecha_limite (nullable), estado, compartida (bool, default true)
                         (por defecto activa), timestamps. NO guarda monto_actual: el total
                         conjunto se calcula sumando aportes_meta (Meta::totalConjunto()).
   participaciones_meta  id, meta_id, user_id, estado_invitacion (por defecto pendiente), fecha_union
@@ -573,7 +577,8 @@ Seguridad y privacidad
     si el correo existe); enlace de un solo uso que vence.
   - Consentimiento de datos obligatorio en el registro, guardado con fecha.
 Metas compartidas
-  - Entre DOS usuarios familiares (máx. 2 participantes). Invitar valida: no existe, es estándar,
+  - Meta INDIVIDUAL (solo la persona) o COMPARTIDA entre DOS usuarios familiares (máx. 2 participantes).
+    La persona decide al crearla. Invitar (solo en compartidas) valida: no existe, es estándar,
     ya participa (mensajes exactos de la guía).
   - PRIVACIDAD: el detalle muestra el total conjunto y el aporte PROPIO; el aporte individual del
     otro NO aparece en la página, ni en datos ocultos, ni en ninguna ruta. Las consultas calculan el

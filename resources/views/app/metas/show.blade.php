@@ -4,7 +4,7 @@
   QUÉ ES  : "Detalle de meta": avance CONJUNTO y el historial de MIS aportes.
   RUTA    : GET /metas/{meta} (metas.show) · POST aportes / finalizar / abandonar / invitar
             Controlador: MetaController@show
-  DATOS   : $meta · $avance (total, porcentaje, falta) · $aportes (SOLO los míos) · $miTotal ·
+  DATOS   : $meta (individual o compartida) · $avance (total, porcentaje, falta) · $aportes (SOLO los míos) · $miTotal ·
             $participantes (solo nombres) · $puedeAportar/$puedeInvitar/$puedeFinalizar/$puedeAbandonar
   PRIVACIDAD (RQNF-03): el aporte del otro participante NO llega a esta vista (ni oculto): el
             controlador solo consulta los aportes del usuario actual y suma el total en SQL.
@@ -25,7 +25,7 @@
         <a href="{{ route('metas.index') }}" class="font-label-md text-label-md text-primary">← Metas compartidas</a>
         <h1 class="font-headline-xl text-headline-xl text-on-surface mt-2">{{ $meta->nombre }}</h1>
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">
-          Avance conjunto (sin ver el aporte del otro participante)
+          @if($meta->esCompartida()) Avance conjunto (sin ver el aporte del otro participante) @else Meta individual @endif
           · <span class="detalle-estado detalle-estado--{{ $meta->estado }}">{{ ucfirst($meta->estado) }}</span>
         </p>
       </header>
@@ -33,22 +33,24 @@
       @error('meta')<p class="detalle-error" role="alert">{{ $message }}</p>@enderror
 
       <section class="card p-space-lg" data-dinamico="meta">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Avance conjunto y tu aporte</h2>
+        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">{{ $meta->esCompartida() ? 'Avance conjunto y tu aporte' : 'Tu avance' }}</h2>
         <div class="detalle-barra" role="progressbar" aria-valuenow="{{ $avance['porcentaje'] }}" aria-valuemin="0" aria-valuemax="100">
           <span class="detalle-barra__relleno" style="width: {{ $avance['porcentaje'] }}%"></span>
         </div>
         <dl class="detalle-cifras">
-          <div><dt>Acumulado conjunto</dt><dd>${{ number_format($avance['total'], 0, ',', '.') }}</dd></div>
+          <div><dt>{{ $meta->esCompartida() ? 'Acumulado conjunto' : 'Acumulado' }}</dt><dd>${{ number_format($avance['total'], 0, ',', '.') }}</dd></div>
           <div><dt>Objetivo</dt><dd>${{ number_format($meta->monto_objetivo, 0, ',', '.') }}</dd></div>
           <div><dt>Avance</dt><dd>{{ $avance['porcentaje'] }}%</dd></div>
           <div><dt>Falta</dt><dd>${{ number_format($avance['falta'], 0, ',', '.') }}</dd></div>
-          <div><dt>Tu aporte total</dt><dd>${{ number_format($miTotal, 0, ',', '.') }}</dd></div>
+          @if($meta->esCompartida())<div><dt>Tu aporte total</dt><dd>${{ number_format($miTotal, 0, ',', '.') }}</dd></div>@endif
           @if($meta->fecha_limite)<div><dt>Fecha límite</dt><dd>{{ $meta->fecha_limite->format('d/m/Y') }}</dd></div>@endif
         </dl>
-        <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-md">
-          Participantes:
-          {{ $participantes->map(fn ($p) => $p->usuario->nombre.($p->estado_invitacion === 'pendiente' ? ' (invitación pendiente)' : ''))->join(', ') }}
-        </p>
+        @if($meta->esCompartida())
+          <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-md">
+            Participantes:
+            {{ $participantes->map(fn ($p) => $p->usuario->nombre.($p->estado_invitacion === 'pendiente' ? ' (invitación pendiente)' : ''))->join(', ') }}
+          </p>
+        @endif
       </section>
 
       @if($puedeAportar)
@@ -108,9 +110,9 @@
           @endif
           @if($puedeAbandonar)
             <form method="POST" action="{{ route('metas.abandonar', $meta) }}"
-                  onsubmit="return confirm('¿Seguro que quieres abandonar la meta? Se cancelará para las dos personas y se conservará el historial.')">
+                  onsubmit="return confirm('{{ $meta->esCompartida() ? '¿Seguro que quieres abandonar la meta? Se cancelará para las dos personas y se conservará el historial.' : '¿Seguro que quieres cancelar la meta? Se conservará el historial de tus aportes.' }}')">
               @csrf
-              <button type="submit" class="btn btn-danger">Abandonar meta</button>
+              <button type="submit" class="btn btn-danger">{{ $meta->esCompartida() ? 'Abandonar meta' : 'Cancelar meta' }}</button>
             </form>
           @endif
         </section>

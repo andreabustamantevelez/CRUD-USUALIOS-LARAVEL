@@ -17,6 +17,8 @@ use Illuminate\Validation\ValidationException;
  *   #8  los gastos NO se ligan a metas en la primera versión.
  *   #18 si alguien abandona, la meta se CANCELA para ambos; los aportes se conservan (historial).
  *       Si una cuenta se elimina, sus filas se borran en cascada (migración J2).
+ *   - Una meta es INDIVIDUAL o COMPARTIDA (metas.compartida, la decide la persona al crearla). La individual
+ *     no admite invitaciones; sus aportes, avance, finalizar y cancelar funcionan igual.
  *   - Máximo 2 participantes (aceptados + pendientes cuentan, para reservar el cupo).
  *   - El avance es la suma de aportes; el porcentaje se calcula, no se guarda.
  * CONTRATO C6 : tieneMetasActivas($usuario) para Valeria (bloquear el cambio a estándar).
@@ -31,8 +33,12 @@ class ServicioMetas
     public const MSG_YA_PARTICIPA = 'Esa persona ya participa en la meta';
     public const MSG_LLENA       = 'La meta ya tiene el máximo de 2 participantes';
     public const MSG_YO_MISMO    = 'No puedes invitarte a ti mismo';
+    public const MSG_INDIVIDUAL  = 'Esta meta es individual y no admite invitados';
 
-    /** Crea la meta, deja a la creadora como participante aceptada e invita a la otra persona. */
+    /**
+     * Crea la meta y deja a la creadora como participante aceptada.
+     * Si es COMPARTIDA ($datos['compartida'] true) invita a la otra persona; si es individual no invita a nadie.
+     */
     public function crear(User $creador, array $datos): Meta
     {
         return DB::transaction(function () use ($creador, $datos) {
@@ -42,6 +48,7 @@ class ServicioMetas
                 'monto_objetivo' => (int) $datos['monto_objetivo'],
                 'fecha_limite'   => $datos['fecha_limite'] ?? null,
                 'estado'         => 'activa',
+                'compartida'     => (bool) ($datos['compartida'] ?? false),
             ]);
 
             ParticipacionMeta::create([
@@ -52,7 +59,9 @@ class ServicioMetas
             ]);
 
             // Si la invitación no cumple las validaciones, lanza ValidationException y TODO se deshace.
-            $this->invitar($meta, $datos['correo']);
+            if ($meta->compartida) {
+                $this->invitar($meta, $datos['correo']);
+            }
 
             return $meta;
         });
@@ -63,6 +72,10 @@ class ServicioMetas
     {
         return DB::transaction(function () use ($meta, $correo) {
             $meta = Meta::whereKey($meta->id)->lockForUpdate()->firstOrFail();
+
+            if (! $meta->esCompartida()) {
+                $this->fallar(self::MSG_INDIVIDUAL);
+            }
 
             $invitado = User::query()
                 ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($correo))])
