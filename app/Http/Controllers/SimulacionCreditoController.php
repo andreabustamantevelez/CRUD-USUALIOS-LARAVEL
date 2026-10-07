@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSimulacionRequest;
+use App\Models\SimulacionCredito;
 use App\Services\CalculadoraCredito;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class SimulacionCreditoController extends Controller
 {
@@ -64,4 +66,25 @@ class SimulacionCreditoController extends Controller
             ->route('creditos.simulador')
             ->with('exito', 'Simulación guardada correctamente.');
     }
+    public function historial(Request $request)
+{
+    $usuario = $request->user();
+
+    $simulaciones = SimulacionCredito::delUsuario($usuario->id)
+        ->latest()
+        ->get();
+
+    return view('app.creditos.historial', compact('simulaciones'));
+}
+
+public function destroy(Request $request, SimulacionCredito $simulacion)
+{
+    Gate::authorize('delete', $simulacion);
+
+    $simulacion->delete();
+
+    return redirect()
+        ->route('creditos.historial')
+        ->with('exito', 'Simulación eliminada correctamente.');
+}
 }

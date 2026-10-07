@@ -1,12 +1,190 @@
 /*
  * ==============================================================================
  * ARCHIVO : public/css/historial-simulaciones.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Historial de simulaciones. Se carga después de style.css (vía
- *           @push('styles') en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): rejilla de tarjetas.
- * ==============================================================================
- */
+ * QUÉ ES  : Estilos exclusivos del historial de simulaciones.
+ * ============================================================================== */
 
+/* Contenedor de las simulaciones */
+.historial-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+/* Tarjeta individual */
+.simulacion-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 1rem;
+    background: var(--md-sys-color-surface-container-low);
+    transition:
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+}
+
+.simulacion-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* Encabezado de la tarjeta */
+.simulacion-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.simulacion-card__titulo {
+    margin: 0;
+}
+
+.simulacion-card__fecha {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Datos principales */
+.simulacion-card__datos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.simulacion-card__dato {
+    padding: 0.9rem;
+    border-radius: 0.75rem;
+    background: var(--md-sys-color-surface-container);
+}
+
+.simulacion-card__dato-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.simulacion-card__dato-valor {
+    display: block;
+    font-weight: 600;
+    color: var(--md-sys-color-on-surface);
+}
+
+/* Resultados */
+.simulacion-card__resultados {
+    display: grid;
+    gap: 0.65rem;
+    padding-top: 0.25rem;
+}
+
+.simulacion-card__resultado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.simulacion-card__resultado-label {
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.simulacion-card__resultado-valor {
+    font-weight: 700;
+    color: var(--md-sys-color-on-surface);
+    text-align: right;
+}
+
+/* Acción eliminar */
+.simulacion-card__acciones {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.25rem;
+}
+
+.simulacion-card__eliminar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--md-sys-color-error);
+    border-radius: 0.65rem;
+    background: transparent;
+    color: var(--md-sys-color-error);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.simulacion-card__eliminar:hover {
+    background: var(--md-sys-color-error);
+    color: var(--md-sys-color-on-error);
+}
+
+/* Estado sin simulaciones */
+.historial-vacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    border: 1px dashed var(--md-sys-color-outline-variant);
+    border-radius: 1rem;
+    background: var(--md-sys-color-surface-container-low);
+}
+
+.historial-vacio__icono {
+    font-size: 2.5rem;
+    color: var(--md-sys-color-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .historial-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .simulacion-card__datos {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .simulacion-card {
+        padding: 1.1rem;
+    }
+
+    .simulacion-card__header {
+        flex-direction: column;
+    }
+
+    .simulacion-card__datos {
+        grid-template-columns: 1fr;
+    }
+
+    .simulacion-card__resultado {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .simulacion-card__resultado-valor {
+        text-align: left;
+    }
+
+    .simulacion-card__acciones {
+        justify-content: stretch;
+    }
+
+    .simulacion-card__eliminar {
+        justify-content: center;
+        width: 100%;
+    }
+}

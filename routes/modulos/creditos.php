@@ -20,8 +20,12 @@ Route::post(
     [SimulacionCreditoController::class, 'store']
 )->name('creditos.guardar');
 
-Route::view('/creditos/historial', 'app.creditos.historial')
-    ->name('creditos.historial');
+Route::get(
+    '/creditos/historial',
+    [SimulacionCreditoController::class, 'historial']
+)->name('creditos.historial');
 
-Route::delete('/creditos/{simulacion}', $pendiente)
-    ->name('creditos.eliminar');
+Route::delete(
+    '/creditos/{simulacion}',
+    [SimulacionCreditoController::class, 'destroy']
+)->name('creditos.eliminar');
