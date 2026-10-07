@@ -333,28 +333,42 @@
 
                 <div class="flex flex-wrap gap-3">
 
-                  <button
-                    class="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-secondary-container hover:bg-secondary-fixed text-on-secondary-container font-label-md text-label-md transition-colors shadow-sm"
-                    id="saveSimBtn"
-                    type="button"
-                  >
-                    <span class="material-symbols-outlined text-[18px]">
-                      bookmark_add
-                    </span>
+                 
+<button
+    class="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-secondary-container hover:bg-secondary-fixed text-on-secondary-container font-label-md text-label-md transition-colors shadow-sm"
+    id="saveSimBtn"
+    type="button"
+>
+    <span class="material-symbols-outlined text-[18px]">
+        bookmark_add
+    </span>
 
-                    Guardar
-                  </button>
+    Guardar
+</button>
 
-                  <button
-                    class="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md shadow-md transition-all active:scale-95"
-                    type="submit"
-                  >
-                    <span class="material-symbols-outlined text-[18px]">
-                      calculate
-                    </span>
+<a
+    class="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-outline-variant hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors"
+    href="{{ route('creditos.historial') }}"
+>
+    <span class="material-symbols-outlined text-[18px]">
+        history
+    </span>
 
-                    Recalcular
-                  </button>
+    Historial
+</a>
+
+<button
+    class="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md shadow-md transition-all active:scale-95"
+    type="submit"
+>
+    <span class="material-symbols-outlined text-[18px]">
+        calculate
+    </span>
+
+    Recalcular
+</button>
+
+
 
                 </div>
               </div>
