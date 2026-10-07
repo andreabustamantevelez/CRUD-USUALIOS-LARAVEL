@@ -1,0 +1,269 @@
+/*
+ * ==============================================================================
+ * ARCHIVO : public/css/menu-usuario.css
+ * QUÉ ES  : Estilos del menú del usuario de la barra superior (avatar con Notificaciones,
+ *           Ajustes y Cerrar sesión). Lo carga components/topbar.blade.php con @push('styles').
+ * COMPORTAMIENTO:
+ *   - Escritorio con mouse: se abre al pasar el cursor (.menu-usuario:hover).
+ *   - Clic o toque: shell.js agrega .is-open (queda fijo hasta clic afuera o Escape).
+ * REGLAS: solo tokens de style.css (var(--...)); sin hexadecimales sueltos.
+ * ==============================================================================
+ */
+
+.menu-usuario {
+  position: relative;
+}
+
+/* ---- Botón (nombre + avatar + flecha) ---- */
+.menu-usuario__boton {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  min-height: 2.75rem;
+  padding: .25rem .5rem .25rem .75rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--on-surface);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color .15s var(--ease);
+}
+.menu-usuario__boton:hover,
+.menu-usuario.is-open .menu-usuario__boton {
+  background: var(--surface-container);
+}
+.menu-usuario__boton:focus-visible,
+.menu-usuario__item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.menu-usuario__datos {
+  display: none;
+  text-align: right;
+  line-height: 1.2;
+}
+.menu-usuario__datos .menu-usuario__nombre,
+.menu-usuario__datos .menu-usuario__rol {
+  display: block;
+}
+.menu-usuario__rol {
+  color: var(--on-surface-variant);
+}
+@media (min-width: 768px) {
+  .menu-usuario__datos {
+    display: block;
+  }
+}
+
+.menu-usuario__avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: var(--primary-container);
+  color: var(--on-primary);
+  font-weight: 700;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.menu-usuario__avatar--grande {
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.125rem;
+}
+
+/* Punto rojo: hay notificaciones pendientes */
+.menu-usuario__punto {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: .75rem;
+  height: .75rem;
+  border-radius: 9999px;
+  background: var(--error);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.menu-usuario__punto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--error);
+  animation: menu-usuario-ping 1.6s cubic-bezier(0, 0, .2, 1) infinite;
+}
+@keyframes menu-usuario-ping {
+  75%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.menu-usuario__flecha {
+  font-size: 20px;
+  color: var(--on-surface-variant);
+  transition: transform .2s var(--ease);
+}
+.menu-usuario.is-open .menu-usuario__flecha {
+  transform: rotate(180deg);
+}
+
+/* ---- Panel desplegable ----
+   El padding-top (puente) mantiene el :hover continuo entre el botón y la tarjeta. */
+.menu-usuario__panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 60;
+  width: 18rem;
+  max-width: calc(100vw - 2rem);
+  padding-top: .5rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transform-origin: top right;
+  transition: opacity .15s var(--ease), transform .15s var(--ease), visibility 0s linear .2s;
+}
+.menu-usuario.is-open .menu-usuario__panel {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .menu-usuario:hover .menu-usuario__panel {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition-delay: 0s;
+  }
+  .menu-usuario:hover .menu-usuario__boton {
+    background: var(--surface-container);
+  }
+  .menu-usuario:hover .menu-usuario__flecha {
+    transform: rotate(180deg);
+  }
+}
+
+.menu-usuario__tarjeta {
+  overflow: hidden;
+  border-radius: .75rem;
+  background: var(--surface-container-lowest);
+  box-shadow: 0 16px 36px -10px rgba(15, 23, 42, .22), 0 0 0 1px var(--line);
+}
+
+.menu-usuario__cabecera {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem;
+  background: var(--surface-container-low);
+  border-bottom: 1px solid var(--line);
+}
+.menu-usuario__identidad {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: .125rem;
+}
+.menu-usuario__identidad .menu-usuario__nombre {
+  color: var(--on-surface);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu-usuario__correo {
+  color: var(--on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu-usuario__etiqueta {
+  align-self: flex-start;
+  margin-top: .25rem;
+  padding: .125rem .5rem;
+  border-radius: 9999px;
+  background: var(--primary-fixed);
+  color: var(--on-primary-fixed);
+}
+
+/* ---- Opciones ---- */
+.menu-usuario__lista {
+  padding: .375rem;
+}
+.menu-usuario__item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: .5rem .75rem;
+  border: 0;
+  border-radius: .5rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.menu-usuario__item .material-symbols-outlined {
+  font-size: 20px;
+}
+.menu-usuario__item:hover {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+.menu-usuario__item--activo {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-weight: 600;
+}
+.menu-usuario__item--activo:hover {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+.menu-usuario__item--salir {
+  color: var(--error);
+}
+.menu-usuario__item--salir:hover {
+  background: var(--error-container);
+  color: var(--on-error-container);
+}
+.menu-usuario__separador {
+  height: 1px;
+  margin: .375rem .5rem;
+  background: var(--line);
+}
+.menu-usuario__contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  padding: 0 .375rem;
+  border-radius: 9999px;
+  background: var(--error);
+  color: var(--on-error);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-usuario__panel,
+  .menu-usuario__flecha,
+  .menu-usuario__boton,
+  .menu-usuario__item {
+    transition: none;
+  }
+  .menu-usuario__punto::after {
+    animation: none;
+  }
+}
