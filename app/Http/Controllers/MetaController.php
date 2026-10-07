@@ -95,6 +95,7 @@ class MetaController extends Controller
         Gate::authorize('abandonar', $meta);
         $this->metas->abandonar($meta, $request->user());
 
-        return redirect()->route('metas.index')->with('exito', 'Meta abandonada');
+        // En una meta individual "abandonar" equivale a cancelarla.
+        return redirect()->route('metas.index')->with('exito', $meta->esCompartida() ? 'Meta abandonada' : 'Meta cancelada');
     }
 }

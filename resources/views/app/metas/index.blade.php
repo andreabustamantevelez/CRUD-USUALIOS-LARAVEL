@@ -1,7 +1,7 @@
 {{--
   ==============================================================================
   ARCHIVO : resources/views/app/metas/index.blade.php        (J5 HECHO)
-  QUÉ ES  : "Metas compartidas": lista de mis metas con avance conjunto y formulario para crear una.
+  QUÉ ES  : "Metas compartidas": lista de mis metas (individuales o compartidas) con su avance y formulario para crear una.
   RUTA    : GET /metas (metas.index) · POST /metas (metas.store) · rol:familiar · MetaController@index
   DATOS   : $metas (con aportes_sum_monto = total conjunto) · $invitaciones (cantidad pendiente)
   PRIVACIDAD: solo se muestran NOMBRES de participantes y el total conjunto; nunca aportes individuales.
@@ -20,7 +20,7 @@
       <header class="metas-encabezado">
         <div>
           <h1 class="font-headline-xl text-headline-xl text-on-surface">Metas compartidas</h1>
-          <p class="font-body-md text-body-md text-on-surface-variant mt-1">Ahorra junto a otra persona</p>
+          <p class="font-body-md text-body-md text-on-surface-variant mt-1">Ahorra solo o junto a otra persona</p>
         </div>
         <a href="{{ route('metas.invitaciones') }}" class="btn btn-secondary">
           <span class="material-symbols-outlined text-[18px]">mail</span>
@@ -48,13 +48,22 @@
             <input id="fecha_limite" name="fecha_limite" type="date" class="input" value="{{ old('fecha_limite') }}">
             @error('fecha_limite')<p class="metas-error">{{ $message }}</p>@enderror
           </div>
-          <div class="metas-campo">
+          <div class="metas-campo metas-campo--ancho metas-compartir">
+            <label class="metas-casilla" for="compartida">
+              <input id="compartida" name="compartida" type="checkbox" value="1" @checked(old('compartida'))>
+              <span>
+                <strong class="font-label-md text-label-md text-on-surface">Compartir esta meta con otra persona</strong>
+                <small class="font-body-sm text-body-sm text-on-surface-variant">Si no la compartes, será una meta solo tuya.</small>
+              </span>
+            </label>
+          </div>
+          <div class="metas-campo metas-campo--correo">
             <label for="correo" class="font-label-md text-label-md text-on-surface">Correo de la persona a invitar</label>
             <input id="correo" name="correo" type="email" class="input" value="{{ old('correo') }}" required>
             @error('correo')<p class="metas-error">{{ $message }}</p>@enderror
           </div>
           <div class="metas-acciones">
-            <button type="submit" class="btn btn-primary">Crear meta e invitar</button>
+            <button type="submit" class="btn btn-primary">Crear meta</button>
           </div>
         </form>
       </section>
@@ -66,11 +75,15 @@
           <a href="{{ route('metas.show', $meta) }}" class="metas-item">
             <div class="metas-item__cabecera">
               <h3 class="font-headline-sm text-headline-sm text-on-surface">{{ $meta->nombre }}</h3>
-              <span class="metas-estado metas-estado--{{ $meta->estado }}">{{ ucfirst($meta->estado) }}</span>
+              <span class="metas-estado metas-estado--{{ $meta->estado }}">{{ ucfirst($meta->estado) }} · {{ $meta->esCompartida() ? 'Compartida' : 'Individual' }}</span>
             </div>
             <p class="font-body-sm text-body-sm text-on-surface-variant">
-              Con:
-              {{ $meta->participaciones->where('user_id', '!=', auth()->id())->map(fn ($p) => $p->usuario->nombre.($p->estado_invitacion === 'pendiente' ? ' (invitación pendiente)' : ''))->join(', ') ?: 'nadie todavía' }}
+              @if($meta->esCompartida())
+                Con:
+                {{ $meta->participaciones->where('user_id', '!=', auth()->id())->map(fn ($p) => $p->usuario->nombre.($p->estado_invitacion === 'pendiente' ? ' (invitación pendiente)' : ''))->join(', ') ?: 'nadie todavía' }}
+              @else
+                Meta individual
+              @endif
             </p>
             <div class="metas-barra" role="progressbar" aria-valuenow="{{ $porcentaje }}" aria-valuemin="0" aria-valuemax="100">
               <span class="metas-barra__relleno" style="width: {{ $porcentaje }}%"></span>

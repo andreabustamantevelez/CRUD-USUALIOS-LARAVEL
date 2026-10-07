@@ -4,6 +4,13 @@
   border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 11px; font-weight: 700; }
 .metas-formulario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .metas-campo { display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
+.metas-campo--ancho { grid-column: 1 / -1; }
+.metas-casilla { display: flex; align-items: flex-start; gap: .625rem; cursor: pointer; }
+.metas-casilla input { margin-top: .25rem; width: 1.125rem; height: 1.125rem; accent-color: var(--primary); }
+.metas-casilla span { display: flex; flex-direction: column; }
+/* El correo solo se muestra si la casilla "Compartir" está marcada (meta individual = sin invitado). */
+.metas-campo--correo { display: none; }
+.metas-formulario:has(#compartida:checked) .metas-campo--correo { display: flex; }
 .metas-acciones { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
 .metas-error { color: var(--error); font-size: 13px; }
 .metas-item { display: flex; flex-direction: column; gap: .5rem; padding: 1rem; margin-bottom: .75rem; border: 1px solid var(--line);

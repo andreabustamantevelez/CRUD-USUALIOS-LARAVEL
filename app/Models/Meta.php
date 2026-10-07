@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * QUÉ ES : una meta de ahorro compartida entre máximo 2 usuarios familiares.
+ * QUÉ ES : una meta de ahorro de un usuario familiar: INDIVIDUAL (solo él) o COMPARTIDA con otra persona (máx. 2).
  * PRIVACIDAD (RQNF-03): el avance es el TOTAL conjunto (suma en SQL). Nunca se cargan las filas de
  *   aportes del otro participante: para mostrar "tus aportes" se usa aportesDelUsuario($id).
  */
@@ -22,7 +22,7 @@ class Meta extends Model
 
     protected $guarded = [];   // Los controladores usan FormRequest + $request->validated(), nunca $request->all().
 
-    protected $casts = ['fecha_limite' => 'date'];
+    protected $casts = ['fecha_limite' => 'date', 'compartida' => 'boolean'];
 
     public function creador(): BelongsTo { return $this->belongsTo(User::class, 'creador_id'); }
     public function participaciones(): HasMany { return $this->hasMany(ParticipacionMeta::class); }
@@ -45,6 +45,9 @@ class Meta extends Model
     }
 
     public function estaActiva(): bool { return $this->estado === 'activa'; }
+
+    /** Compartida (con otra persona) o individual. Si el atributo no vino en la consulta, rige el default de la BD (true). */
+    public function esCompartida(): bool { return (bool) ($this->getAttribute('compartida') ?? true); }
 
     // El avance se CALCULA (no se guarda). Privacidad: esto es el total conjunto, no el desglose.
     public function totalConjunto(): int

@@ -76,7 +76,8 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 | 7 | Fecha límite de la meta | Opcional. Si se escribe, debe ser hoy o futura. La meta **no** se cierra sola al vencer | Evita metas que cambian de estado sin que nadie haga nada |
 | 8 | Gastos ligados a meta | **No** en la primera versión. Los aportes son lo único que mueve el avance | Alcance; ligar gastos exige otro flujo y más pruebas |
 | 18 | Si alguien abandona | La meta pasa a **cancelada para las dos personas**; los aportes se conservan como historial; se notifica a la otra. Quien abandonó ya no la ve; la otra la ve en solo lectura. Si una cuenta se elimina, sus filas se borran en cascada (migración J2) | Con solo dos participantes, una meta compartida con una persona deja de ser compartida |
-| — | Quién invita | Solo quien creó la meta, con la meta activa | `metas.creador_id` (J2) |
+| — | Metas individuales o compartidas | La persona decide al crear (casilla "Compartir…"). Individual: sin invitados, privada y con los mismos aportes/avance/finalizar; "abandonar" = "Cancelar meta". Columna nueva `metas.compartida` (default true) en migración nueva. Por ahora solo el rol familiar accede a metas (también las individuales) | Aclaración del 2026-10-07; el estándar sigue sin metas |
+| — | Quién invita | Solo quien creó la meta, con la meta compartida y activa | `metas.creador_id` (J2) |
 | — | Máximo 2 participantes | Cuentan **aceptados + pendientes** (la invitación reserva el cupo); al rechazar se libera | Evita invitar a tres personas a la vez |
 | — | Reinvitar | Quien rechazó o abandonó puede ser invitado otra vez: se reactiva su misma fila (`unique(meta_id, user_id)`) | No se pueden duplicar filas |
 | — | Finalizar | Solo si el total conjunto alcanzó el objetivo; cualquier participante puede hacerlo. Pasa a `completada` | Jira J5-B: "Finalizar (al llegar al objetivo)" |
