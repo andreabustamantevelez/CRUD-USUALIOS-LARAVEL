@@ -1,12 +1,18 @@
-/*
- * ==============================================================================
- * ARCHIVO : public/css/metas-compartidas.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Metas compartidas. Se carga después de style.css (vía
- *           @push('styles') en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): barra de progreso conjunta.
- * ==============================================================================
- */
-
+/* Metas compartidas (J5). Solo lo que no resuelven las clases globales. Colores solo con var(--token). */
+.metas-encabezado { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.metas-insignia { display: inline-flex; min-width: 1.25rem; height: 1.25rem; padding: 0 .35rem; align-items: center; justify-content: center;
+  border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 11px; font-weight: 700; }
+.metas-formulario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.metas-campo { display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
+.metas-acciones { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+.metas-error { color: var(--error); font-size: 13px; }
+.metas-item { display: flex; flex-direction: column; gap: .5rem; padding: 1rem; margin-bottom: .75rem; border: 1px solid var(--line);
+  border-radius: .75rem; transition: border-color .15s var(--ease), box-shadow .15s var(--ease); }
+.metas-item:hover { border-color: var(--line-strong); box-shadow: 0 4px 12px -4px rgba(15,23,42,.08); }
+.metas-item__cabecera { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.metas-estado { font-size: 12px; font-weight: 600; padding: .125rem .625rem; border-radius: 999px; background: var(--ok-bg); color: var(--ok); }
+.metas-estado--completada { background: var(--save-bg); color: var(--save); }
+.metas-estado--cancelada { background: var(--late-bg); color: var(--late); }
+.metas-barra { height: .625rem; border-radius: 999px; background: var(--line); overflow: hidden; }
+.metas-barra__relleno { display: block; height: 100%; border-radius: inherit; background: var(--primary); transition: width .3s var(--ease); }
+@media (max-width: 640px) { .metas-formulario { grid-template-columns: 1fr; } }

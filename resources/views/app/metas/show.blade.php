@@ -1,37 +1,15 @@
 {{--
   ==============================================================================
-  ARCHIVO : resources/views/app/metas/show.blade.php
-  QUÉ ES  : Estructura Blade de la pantalla "Detalle de meta" (SIN diseño original todavía: el
-            contenido es una plantilla con zonas dinámicas).
-  RUTA    : GET /metas/{meta} (metas.show) · POST aportes · POST finalizar · POST abandonar ·
+  ARCHIVO : resources/views/app/metas/show.blade.php        (J5 HECHO)
+  QUÉ ES  : "Detalle de meta": avance CONJUNTO y el historial de MIS aportes.
+  RUTA    : GET /metas/{meta} (metas.show) · POST aportes / finalizar / abandonar / invitar
             Controlador: MetaController@show
-  DATOS QUE LLEGAN DEL CONTROLADOR:
-    - $meta (objetivo, acumulado conjunto, %, estado, fecha límite)
-    - $aportes (SOLO los del usuario actual)
-  BASE DE DATOS: metas_ahorro, participaciones_meta, aportes_meta
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear la ruta con el NOMBRE indicado en routes/web.php, dentro del grupo con los middleware
-       de la sección RUTA.
-    2. Crear el controlador y devolver esta vista con las variables listadas en DATOS (compact o
-       arreglo).
-    3. Consultar SIEMPRE por el usuario autenticado (auth()->user()->relación()); nunca
-       Modelo::all().
-    4. Reemplazar el bloque "DISEÑO PENDIENTE" por el code.html original de esta pantalla,
-       conservando los @forelse/@empty.
-    5. Formularios: @csrf, @method cuando no sea POST, name= igual al de la validación
-       (FormRequest) y @error bajo cada campo.
-    6. Mensajes de éxito: redirect()->with('exito', 'texto de la especificación') (se muestran en
-       <x-toast />).
-    7. Policy: solo participantes. Calcular total conjunto con SUM sin exponer filas del otro
-       (RQNF-03).
-    8. Aporte: monto > 0. Mensajes: "Aporte registrado", "Meta finalizada", "Meta abandonada".
-  CÓMO HACERLO / NOTAS:
-    - Los textos de "estado vacío" ya son los de la especificación.
-    - El CSS exclusivo de esta pantalla va en public/css/detalle-meta.css.
-  CÓMO SE COMPRUEBA:
-    - Entrar con un usuario sin datos: se ve el texto de estado vacío.
-    - Entrar con dos usuarios: ninguno ve datos del otro.
-    - Probar en 1440, 768 y 390 px sin scroll horizontal.
+  DATOS   : $meta · $avance (total, porcentaje, falta) · $aportes (SOLO los míos) · $miTotal ·
+            $participantes (solo nombres) · $puedeAportar/$puedeInvitar/$puedeFinalizar/$puedeAbandonar
+  PRIVACIDAD (RQNF-03): el aporte del otro participante NO llega a esta vista (ni oculto): el
+            controlador solo consulta los aportes del usuario actual y suma el total en SQL.
+  MENSAJES: "Aporte registrado" · "Meta finalizada" · "Meta abandonada" · "Invitación enviada"
+  CSS     : public/css/detalle-meta.css
   ==============================================================================
 --}}
 
@@ -43,33 +21,100 @@
 @section('content')
   <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
     <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
-      {{-- DISEÑO PENDIENTE: reemplazar por el code.html original de esta pantalla --}}
       <header>
-        <h1 class="font-headline-xl text-headline-xl text-on-surface">Detalle de meta</h1>
+        <a href="{{ route('metas.index') }}" class="font-label-md text-label-md text-primary">← Metas compartidas</a>
+        <h1 class="font-headline-xl text-headline-xl text-on-surface mt-2">{{ $meta->nombre }}</h1>
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">
           Avance conjunto (sin ver el aporte del otro participante)
+          · <span class="detalle-estado detalle-estado--{{ $meta->estado }}">{{ ucfirst($meta->estado) }}</span>
         </p>
       </header>
+
+      @error('meta')<p class="detalle-error" role="alert">{{ $message }}</p>@enderror
+
       <section class="card p-space-lg" data-dinamico="meta">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
-          Avance conjunto y tu aporte
-        </h2>
-        {{-- DINÁMICO: meta --}}
-        @forelse(($meta ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
-        @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">Meta no encontrada</p>
-        @endforelse
+        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Avance conjunto y tu aporte</h2>
+        <div class="detalle-barra" role="progressbar" aria-valuenow="{{ $avance['porcentaje'] }}" aria-valuemin="0" aria-valuemax="100">
+          <span class="detalle-barra__relleno" style="width: {{ $avance['porcentaje'] }}%"></span>
+        </div>
+        <dl class="detalle-cifras">
+          <div><dt>Acumulado conjunto</dt><dd>${{ number_format($avance['total'], 0, ',', '.') }}</dd></div>
+          <div><dt>Objetivo</dt><dd>${{ number_format($meta->monto_objetivo, 0, ',', '.') }}</dd></div>
+          <div><dt>Avance</dt><dd>{{ $avance['porcentaje'] }}%</dd></div>
+          <div><dt>Falta</dt><dd>${{ number_format($avance['falta'], 0, ',', '.') }}</dd></div>
+          <div><dt>Tu aporte total</dt><dd>${{ number_format($miTotal, 0, ',', '.') }}</dd></div>
+          @if($meta->fecha_limite)<div><dt>Fecha límite</dt><dd>{{ $meta->fecha_limite->format('d/m/Y') }}</dd></div>@endif
+        </dl>
+        <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-md">
+          Participantes:
+          {{ $participantes->map(fn ($p) => $p->usuario->nombre.($p->estado_invitacion === 'pendiente' ? ' (invitación pendiente)' : ''))->join(', ') }}
+        </p>
       </section>
+
+      @if($puedeAportar)
+        <section class="card p-space-lg">
+          <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Registrar un aporte</h2>
+          <form method="POST" action="{{ route('metas.aportes', $meta) }}" class="detalle-formulario" novalidate>
+            @csrf
+            <div class="detalle-campo">
+              <label for="monto" class="font-label-md text-label-md text-on-surface">Monto (COP)</label>
+              <input id="monto" name="monto" type="text" inputmode="numeric" class="input" value="{{ old('monto') }}" required>
+              @error('monto')<p class="detalle-error-campo">{{ $message }}</p>@enderror
+            </div>
+            <div class="detalle-campo">
+              <label for="fecha" class="font-label-md text-label-md text-on-surface">Fecha (opcional)</label>
+              <input id="fecha" name="fecha" type="date" class="input" max="{{ now()->toDateString() }}" value="{{ old('fecha') }}">
+              @error('fecha')<p class="detalle-error-campo">{{ $message }}</p>@enderror
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar aporte</button>
+          </form>
+        </section>
+      @endif
+
       <section class="card p-space-lg" data-dinamico="aportes">
         <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Tu historial de aportes</h2>
-        {{-- DINÁMICO: aportes --}}
-        @forelse(($aportes ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
+        @forelse($aportes as $aporte)
+          <div class="detalle-aporte">
+            <span>{{ $aporte->fecha->format('d/m/Y') }}</span>
+            <strong>${{ number_format($aporte->monto, 0, ',', '.') }}</strong>
+          </div>
         @empty
           <p class="font-body-md text-body-md text-on-surface-variant">Aún no registras aportes</p>
         @endforelse
       </section>
+
+      @if($puedeInvitar)
+        <section class="card p-space-lg">
+          <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Invitar a alguien</h2>
+          <form method="POST" action="{{ route('metas.invitar', $meta) }}" class="detalle-formulario" novalidate>
+            @csrf
+            <div class="detalle-campo">
+              <label for="correo" class="font-label-md text-label-md text-on-surface">Correo</label>
+              <input id="correo" name="correo" type="email" class="input" value="{{ old('correo') }}" required>
+              @error('correo')<p class="detalle-error-campo">{{ $message }}</p>@enderror
+            </div>
+            <button type="submit" class="btn btn-secondary">Enviar invitación</button>
+          </form>
+        </section>
+      @endif
+
+      @if($puedeFinalizar || $puedeAbandonar)
+        <section class="card p-space-lg detalle-acciones">
+          @if($puedeFinalizar)
+            <form method="POST" action="{{ route('metas.finalizar', $meta) }}">
+              @csrf
+              <button type="submit" class="btn btn-primary">Finalizar meta</button>
+            </form>
+          @endif
+          @if($puedeAbandonar)
+            <form method="POST" action="{{ route('metas.abandonar', $meta) }}"
+                  onsubmit="return confirm('¿Seguro que quieres abandonar la meta? Se cancelará para las dos personas y se conservará el historial.')">
+              @csrf
+              <button type="submit" class="btn btn-danger">Abandonar meta</button>
+            </form>
+          @endif
+        </section>
+      @endif
     </div>
   </main>
 @endsection

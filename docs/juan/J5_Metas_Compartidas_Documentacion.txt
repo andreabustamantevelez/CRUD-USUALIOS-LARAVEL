@@ -1,0 +1,114 @@
+======================================================================
+J5 - METAS COMPARTIDAS  ·  DOCUMENTACIÓN DE LO QUE CAMBIÓ
+Responsable: Juan · Fecha: 2026-10-07 · Rama sugerida: juan/j5-metas-compartidas
+======================================================================
+Estado: HECHO. php artisan test => 103 pruebas, 464 aserciones, todas pasan (77 anteriores + 26 de MetasTest).
+
+
+----------------------------------------------------------------------
+1. QUÉ SE HIZO (en una frase por pieza)
+----------------------------------------------------------------------
+  Crear meta .......... nombre, monto objetivo > 0, fecha límite opcional y correo de la otra persona.
+  Invitar ............. por correo, con 5 validaciones; máximo 2 participantes.
+  Aceptar / rechazar .. solo la persona invitada; se avisa a quien creó la meta.
+  Aportes ............. monto entero en COP > 0, solo participantes y con la meta activa.
+  Avance .............. total conjunto (suma en SQL) y porcentaje con tope 100; no se guarda.
+  Privacidad .......... cada quien ve SU historial y el TOTAL; el aporte del otro no llega a la vista.
+  Finalizar / abandonar  finalizar solo al llegar al objetivo; abandonar cancela la meta (decisión #18).
+  Contrato C6 ......... tieneMetasActivas() y Meta::aportesDelUsuario() para Valeria y el panel.
+
+
+----------------------------------------------------------------------
+2. ARCHIVOS
+----------------------------------------------------------------------
+NUEVOS
+  app/Services/ServicioMetas.php ................. toda la lógica (crear, invitar, aceptar, rechazar,
+                                                   aportar, avance, finalizar, abandonar, C6)
+  app/Policies/MetaPolicy.php .................... solo participantes; invitar solo la creadora
+  app/Policies/ParticipacionMetaPolicy.php ....... aceptar/rechazar solo el invitado y si está pendiente
+  app/Policies/AporteMetaPolicy.php .............. un aporte lo ve solo su dueño; no se edita ni borra
+  app/Http/Controllers/MetaController.php ........ index, store, show, invitar, finalizar, abandonar
+  app/Http/Controllers/AporteMetaController.php .. store
+  app/Http/Controllers/InvitacionMetaController.php  index, aceptar, rechazar
+  app/Http/Requests/Metas/{StoreMetaRequest, InvitarMetaRequest, StoreAporteMetaRequest}.php
+  tests/Feature/MetasTest.php
+
+MODIFICADOS
+  app/Models/Meta.php ............. + scopeDelParticipante, esParticipante, porcentaje,
+                                    objetivoAlcanzado, aportesDelUsuario (C6)
+  app/Models/AporteMeta.php ....... + trait PerteneceAUsuario (scope delUsuario)
+  routes/modulos/metas.php ........ de maqueta a controladores (mismos nombres de ruta)
+  resources/views/app/metas/{index,invitaciones,show}.blade.php   con datos reales
+  public/css/{metas-compartidas, invitaciones-metas, detalle-meta}.css
+  docs/DECISIONES.md .............. decisiones #7, #8, #18 y las de J5
+
+NO SE TOCÓ: migraciones (las tablas de J2 ya servían), routes/web.php, bootstrap/app.php.
+
+
+----------------------------------------------------------------------
+3. REGLAS DE NEGOCIO
+----------------------------------------------------------------------
+  - Solo usuarios familiares (rol:familiar en la ruta + MetaPolicy). Estándar y administrador: 403.
+  - La creadora queda como participante aceptada al crear la meta.
+  - Invitar valida en este orden y con estos mensajes (constantes ServicioMetas::MSG_*):
+      1. no existe (o está suspendido o es administrador) ... "No existe un usuario registrado con ese correo"
+      2. es la misma creadora ............................... "No puedes invitarte a ti mismo"
+      3. es estándar ........................................ "Esa persona no es de tipo familiar y no puede participar en metas"
+      4. ya participa (pendiente o aceptada) ................ "Esa persona ya participa en la meta"
+      5. cupo lleno (2 entre aceptados y pendientes) ......... "La meta ya tiene el máximo de 2 participantes"
+  - Si la invitación al crear la meta falla, NO queda la meta (transacción).
+  - Mensajes de éxito: "Meta creada", "Invitación enviada", "Invitación aceptada", "Invitación rechazada",
+    "Aporte registrado", "Meta finalizada", "Meta abandonada".
+  - Porcentaje = total conjunto / objetivo, redondeado hacia abajo, con tope 100.
+
+
+----------------------------------------------------------------------
+4. PRIVACIDAD DE APORTES (RQNF-03)  -  CÓMO SE GARANTIZA
+----------------------------------------------------------------------
+  1. MetaController@show solo consulta aportes con aportesDelUsuario(auth id): los del otro no se
+     cargan, así que no pueden aparecer ni en HTML ni en datos ocultos.
+  2. El total conjunto sale de SUM() en SQL (Meta::totalConjunto), no de recorrer filas.
+  3. El listado /metas usa withSum('aportes','monto') y solo carga NOMBRES de participantes.
+  4. AporteMetaPolicy: un aporte solo lo ve su dueño.
+  5. Prueba automática: dos personas y una cifra distintiva (7.654.321); en la página de la otra
+     persona esa cifra NO aparece ni formateada ni sin formato.
+  Regla para el futuro: nunca $meta->aportes ni $meta->load('aportes') en una vista o respuesta.
+
+
+----------------------------------------------------------------------
+5. PRUEBAS (tests/Feature/MetasTest.php)
+----------------------------------------------------------------------
+  Acceso por rol ...... estándar/administrador 403; sin sesión redirige; estado vacío del familiar.
+  Crear ............... válida (con "$ 4.000.000"); inválida (nombre, 0, negativo, texto, fecha pasada,
+                        sin correo); sin invitación válida no queda meta; estándar 403.
+  Invitar ............. no existe, estándar, ya participa, a sí misma, cupo lleno; cupo reservado por
+                        pendiente y liberado al rechazar; solo la creadora invita.
+  Aceptar/rechazar .... el invitado acepta y rechaza; creadora y terceros reciben 403; no se acepta dos
+                        veces; un pendiente aún no ve la meta.
+  Aportes y avance .... aporte válido; 0, negativo, texto, fecha futura; meta inactiva; tope 100 %.
+  Privacidad .......... detalle de ambos, listado, política de aportes, contrato C6.
+  Ajenos .............. 403 en todas las rutas de la meta.
+  Finalizar/abandonar . finalizar solo al llegar al objetivo; abandonar cancela, conserva aportes y avisa.
+  C6 .................. tieneMetasActivas.
+
+
+----------------------------------------------------------------------
+6. CÓMO PROBAR A MANO CON DOS CUENTAS
+----------------------------------------------------------------------
+  1. Entra como familiar@test.com. En Metas, crea una meta e invita a otro familiar (crea antes un
+     segundo familiar desde "Crear cuenta" con tipo Familiar, o con php artisan tinker).
+  2. Abre otra ventana privada, entra como esa segunda persona: Invitaciones > Aceptar.
+  3. Cada una registra un aporte. Comprueba que cada una ve solo el suyo y el total.
+  4. Con estandar@test.com abre /metas: debe dar 403.
+
+
+----------------------------------------------------------------------
+7. PENDIENTES Y AVISOS
+----------------------------------------------------------------------
+  - Los textos de los mensajes de invitación (sección 3) son propuestos: comparar con la sección de
+    mensajes de la especificación y, si difieren, cambiar las constantes MSG_* (un solo lugar).
+  - Las vistas usan las clases globales (.card, .btn, .input) porque el diseño original de estas tres
+    pantallas aún no está: cuando exista el code.html, reemplazar solo el marcado conservando los datos.
+  - Valeria debe llamar a ServicioMetas::tieneMetasActivas($usuario) al bloquear el cambio a estándar.
+  - Notificaciones: versión mínima dentro de ServicioMetas::notificar(); al llegar el servicio de J6,
+    cambiar solo ese método.
