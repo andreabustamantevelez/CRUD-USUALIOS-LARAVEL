@@ -4,10 +4,11 @@
   QUÉ ES  : Menú lateral del usuario estándar/familiar. Uso: <x-sidebar />
   DATOS QUE LLEGAN DEL CONTROLADOR:
     - auth()->user()->rol
+  ESTADO  : Notificaciones y Ajustes se MOVIERON al menú del usuario de la barra superior
+            (components/topbar.blade.php); ya no aparecen aquí (2026-10-06, Juan).
   QUÉ HAY QUE HACER (en orden):
     1. Nombrar las rutas exactamente como aparecen aquí (panel, gastos.index, gastos.create,
-       gastos-fijos.index, notificaciones.index, creditos.simulador, metas.index, informes.actual,
-       categorias.index, ajustes.perfil).
+       gastos-fijos.index, creditos.simulador, metas.index, informes.actual, categorias.index).
     2. "Metas Compartidas" solo se dibuja si el rol es familiar; ADEMÁS la ruta debe tener
        middleware de rol (ocultar el enlace no protege).
     3. Reemplazar la comprobación de rol por una Gate/Policy cuando exista (ej.
@@ -50,10 +51,6 @@
         href="{{ route('gastos-fijos.index') }}"
       >Gastos Fijos y Vencimientos</a>
       <a
-        class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('notificaciones.*') ? ' nav-active' : '' }}"
-        href="{{ route('notificaciones.index') }}"
-      >Notificaciones</a>
-      <a
         class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('creditos.*') ? ' nav-active' : '' }}"
         href="{{ route('creditos.simulador') }}"
       >Simulador de Créditos</a>
@@ -71,10 +68,6 @@
         class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('categorias.*') ? ' nav-active' : '' }}"
         href="{{ route('categorias.index') }}"
       >Categorías</a>
-      <a
-        class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('ajustes.*') ? ' nav-active' : '' }}"
-        href="{{ route('ajustes.perfil') }}"
-      >Ajustes</a>
     </nav>
   </div>
   <div class="p-space-md rounded-xl bg-surface-container-low flex flex-col gap-space-xs">

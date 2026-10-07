@@ -5,6 +5,12 @@ Responsable: Juan · Fecha: 2026-10-06 · Rama: juan/j4-roles-y-permisos
 Estado: HECHO. php artisan test => 77 pruebas, 319 aserciones, todas pasan (incluye J2, J3, J4 y
 las de CalculadoraCredito de Valeria). Las de J4: PermisosTest (10) y AislamientoTest (10).
 
+Cuentas de prueba:
+
+Correo:			Contraseña:	Rol:
+ estandar@test.com	 password	 estándar
+ familiar@test.com	 password	 familiar
+ admin@test.com		 password	 administrador
 
 ----------------------------------------------------------------------
 1. QUÉ SE HIZO (en una frase por pieza)
@@ -155,7 +161,6 @@ Reglas:
      y haz clic en cualquier enlace: vuelve al login con el aviso de cuenta suspendida.
      (Para reactivarla: ...->update(['activo' => true]).)
   6. php artisan test   (todo debe pasar: 77 pruebas).
-
 
 ----------------------------------------------------------------------
 9. LIMITACIONES Y PENDIENTES

@@ -2,17 +2,19 @@
   ==============================================================================
   ARCHIVO : resources/views/components/sidebar-admin.blade.php
   QUÉ ES  : Menú lateral del administrador. Uso: <x-sidebar-admin />
+  ESTADO  : Ajustes se MOVIÓ al menú del usuario de la barra superior
+            (components/topbar.blade.php); ya no aparece aquí (2026-10-06, Juan).
   QUÉ HAY QUE HACER (en orden):
     1. Crear las rutas admin.usuarios, admin.categorias y admin.estadisticas con middleware de rol
        administrador.
     2. Decidir (decisión #20) si el administrador también tiene finanzas personales; hoy NO (solo
-       administración + Ajustes).
+       administración; Ajustes está en el menú del usuario).
   CÓMO HACERLO / NOTAS:
     - No incluye ningún enlace financiero a propósito (regla 26).
   ==============================================================================
 --}}
 
-{{-- Menú lateral del administrador: solo administración + Ajustes (sin páginas financieras). --}}
+{{-- Menú lateral del administrador: solo administración (Ajustes está en el menú del usuario; sin páginas financieras). --}}
 <aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between py-space-lg px-space-md">
   <div class="flex flex-col gap-space-lg">
     <div class="flex items-center gap-space-sm px-space-sm">
@@ -39,10 +41,6 @@
         class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('admin.estadisticas.*') ? ' nav-active' : '' }}"
         href="{{ route('admin.estadisticas') }}"
       >Estadísticas</a>
-      <a
-        class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('ajustes.*') ? ' nav-active' : '' }}"
-        href="{{ route('ajustes.perfil') }}"
-      >Ajustes</a>
     </nav>
   </div>
   <div class="p-space-md rounded-xl bg-surface-container-low flex flex-col gap-space-xs">
