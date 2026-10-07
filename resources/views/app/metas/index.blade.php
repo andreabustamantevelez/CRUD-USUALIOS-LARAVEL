@@ -1,35 +1,11 @@
 {{--
   ==============================================================================
-  ARCHIVO : resources/views/app/metas/index.blade.php
-  QUÉ ES  : Estructura Blade de la pantalla "Metas compartidas" (SIN diseño original todavía: el
-            contenido es una plantilla con zonas dinámicas).
-  RUTA    : GET /metas (metas.index) · middleware rol:familiar · Controlador: MetaController@index
-  DATOS QUE LLEGAN DEL CONTROLADOR:
-    - $metas (con total conjunto y % de avance)
-    - $invitaciones (pendientes)
-  BASE DE DATOS: metas_ahorro, participaciones_meta
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear la ruta con el NOMBRE indicado en routes/web.php, dentro del grupo con los middleware
-       de la sección RUTA.
-    2. Crear el controlador y devolver esta vista con las variables listadas en DATOS (compact o
-       arreglo).
-    3. Consultar SIEMPRE por el usuario autenticado (auth()->user()->relación()); nunca
-       Modelo::all().
-    4. Reemplazar el bloque "DISEÑO PENDIENTE" por el code.html original de esta pantalla,
-       conservando los @forelse/@empty.
-    5. Formularios: @csrf, @method cuando no sea POST, name= igual al de la validación
-       (FormRequest) y @error bajo cada campo.
-    6. Mensajes de éxito: redirect()->with('exito', 'texto de la especificación') (se muestran en
-       <x-toast />).
-    7. Un usuario estándar que abra la URL recibe 403 desde el servidor.
-    8. Mostrar solo NOMBRES de participantes, nunca aportes individuales del otro.
-  CÓMO HACERLO / NOTAS:
-    - Los textos de "estado vacío" ya son los de la especificación.
-    - El CSS exclusivo de esta pantalla va en public/css/metas-compartidas.css.
-  CÓMO SE COMPRUEBA:
-    - Entrar con un usuario sin datos: se ve el texto de estado vacío.
-    - Entrar con dos usuarios: ninguno ve datos del otro.
-    - Probar en 1440, 768 y 390 px sin scroll horizontal.
+  ARCHIVO : resources/views/app/metas/index.blade.php        (J5 HECHO)
+  QUÉ ES  : "Metas compartidas": lista de mis metas con avance conjunto y formulario para crear una.
+  RUTA    : GET /metas (metas.index) · POST /metas (metas.store) · rol:familiar · MetaController@index
+  DATOS   : $metas (con aportes_sum_monto = total conjunto) · $invitaciones (cantidad pendiente)
+  PRIVACIDAD: solo se muestran NOMBRES de participantes y el total conjunto; nunca aportes individuales.
+  CSS     : public/css/metas-compartidas.css
   ==============================================================================
 --}}
 
@@ -41,25 +17,70 @@
 @section('content')
   <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
     <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
-      {{-- DISEÑO PENDIENTE: reemplazar por el code.html original de esta pantalla --}}
-      <header>
-        <h1 class="font-headline-xl text-headline-xl text-on-surface">Metas compartidas</h1>
-        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Ahorra junto a otra persona</p>
+      <header class="metas-encabezado">
+        <div>
+          <h1 class="font-headline-xl text-headline-xl text-on-surface">Metas compartidas</h1>
+          <p class="font-body-md text-body-md text-on-surface-variant mt-1">Ahorra junto a otra persona</p>
+        </div>
+        <a href="{{ route('metas.invitaciones') }}" class="btn btn-secondary">
+          <span class="material-symbols-outlined text-[18px]">mail</span>
+          Invitaciones
+          @if($invitaciones > 0)<span class="metas-insignia">{{ $invitaciones }}</span>@endif
+        </a>
       </header>
-      <section class="card p-space-lg" data-dinamico="invitaciones">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Invitaciones pendientes</h2>
-        {{-- DINÁMICO: invitaciones --}}
-        @forelse(($invitaciones ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
-        @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">Sin invitaciones</p>
-        @endforelse
+
+      <section class="card p-space-lg" data-dinamico="nueva-meta">
+        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Crear una meta</h2>
+        <form method="POST" action="{{ route('metas.store') }}" class="metas-formulario" novalidate>
+          @csrf
+          <div class="metas-campo">
+            <label for="nombre" class="font-label-md text-label-md text-on-surface">Nombre de la meta</label>
+            <input id="nombre" name="nombre" type="text" maxlength="100" class="input" value="{{ old('nombre') }}" required>
+            @error('nombre')<p class="metas-error">{{ $message }}</p>@enderror
+          </div>
+          <div class="metas-campo">
+            <label for="monto_objetivo" class="font-label-md text-label-md text-on-surface">Monto objetivo (COP)</label>
+            <input id="monto_objetivo" name="monto_objetivo" type="text" inputmode="numeric" class="input" value="{{ old('monto_objetivo') }}" required>
+            @error('monto_objetivo')<p class="metas-error">{{ $message }}</p>@enderror
+          </div>
+          <div class="metas-campo">
+            <label for="fecha_limite" class="font-label-md text-label-md text-on-surface">Fecha límite (opcional)</label>
+            <input id="fecha_limite" name="fecha_limite" type="date" class="input" value="{{ old('fecha_limite') }}">
+            @error('fecha_limite')<p class="metas-error">{{ $message }}</p>@enderror
+          </div>
+          <div class="metas-campo">
+            <label for="correo" class="font-label-md text-label-md text-on-surface">Correo de la persona a invitar</label>
+            <input id="correo" name="correo" type="email" class="input" value="{{ old('correo') }}" required>
+            @error('correo')<p class="metas-error">{{ $message }}</p>@enderror
+          </div>
+          <div class="metas-acciones">
+            <button type="submit" class="btn btn-primary">Crear meta e invitar</button>
+          </div>
+        </form>
       </section>
+
       <section class="card p-space-lg" data-dinamico="metas">
         <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Mis metas</h2>
-        {{-- DINÁMICO: metas --}}
-        @forelse(($metas ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
+        @forelse($metas as $meta)
+          @php($porcentaje = $meta->porcentaje())
+          <a href="{{ route('metas.show', $meta) }}" class="metas-item">
+            <div class="metas-item__cabecera">
+              <h3 class="font-headline-sm text-headline-sm text-on-surface">{{ $meta->nombre }}</h3>
+              <span class="metas-estado metas-estado--{{ $meta->estado }}">{{ ucfirst($meta->estado) }}</span>
+            </div>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">
+              Con:
+              {{ $meta->participaciones->where('user_id', '!=', auth()->id())->map(fn ($p) => $p->usuario->nombre.($p->estado_invitacion === 'pendiente' ? ' (invitación pendiente)' : ''))->join(', ') ?: 'nadie todavía' }}
+            </p>
+            <div class="metas-barra" role="progressbar" aria-valuenow="{{ $porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+              <span class="metas-barra__relleno" style="width: {{ $porcentaje }}%"></span>
+            </div>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">
+              ${{ number_format($meta->totalConjunto(), 0, ',', '.') }} de ${{ number_format($meta->monto_objetivo, 0, ',', '.') }}
+              · {{ $porcentaje }}%
+              @if($meta->fecha_limite) · hasta {{ $meta->fecha_limite->format('d/m/Y') }} @endif
+            </p>
+          </a>
         @empty
           <p class="font-body-md text-body-md text-on-surface-variant">Aún no tienes metas compartidas</p>
         @endforelse

@@ -1,12 +1,16 @@
-/*
- * ==============================================================================
- * ARCHIVO : public/css/detalle-meta.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Detalle de meta. Se carga después de style.css (vía
- *           @push('styles') en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): gráfica de avance.
- * ==============================================================================
- */
-
+/* Detalle de meta (J5). */
+.detalle-barra { height: .875rem; border-radius: 999px; background: var(--line); overflow: hidden; margin-bottom: 1rem; }
+.detalle-barra__relleno { display: block; height: 100%; border-radius: inherit; background: var(--primary); transition: width .3s var(--ease); }
+.detalle-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+.detalle-cifras dt { font-size: 13px; color: var(--on-surface-variant); }
+.detalle-cifras dd { font-size: 1.25rem; font-weight: 700; color: var(--on-surface); }
+.detalle-formulario { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; }
+.detalle-campo { display: flex; flex-direction: column; gap: .375rem; flex: 1 1 12rem; min-width: 0; }
+.detalle-error, .detalle-error-campo { color: var(--error); font-size: 13px; }
+.detalle-error { padding: .75rem 1rem; border-radius: .5rem; background: var(--error-container); color: var(--on-error-container); }
+.detalle-aporte { display: flex; justify-content: space-between; padding: .625rem 0; border-bottom: 1px solid var(--line); }
+.detalle-aporte:last-child { border-bottom: 0; }
+.detalle-acciones { display: flex; flex-wrap: wrap; gap: .75rem; }
+.detalle-estado { font-weight: 600; color: var(--ok); }
+.detalle-estado--completada { color: var(--save); }
+.detalle-estado--cancelada { color: var(--late); }
