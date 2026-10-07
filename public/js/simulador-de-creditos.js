@@ -27,6 +27,21 @@
     // Referencias a elementos de la vista (los ids deben existir en simulador.blade.php)
     const amountInput = document.getElementById('amountInput');
     const amountSlider = document.getElementById('amountSlider');
+    function obtenerMontoNumerico(valor) {
+    return Number(String(valor).replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function formatearMonto(valor) {
+    const numero = obtenerMontoNumerico(valor);
+
+    if (!numero) {
+        return '';
+    }
+
+    return numero.toLocaleString('es-CO', {
+        maximumFractionDigits: 2
+    });
+}
     const rateInput = document.getElementById('rateInput');
     const eaRateDisplay = document.getElementById('eaRateDisplay');
     const termInput = document.getElementById('termInput');
@@ -62,7 +77,7 @@
 
     // Motor de cálculo (amortización francesa). TODO: el servidor debe replicar EXACTAMENTE esta fórmula (RQNF-04) y es el que vale al guardar.
     window.recalculateLoan = function() {
-      let principal = parseFloat(amountInput.value) || 0;
+      let principal = obtenerMontoNumerico(amountInput.value);
       let monthlyRate = (parseFloat(rateInput.value) || 0) / 100;
       let n = currentTerm;
 
@@ -147,14 +162,42 @@
 
     // Sincroniza el control deslizante con la caja numérica del monto
     amountSlider.addEventListener('input', function() {
-        amountInput.value = this.value;
-        window.recalculateLoan();
-    });
+    const monto = Number(this.value);
 
-    amountInput.addEventListener('input', function() {
-        amountSlider.value = this.value;
-        window.recalculateLoan();
-    });
+    amountInput.value = monto
+        ? monto.toLocaleString('es-CO', {
+            maximumFractionDigits: 2
+        })
+        : '';
+
+    window.recalculateLoan();
+});
+
+   amountInput.addEventListener('input', function() {
+    const posicion = this.selectionStart;
+    const valorAnterior = this.value;
+
+    const monto = obtenerMontoNumerico(valorAnterior);
+
+    this.value = monto
+        ? monto.toLocaleString('es-CO', {
+            maximumFractionDigits: 2
+        })
+        : '';
+
+    amountSlider.value = monto;
+    window.recalculateLoan();
+
+    const diferencia = this.value.length - valorAnterior.length;
+
+    this.setSelectionRange(
+        posicion + diferencia,
+        posicion + diferencia
+    );
+});
+amountInput.addEventListener('blur', function() {
+    this.value = formatearMonto(this.value);
+});
 
     rateInput.addEventListener('input', function() {
         window.recalculateLoan();
@@ -264,7 +307,8 @@ resetBtn.addEventListener('click', function() {
     const saveForm = document.getElementById('saveSimForm');
 
     saveForm.querySelector('[name="nombre"]').value = simName;
-    saveForm.querySelector('[name="monto"]').value = amountInput.value;
+    saveForm.querySelector('[name="monto"]').value =
+    obtenerMontoNumerico(amountInput.value);
     saveForm.querySelector('[name="tasa"]').value = rateInput.value;
     saveForm.querySelector('[name="plazo"]').value = currentTerm;
 
