@@ -58,7 +58,7 @@
         <a
           class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('metas.*') ? ' nav-active' : '' }}"
           href="{{ route('metas.index') }}"
-        >Metas Compartidas</a>
+        >Metas</a>
       @endif
       <a
         class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('informes.*') ? ' nav-active' : '' }}"
