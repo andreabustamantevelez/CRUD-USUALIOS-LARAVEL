@@ -1,79 +1,138 @@
-{{--
-  ==============================================================================
-  ARCHIVO : resources/views/app/gastos/index.blade.php
-  QUÉ ES  : Estructura Blade de la pantalla "Gastos y transacciones" (SIN diseño original todavía:
-            el contenido es una plantilla con zonas dinámicas).
-  RUTA    : GET /gastos y /gastos/nuevo (gastos.index, gastos.create) · POST gastos.store · PUT
-            gastos.update · DELETE gastos.destroy · Controlador: GastoController
-  DATOS QUE LLEGAN DEL CONTROLADOR:
-    - $gastos (paginado, ya filtrado)
-    - $categorias (propias + globales)
-    - filtros en la URL: categoria, mes, desde, hasta (combinables)
-  BASE DE DATOS: gastos, categorias_gasto
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear la ruta con el NOMBRE indicado en routes/web.php, dentro del grupo con los middleware
-       de la sección RUTA.
-    2. Crear el controlador y devolver esta vista con las variables listadas en DATOS (compact o
-       arreglo).
-    3. Consultar SIEMPRE por el usuario autenticado (auth()->user()->relación()); nunca
-       Modelo::all().
-    4. Reemplazar el bloque "DISEÑO PENDIENTE" por el code.html original de esta pantalla,
-       conservando los @forelse/@empty.
-    5. Formularios: @csrf, @method cuando no sea POST, name= igual al de la validación
-       (FormRequest) y @error bajo cada campo.
-    6. Mensajes de éxito: redirect()->with('exito', 'texto de la especificación') (se muestran en
-       <x-toast />).
-    7. Validar: monto > 0, categoría válida, fecha no futura. Mensajes: "Gasto
-       guardado/actualizado/eliminado".
-    8. Eliminar con modal de confirmación; el gasto de otro usuario debe responder 403 (Policy).
-    9. Estado vacío: "No hay gastos registrados en este periodo".
-  CÓMO HACERLO / NOTAS:
-    - Los textos de "estado vacío" ya son los de la especificación.
-    - El CSS exclusivo de esta pantalla va en public/css/gastos.css.
-  CÓMO SE COMPRUEBA:
-    - Entrar con un usuario sin datos: se ve el texto de estado vacío.
-    - Entrar con dos usuarios: ninguno ve datos del otro.
-    - Probar en 1440, 768 y 390 px sin scroll horizontal.
-  ==============================================================================
---}}
-
 @extends('layouts.app')
-@section('titulo', 'Gastos y transacciones · Cuentas Claras')
-@push('styles')
-  <link rel="stylesheet" href="{{ asset('css/gastos.css') }}">
-@endpush
+
 @section('content')
-  <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
-    <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
-      {{-- DISEÑO PENDIENTE: reemplazar por el code.html original de esta pantalla --}}
-      <header>
-        <h1 class="font-headline-xl text-headline-xl text-on-surface">Gastos y transacciones</h1>
-        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Registra y consulta tus gastos</p>
-      </header>
-      <section class="card p-space-lg" data-dinamico="categorias">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
-          Registrar gasto (monto, categoría, fecha, descripción)
-        </h2>
-        {{-- DINÁMICO: categorias --}}
-        @forelse(($categorias ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
-        @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">Crea una categoría para empezar</p>
-        @endforelse
-      </section>
-      <section class="card p-space-lg" data-dinamico="gastos">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
-          Historial con filtros por categoría y periodo
-        </h2>
-        {{-- DINÁMICO: gastos --}}
-        @forelse(($gastos ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
-        @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">
-            No hay gastos registrados en este periodo
-          </p>
-        @endforelse
-      </section>
+<div class="container mx-auto px-4 py-6">
+
+    @if(session('exito'))
+        <div class="bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded-xl mb-6">
+            {{ session('exito') }}
+        </div>
+    @endif
+
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Gestión de Gastos</h1>
+            <p class="text-sm text-gray-500">Administra y visualiza todos tus egresos y consumos.</p>
+        </div>
     </div>
-  </main>
+
+    <!-- Formulario para Registrar Nuevo Gasto -->
+    <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm mb-8">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">Registrar Nuevo Gasto</h2>
+        <form method="POST" action="{{ route('gastos.store') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            @csrf
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Monto ($ COP)</label>
+                <input type="number" name="monto" min="1" placeholder="Ej: 45000" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                @error('monto') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Categoría</label>
+                <select name="categoria_id" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Selecciona categoría</option>
+                    @foreach($categorias as $cat)
+                        <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
+                    @endforeach
+                </select>
+                @error('categoria_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Fecha</label>
+                <input type="date" name="fecha" value="{{ date('Y-m-d') }}" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                @error('fecha') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Descripción</label>
+                <input type="text" name="descripcion" placeholder="Ej: Compra de mercado" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="md:col-span-4 flex justify-end">
+                <button
+    type="submit"
+    style="background-color: #00855d !important; color: white !important; padding: 10px 20px !important; border: none !important; border-radius: 8px !important; font-weight: 600 !important; cursor: pointer !important;"
+>
+    Guardar Gasto
+</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tarjetas de Resumen -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">TOTAL GASTADO (ESTE MES)</p>
+            <h3 class="text-2xl font-extrabold text-red-600 mt-1">$ {{ number_format($totalMes, 0, ',', '.') }}</h3>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nº DE REGISTROS</p>
+            <h3 class="text-2xl font-extrabold text-gray-800 mt-1">{{ $gastos->total() }}</h3>
+        </div>
+    </div>
+
+    <!-- Tabla de Registros Reales -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
+                        <th class="p-4">FECHA</th>
+                        <th class="p-4">DESCRIPCIÓN</th>
+                        <th class="p-4">CATEGORÍA</th>
+                        <th class="p-4 text-right">MONTO</th>
+                        <th class="p-4 text-center">ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                    @forelse($gastos as $gasto)
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="p-4 text-gray-500">{{ \Carbon\Carbon::parse($gasto->fecha)->format('d/m/Y') }}</td>
+                            <td class="p-4 font-medium text-gray-900">{{ $gasto->descripcion ?? 'Sin descripción' }}</td>
+                            <td class="p-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    {{ $gasto->categoria->nombre ?? 'General' }}
+                                </span>
+                            </td>
+                            <td class="p-4 text-right font-bold text-red-600">$ {{ number_format($gasto->monto, 0, ',', '.') }}</td>
+                            <td class="p-4 text-center">
+    <div class="flex items-center justify-center gap-3">
+
+        <a href="{{ route('gastos.edit', $gasto->id) }}"
+           class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold">
+            Editar
+        </a>
+
+        <form method="POST"
+              action="{{ route('gastos.destroy', $gasto->id) }}"
+              onsubmit="return confirm('¿Seguro que deseas eliminar este gasto?');">
+            @csrf
+            @method('DELETE')
+
+            <button type="submit"
+                    class="text-red-600 hover:text-red-800 text-xs font-semibold">
+                Eliminar
+            </button>
+        </form>
+
+    </div>
+</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-gray-400">
+                                No hay gastos registrados en este periodo.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="p-4 border-t border-gray-100">
+            {{ $gastos->links() }}
+        </div>
+    </div>
+
+</div>
 @endsection

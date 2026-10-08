@@ -113,14 +113,15 @@
                     </span>
 
                     <input
-                      class="w-36 text-right font-numeric-md text-numeric-md text-on-surface bg-transparent focus:outline-none"
-                      id="amountInput"
-                      max="150000000"
-                      min="500000"
-                      step="100000"
-                      type="number"
-                      value=""
-                    >
+    class="w-36 text-right font-numeric-md text-numeric-md text-on-surface bg-transparent focus:outline-none"
+    id="amountInput"
+    max="150000000"
+    min="1"
+    step="1"
+    type="text"
+    inputmode="decimal"
+    value=""
+>
 
                     <span class="font-label-sm text-label-sm text-outline">
                       COP
@@ -129,20 +130,19 @@
                 </div>
 
                 <input
-                  class="w-full accent-primary h-2 bg-surface-container-high rounded-lg cursor-pointer"
-                  id="amountSlider"
-                  max="80000000"
-                  min="1000000"
-                  step="500000"
-                  type="range"
-                  value=""
-                >
+    id="amountSlider"
+    max="150000000"
+    min="50000"
+    step="50000"
+    type="range"
+    value=""
+>
 
                 <div class="flex justify-between font-label-sm text-label-sm text-outline-variant">
-                  <span>$1.000.000</span>
-                  <span>$40.000.000</span>
-                  <span>$80.000.000</span>
-                </div>
+    <span>$50.000</span>
+    <span>$75.000.000</span>
+    <span>$150.000.000</span>
+</div>
               </div>
 
               {{-- Tasa --}}
@@ -204,7 +204,6 @@
 
               </div>
 
-              {{-- Plazo --}}
               {{-- Plazo --}}
 <div class="flex flex-col gap-2">
 
@@ -334,28 +333,42 @@
 
                 <div class="flex flex-wrap gap-3">
 
-                  <button
-                    class="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-secondary-container hover:bg-secondary-fixed text-on-secondary-container font-label-md text-label-md transition-colors shadow-sm"
-                    id="saveSimBtn"
-                    type="button"
-                  >
-                    <span class="material-symbols-outlined text-[18px]">
-                      bookmark_add
-                    </span>
+                 
+<button
+    class="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-secondary-container hover:bg-secondary-fixed text-on-secondary-container font-label-md text-label-md transition-colors shadow-sm"
+    id="saveSimBtn"
+    type="button"
+>
+    <span class="material-symbols-outlined text-[18px]">
+        bookmark_add
+    </span>
 
-                    Guardar
-                  </button>
+    Guardar
+</button>
 
-                  <button
-                    class="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md shadow-md transition-all active:scale-95"
-                    type="submit"
-                  >
-                    <span class="material-symbols-outlined text-[18px]">
-                      calculate
-                    </span>
+<a
+    class="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-outline-variant hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors"
+    href="{{ route('creditos.historial') }}"
+>
+    <span class="material-symbols-outlined text-[18px]">
+        history
+    </span>
 
-                    Recalcular
-                  </button>
+    Historial
+</a>
+
+<button
+    class="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md shadow-md transition-all active:scale-95"
+    type="submit"
+>
+    <span class="material-symbols-outlined text-[18px]">
+        calculate
+    </span>
+
+    Recalcular
+</button>
+
+
 
                 </div>
               </div>
