@@ -18,6 +18,14 @@
   <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
     <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
       <header class="metas-encabezado">
+        @if(auth()->user()->rol === 'estandar')
+          <section class="card p-space-md" role="note">
+            <p class="font-body-md text-body-md text-on-surface-variant">
+              Puedes tener metas individuales. Para <strong>compartir</strong> una meta con otra persona,
+              <a href="{{ route('ajustes.tipo-cuenta') }}" class="text-primary">cambia tu tipo de cuenta a familiar</a>.
+            </p>
+          </section>
+        @endif
         <div>
           <h1 class="font-headline-xl text-headline-xl text-on-surface">Metas compartidas</h1>
           <p class="font-body-md text-body-md text-on-surface-variant mt-1">Ahorra solo o junto a otra persona</p>
@@ -48,20 +56,22 @@
             <input id="fecha_limite" name="fecha_limite" type="date" class="input" value="{{ old('fecha_limite') }}">
             @error('fecha_limite')<p class="metas-error">{{ $message }}</p>@enderror
           </div>
-          <div class="metas-campo metas-campo--ancho metas-compartir">
-            <label class="metas-casilla" for="compartida">
-              <input id="compartida" name="compartida" type="checkbox" value="1" @checked(old('compartida'))>
-              <span>
-                <strong class="font-label-md text-label-md text-on-surface">Compartir esta meta con otra persona</strong>
-                <small class="font-body-sm text-body-sm text-on-surface-variant">Si no la compartes, será una meta solo tuya.</small>
-              </span>
-            </label>
-          </div>
-          <div class="metas-campo metas-campo--correo">
-            <label for="correo" class="font-label-md text-label-md text-on-surface">Correo de la persona a invitar</label>
-            <input id="correo" name="correo" type="email" class="input" value="{{ old('correo') }}" required>
-            @error('correo')<p class="metas-error">{{ $message }}</p>@enderror
-          </div>
+          @if(auth()->user()->rol === 'familiar')
+            <div class="metas-campo metas-campo--ancho metas-compartir">
+              <label class="metas-casilla" for="compartida">
+                <input id="compartida" name="compartida" type="checkbox" value="1" @checked(old('compartida'))>
+                <span>
+                  <strong class="font-label-md text-label-md text-on-surface">Compartir esta meta con otra persona</strong>
+                  <small class="font-body-sm text-body-sm text-on-surface-variant">Si no la compartes, será una meta solo tuya.</small>
+                </span>
+              </label>
+            </div>
+            <div class="metas-campo metas-campo--correo">
+              <label for="correo" class="font-label-md text-label-md text-on-surface">Correo de la persona a invitar</label>
+              <input id="correo" name="correo" type="email" class="input" value="{{ old('correo') }}">
+              @error('correo')<p class="metas-error">{{ $message }}</p>@enderror
+            </div>
+          @endif
           <div class="metas-acciones">
             <button type="submit" class="btn btn-primary">Crear meta</button>
           </div>

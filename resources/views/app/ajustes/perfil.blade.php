@@ -48,6 +48,7 @@
           Nombre, correo, contraseña e ingreso mensual
         </p>
       </header>
+      @include('app.ajustes._tabs')
       <section class="card p-space-lg" data-dinamico="usuario">
         <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Datos del perfil</h2>
         {{-- DINÁMICO: usuario --}}

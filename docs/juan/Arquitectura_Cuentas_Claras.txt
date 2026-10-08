@@ -4,14 +4,23 @@ Documento de contexto para cualquier persona o IA que vaya a trabajar en el cód
 ======================================================================
 Leer completo antes de escribir código. Resume QUÉ es el sistema, QUÉ está hecho,
 QUÉ falta, CÓMO está organizado, TODAS las rutas y las reglas que no se pueden romper.
-Versión: después de J5 (armazón + rutas + BASE DE DATOS + AUTENTICACIÓN + PERMISOS + METAS). Fecha: 2026-10-07.
-Actualización 2026-10-07: las metas pueden ser INDIVIDUALES o COMPARTIDAS (columna nueva metas.compartida,
-migración 2026_10_07_100000); MetasTest pasa a 34 pruebas (111 en total, todas pasan).
-Cambios respecto a la versión anterior (J4): J5 hecha: metas compartidas completas (ServicioMetas, MetaPolicy,
-ParticipacionMetaPolicy, AporteMetaPolicy, 3 controladores, 3 FormRequests, vistas con datos reales, 26 pruebas);
-decisiones #7, #8 y #18 cerradas; contrato C6 entregado (secciones 2, 5, 9, 10, 11, 12, 13, 14, 16).
-Cambios de J4 (2026-10-06): J4 hecha: middleware 'cuenta.activa' y 'rol', Policies,
-scope delUsuario, rutas privadas por rol (secciones 2, 4, 5, 9, 10, 11, 13, 15, 16).
+Versión: después de J5 (armazón + rutas + BASE DE DATOS + AUTENTICACIÓN + PERMISOS + METAS
++ cambio de tipo de cuenta desde Ajustes). Fecha: 2026-10-08.
+Actualización 2026-10-08 (J5 reabierto): el módulo de metas pasa al GRUPO C (estandar + familiar);
+el estándar puede tener METAS INDIVIDUALES y recibir invitaciones (con notificación especial que lo
+manda a Ajustes para cambiar a familiar y poder aceptar). Se crean ServicioCuentas::cambiarTipo,
+AjustesController y tabs internos de Ajustes. MetaPolicy y ParticipacionMetaPolicy ajustadas: before
+solo bloquea al administrador. Sidebar muestra "Metas" a estandar y familiar. MetasTest pasa a 36
+pruebas, AjustesTest nuevas (5) y PermisosTest se ajusta. Total: 117 pruebas verdes.
+Actualización 2026-10-07 (J5): las metas pueden ser INDIVIDUALES o COMPARTIDAS (columna nueva
+metas.compartida, migración 2026_10_07_100000); MetasTest pasa a 34 pruebas (111 en total, todas
+pasan).
+Cambios respecto a la versión del 2026-10-06 (J4): J5 hecha: metas compartidas completas
+(ServicioMetas, MetaPolicy, ParticipacionMetaPolicy, AporteMetaPolicy, 3 controladores, 3
+FormRequests, vistas con datos reales, 26 pruebas); decisiones #7, #8 y #18 cerradas; contrato C6
+entregado (secciones 2, 5, 9, 10, 11, 12, 13, 14, 16).
+Cambios de J4 (2026-10-06): J4 hecha: middleware 'cuenta.activa' y 'rol', Policies, scope delUsuario,
+rutas privadas por rol (secciones 2, 4, 5, 9, 10, 11, 13, 15, 16).
 Cambios de J3 (2026-10-06): login, registro, recuperar contraseña; UsuarioMaqueta eliminado; 'auth'.
 Cambios del 2026-10-05: J2 hecha, modelo de datos real (sección 9), decisiones cerradas (14).
 
@@ -26,7 +35,10 @@ pesos colombianos (COP, siempre enteros, nunca decimales). Permite:
     automáticas 3 días antes.
   - Simular créditos (sistema francés) y guardar las simulaciones.
   - Ver un informe mensual contra la regla 50/30/20 (necesidades / discrecionales / ahorro).
-  - Metas de ahorro compartidas entre DOS usuarios de tipo "familiar", con privacidad de aportes.
+  - Metas de ahorro INDIVIDUALES (para usuarios estandar o familiar) o COMPARTIDAS entre DOS
+    usuarios de tipo "familiar" (máx. 2 participantes), con privacidad de aportes.
+  - Cambiar el tipo de cuenta (estándar <-> familiar) desde Ajustes, sin necesidad de crear una
+    cuenta nueva.
   - Administración (usuarios, roles, categorías del sistema, estadísticas agregadas).
 El diseño visual YA ESTÁ HECHO (vistas Blade + CSS + JS). El trabajo que falta es el "motor":
 base de datos, inicio de sesión, permisos, reglas de negocio y conectar cada pantalla con
@@ -98,7 +110,7 @@ HECHO (J4 - Roles, permisos y aislamiento, 2026-10-06, Juan; con J3 y J2 suman 7
   [x] Scope delUsuario (trait PerteneceAUsuario) en Gasto, GastoFijo, PagoGastoFijo,
       SimulacionCredito, Informe y Notificacion.
   [x] Se responde 403 (no 404) cuando el recurso existe pero es ajeno.
-  [x] Pruebas: PermisosTest (10) y AislamientoTest (10).
+  [x] Pruebas: PermisosTest (10 -> luego 8 tras eliminar el Grupo D) y AislamientoTest (10).
 
 HECHO (J5 - Metas compartidas, 2026-10-07, Juan; en total 103 pruebas, 464 aserciones, todas pasan):
   [x] ServicioMetas: crear, invitar, aceptar, rechazar, aportar, avance, finalizar, abandonar,
@@ -125,13 +137,49 @@ HECHO (J5 - Metas compartidas, 2026-10-07, Juan; en total 103 pruebas, 464 aserc
       especificación (constantes ServicioMetas::MSG_*). Las 3 pantallas usan clases globales porque
       su diseño original aún no existe.
 
+HECHO (J5 REABIERTO - Metas para estándar y cambio de tipo desde Ajustes, 2026-10-08, Juan;
+117 pruebas verdes en toda la suite, 535 aserciones):
+  [x] El módulo de metas pasó del GRUPO D (solo familiar) al GRUPO C (estandar + familiar). El
+      estándar puede crear metas INDIVIDUALES y recibir invitaciones a metas COMPARTIDAS.
+  [x] Invitar a un usuario estándar ya no falla: se crea la invitación (pendiente) y se envía una
+      notificación de tipo 'invitacion_meta_requiere_familiar' que le dice que debe cambiar su tipo
+      de cuenta a familiar desde Ajustes para poder aceptar.
+  [x] ServicioMetas::aceptar(): si el invitado no es familiar, lanza ValidationException con el
+      mensaje "Para aceptar esta invitación debes cambiar tu tipo de cuenta a familiar en Ajustes."
+  [x] ServicioMetas::tieneMetasCompartidasActivas($usuario): nuevo método (extiende C6). Bloquea el
+      cambio de familiar a estándar.
+  [x] Nuevo ServicioCuentas::cambiarTipo($usuario, 'estandar'|'familiar') (C7 parcial). Regla:
+      estandar -> familiar siempre; familiar -> estandar solo si no hay metas compartidas activas.
+  [x] Nuevo AjustesController: perfil, tipoCuenta, cambiarTipo, eliminarCuenta (los dos últimos son
+      las vistas; el PUT real de perfil y el DELETE de eliminar-cuenta siguen en maqueta hasta V4).
+  [x] Nueva vista funcional resources/views/app/ajustes/tipo-cuenta.blade.php con radios estándar /
+      familiar, aviso si hay metas compartidas activas y formulario PUT.
+  [x] Nuevo parcial resources/views/app/ajustes/_tabs.blade.php (3 pestañas: Perfil · Tipo de cuenta
+      · Eliminar cuenta) incluido en las 3 vistas de Ajustes para poder navegar entre ellas.
+  [x] Sidebar (resources/views/components/sidebar.blade.php): el enlace "Metas" ya no está dentro
+      del @if(rol === 'familiar'). Se dibuja para estandar y familiar.
+  [x] MetaPolicy y ParticipacionMetaPolicy: 'before' solo bloquea al administrador. El estándar
+      pasa; el control fino lo hace el servicio (mensaje amable en lugar de 403 seco).
+  [x] StoreMetaRequest: la regla 'compartida' ahora incluye un closure que falla si el usuario no es
+      familiar con el mensaje "Solo las cuentas familiares pueden crear metas compartidas. Cambia tu
+      tipo de cuenta en Ajustes."
+  [x] Vistas de metas: bloque "Compartir esta meta" + "Correo de la persona a invitar" solo se
+      muestran si el rol es familiar. Banner informativo en index para estándar. En invitaciones,
+      banner que manda a Ajustes si el usuario es estándar y tiene invitaciones pendientes.
+  [x] Pruebas: MetasTest sube a 36 (nuevas: invitar a un estándar crea notificación especial; el
+      estándar no puede aceptar hasta cambiar a familiar) y AjustesTest nuevo (5).
+  [x] PermisosTest ajustado: GRUPO_D eliminado, metas agregadas a GRUPO_C.
+
 NO HECHO (todo lo demás):
   [ ] Página 403 con el diseño de la app (hoy sale la página 403 estándar de Laravel).
   [ ] Controladores, FormRequests y servicios de los demás módulos (ver sección 10); solo existen
-      los de autenticación.
-  [ ] Alertas, administración, dashboard con datos reales.
+      los de autenticación, metas y un pedazo de Ajustes (tipo-cuenta).
+  [ ] Ajustes > Perfil (PUT) y Ajustes > Eliminar cuenta (DELETE): maqueta hasta que V4 los haga.
+  [ ] ServicioNotificaciones (J6): todavía no existe. ServicioMetas::notificar() es la versión
+      mínima de C4.
+  [ ] Alertas (J6), administración (J7), dashboard con datos reales (J8).
   [ ] Pruebas de comportamiento de cada módulo. Existen las de base de datos, autenticación, permisos,
-      aislamiento, metas y CalculadoraCredito (Valeria). Cada módulo nuevo agrega las suyas.
+      aislamiento, metas, ajustes y CalculadoraCredito (Valeria). Cada módulo nuevo agrega las suyas.
   [ ] Imágenes: public/img está vacía; las vistas enlazan imágenes externas temporales
       (lh3.googleusercontent.com). Hay que descargarlas y usar asset('img/...').
   [ ] Pantallas con marca "DISEÑO PENDIENTE" (solo estructura): ver sección 6.
@@ -168,11 +216,16 @@ sistema. Hay que decidir antes de J7.
 4. ROLES (3) Y QUÉ PUEDE HACER CADA UNO
 ----------------------------------------------------------------------
   estandar ........ gastos, categorías, gastos fijos, notificaciones, simulador, informes,
-                    panel y ajustes. NO entra a metas ni a administración.
-  familiar ........ todo lo del estándar + metas compartidas (máx. 2 participantes por meta).
-  administrador ... SOLO administración y ajustes. NUNCA ve montos ni datos financieros de
-                    nadie (ni siquiera estadísticas que unan usuarios con montos). Recibe 403 en
-                    gastos, créditos, metas e informes.
+                    panel, ajustes (incluido el cambio de tipo de cuenta) y
+                    METAS INDIVIDUALES. Ve las INVITACIONES a metas compartidas, pero para
+                    aceptarlas necesita cambiar su tipo de cuenta a familiar desde Ajustes.
+                    NO entra a administración.
+  familiar ........ todo lo del estándar + metas COMPARTIDAS (máx. 2 participantes por meta) y
+                    puede ACEPTAR invitaciones a metas compartidas.
+  administrador ... SOLO administración y ajustes (incluido el cambio de tipo de cuenta, aunque
+                    puede dejar el sistema sin administrador activo: se valida en J7). NUNCA ve
+                    montos ni datos financieros de nadie (ni siquiera estadísticas que unan usuarios
+                    con montos). Recibe 403 en gastos, créditos, metas e informes.
 Estado de cuenta: columna users.activo (booleano). activo = true entra; false = suspendido (no
 entra; se cierra su sesión). Por seguridad "rol" y "activo" NO son asignables en masa: solo los
 cambia ServicioCuentas / administración, nunca un formulario del usuario.
@@ -181,6 +234,9 @@ Ocultar un enlace del menú NO protege: la protección real es middleware + Poli
 Cómo se aplica (J4): 'rol:...' en cada grupo de rutas (403 si el rol no corresponde), 'cuenta.activa'
 en todo el bloque privado y una Policy por recurso. El administrador además queda bloqueado dentro de
 las Policies de datos financieros.
+Cambio de tipo de cuenta (2026-10-08): desde Ajustes > Tipo de cuenta, vía ServicioCuentas::cambiarTipo.
+No cierra la sesión: el usuario sigue autenticado, solo cambia su rol. Regla: estandar -> familiar
+siempre; familiar -> estandar se bloquea con metas compartidas activas.
 
 
 ----------------------------------------------------------------------
@@ -190,8 +246,9 @@ las Policies de datos financieros.
 
   app/
     Http/Controllers/ ........ (R) Auth/{RegistroController, LoginController, PasswordResetController},
-                               MetaController, AporteMetaController, InvitacionMetaController (J5)
-                               · (F) un controlador por cada otro módulo (los de Valeria V1/V2 ya están en main)
+                               MetaController, AporteMetaController, InvitacionMetaController (J5),
+                               SimulacionCreditoController (V1), AjustesController (J5 reabierto)
+                               · (F) un controlador por cada otro módulo
     Http/Middleware/ ......... (R) CuentaActiva, RolRequerido (J4). UsuarioMaqueta fue eliminado en J3
     Http/Requests/ ........... (R) Auth/{RegistroRequest, LoginRequest, SolicitarEnlaceRequest,
                                RestablecerContrasenaRequest}, Metas/{StoreMetaRequest, InvitarMetaRequest,
@@ -204,14 +261,15 @@ las Policies de datos financieros.
                                AporteMetaPolicy (J5)
     Models/Concerns/ ......... (R) PerteneceAUsuario (scope delUsuario)
     Providers/AppServiceProvider.php ... (R) View Composer de $notificacionesPendientes
-    Services/ ................ (R) CalculadoraCredito (Valeria), ServicioMetas (J5)
-                               · (F) GeneradorInforme, ServicioGastosFijos, ServicioNotificaciones, ServicioCuentas
+    Services/ ................ (R) CalculadoraCredito (Valeria), ServicioMetas (J5), ServicioCuentas
+                               (J5 reabierto, contrato C7 parcial)
+                               · (F) GeneradorInforme, ServicioGastosFijos, ServicioNotificaciones
     Console/ ................. (F) comando diario de alertas
   bootstrap/app.php .......... (R) alias 'cuenta.activa' y 'rol' y redirectUsersTo (J3/J4). Las líneas
                                'use' van arriba del archivo, nunca dentro de la función
   database/migrations|seeders|factories ... (R) hechos en J2 (migraciones NO se editan una vez unidas a main)
   routes/
-    web.php .................. (R) ÍNDICE: solo Juan lo cambia. Define grupos A-E.
+    web.php .................. (R) ÍNDICE: solo Juan lo cambia. Define grupos A-C y E (D eliminado).
     modulos/ ................. (R) un archivo por módulo (ver tabla de rutas)
   resources/views/
     layouts/ ................. base, publico, app, admin   (Juan)
@@ -220,14 +278,17 @@ las Policies de datos financieros.
                                restablecer-contrasena, politica-de-privacidad, terminos-y-condiciones
     app/ ..................... dashboard, gastos/, categorias/, gastos-fijos/, notificaciones/,
                                creditos/{simulador,historial}, informes/{actual,historial},
-                               metas/{index,invitaciones,show}, ajustes/{perfil,tipo-cuenta,eliminar-cuenta}
+                               metas/{index,invitaciones,show},
+                               ajustes/{perfil,tipo-cuenta,eliminar-cuenta,_tabs}
     admin/ ................... usuarios, categorias, estadisticas
   public/css|js|img ........... estilos, scripts, imágenes
   docs/backend/ ............... SOLO documentación (planes en comentarios, sin código). No se
                                carga ni se borra. 00-rutas, 01-controladores, 02-modelos,
                                03-migraciones, 04-middleware, 05-policies, 06-servicios,
                                07-alertas-programadas, 08-validaciones, 09-view-composer.
-  tests/ ...................... (R) tests/Feature/BaseDeDatosTest.php · (F) pruebas de cada módulo
+  tests/ ...................... (R) tests/Feature/{BaseDeDatosTest, AuthTest, PermisosTest,
+                               AislamientoTest, MetasTest, AjustesTest}.php · (F) pruebas de cada
+                               módulo nuevo
   DECISIONES.md ............... (R) raíz del repositorio: registro de decisiones con fecha
 
 ARCHIVOS COMPARTIDOS (solo Juan; los demás piden cambios con una tarjeta "Pedido a Juan"):
@@ -258,7 +319,10 @@ CÓMO HACERLO y CÓMO SE COMPRUEBA. NO se borra: se actualiza y se marca "HECHO 
   app/creditos/historial                  historial-simulaciones               Valeria V2
   app/informes/actual                     informes-50-30-20                    Valeria V3
   app/informes/historial                  informes-historial                   Valeria V3
-  app/ajustes/{perfil,tipo-cuenta,eliminar-cuenta}  ajustes                    Valeria V4
+  app/ajustes/{perfil,tipo-cuenta,eliminar-cuenta,_tabs}  ajustes             Valeria V4
+       - tipo-cuenta: backend y vista HECHOS por Juan (2026-10-08); falta el diseño del code.html.
+       - perfil y eliminar-cuenta: estructura Blade pendiente de conectar con controlador real.
+       - _tabs.blade.php: parcial de navegación entre las 3 pantallas (Juan).
   app/metas/index                         metas-compartidas                    Juan J5
   app/metas/invitaciones                  invitaciones-metas                   Juan J5
   app/metas/show                          detalle-meta                         Juan J5
@@ -281,9 +345,10 @@ Fuente de verdad: docs/backend/00-rutas.php y routes/modulos/*.php. Verificadas 
 php artisan route:list --except-vendor => "Showing [60] routes".
 
 Cómo están organizadas:
-  - routes/web.php incluye los archivos de routes/modulos/ dentro de grupos (A-E).
+  - routes/web.php incluye los archivos de routes/modulos/ dentro de grupos (A, B, C, E; el D se
+    eliminó el 2026-10-08 al mover metas al Grupo C).
   - Desde J3 y J4 el bloque privado lleva 'auth' + 'cuenta.activa', y cada grupo su rol: C =
-    rol:estandar,familiar · D = rol:familiar · E = rol:administrador (B: todos los roles con sesión).
+    rol:estandar,familiar · E = rol:administrador (B: todos los roles con sesión).
   - admin.php va dentro de Route::prefix('admin')->name('admin.'): dentro de ese archivo los
     nombres se escriben SIN "admin." (ej. ->name('usuarios') produce admin.usuarios).
   - ajustes.php va dentro de un grupo con prefijo /ajustes y nombre 'ajustes.': ahí se escribe
@@ -304,40 +369,41 @@ Cómo están organizadas:
   GET    /terminos                                        terminos                         [Nikol N5 · routes/modulos/publico.php]
          vista: publico.terminos-y-condiciones           controlador futuro: (estática)
   GET    /iniciar-sesion                                  login                            [Juan J3 · routes/modulos/auth.php]
-         vista: publico.iniciar-sesion                   controlador futuro: Auth\LoginController@create
+         vista: publico.iniciar-sesion                   controlador: Auth\LoginController@create
   POST   /iniciar-sesion                                  login.entrar                     [Juan J3 · routes/modulos/auth.php]
-         vista: -                                        controlador futuro: Auth\LoginController@store
+         vista: -                                        controlador: Auth\LoginController@store
   GET    /crear-usuario                                   registro                         [Juan J3 · routes/modulos/auth.php]
-         vista: publico.crear-usuario                    controlador futuro: Auth\RegistroController@create
+         vista: publico.crear-usuario                    controlador: Auth\RegistroController@create
   POST   /crear-usuario                                   registro.guardar                 [Juan J3 · routes/modulos/auth.php]
-         vista: -                                        controlador futuro: Auth\RegistroController@store
+         vista: -                                        controlador: Auth\RegistroController@store
   GET    /recuperar-contrasena                            password.request                 [Juan J3 · routes/modulos/auth.php]
-         vista: publico.recuperar-contrasena             controlador futuro: Auth\PasswordController (sugerido)
+         vista: publico.recuperar-contrasena             controlador: Auth\PasswordResetController@create
   POST   /recuperar-contrasena                            password.email                   [Juan J3 · routes/modulos/auth.php]
-         vista: -                                        controlador futuro: Auth\PasswordController (sugerido)
+         vista: -                                        controlador: Auth\PasswordResetController@enviarEnlace
   GET    /restablecer-contrasena/{token}                  password.reset                   [Juan J3 · routes/modulos/auth.php]
-         vista: publico.restablecer-contrasena           controlador futuro: Auth\PasswordController (sugerido)
+         vista: publico.restablecer-contrasena           controlador: Auth\PasswordResetController@edit
   POST   /restablecer-contrasena                          password.update                  [Juan J3 · routes/modulos/auth.php]
-         vista: -                                        controlador futuro: Auth\PasswordController (sugerido)
+         vista: -                                        controlador: Auth\PasswordResetController@actualizar
 
   GRUPO B  CON SESION ............ auth + cuenta.activa (cualquier rol, incluido administrador)
   ----------------------------------------------------------------------------------------------------------------------
   POST   /cerrar-sesion                                   logout                           [Juan J3 · routes/modulos/auth.php]
-         vista: -                                        controlador futuro: Auth\LoginController@destroy
+         vista: -                                        controlador: Auth\LoginController@destroy
   GET    /ajustes/perfil                                  ajustes.perfil                   [Valeria V4 · routes/modulos/ajustes.php]
-         vista: app.ajustes.perfil                       controlador futuro: AjustesController@perfil
+         vista: app.ajustes.perfil                       controlador: AjustesController@perfil (J5 reabierto)
   PUT    /ajustes/perfil                                  ajustes.perfil.update            [Valeria V4 · routes/modulos/ajustes.php]
-         vista: -                                        controlador futuro: AjustesController@actualizarPerfil
+         vista: -                                        controlador futuro: AjustesController@actualizarPerfil (MAQUETA)
   GET    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta              [Valeria V4 · routes/modulos/ajustes.php]
-         vista: app.ajustes.tipo-cuenta                  controlador futuro: AjustesController@tipoCuenta
+         vista: app.ajustes.tipo-cuenta                  controlador: AjustesController@tipoCuenta (J5 reabierto, HECHO)
   PUT    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta.update       [Valeria V4 · routes/modulos/ajustes.php]
-         vista: -                                        controlador futuro: AjustesController@cambiarTipo
+         vista: -                                        controlador: AjustesController@cambiarTipo (J5 reabierto, HECHO)
   GET    /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta          [Valeria V4 · routes/modulos/ajustes.php]
-         vista: app.ajustes.eliminar-cuenta              controlador futuro: AjustesController@eliminar
+         vista: app.ajustes.eliminar-cuenta              controlador: AjustesController@eliminarCuenta (J5 reabierto)
   DELETE /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta.destroy  [Valeria V4 · routes/modulos/ajustes.php]
-         vista: -                                        controlador futuro: AjustesController@destruir
+         vista: -                                        controlador futuro: AjustesController@destruir (MAQUETA)
 
   GRUPO C  ESTANDAR Y FAMILIAR ... auth + cuenta.activa + rol:estandar,familiar
+  (Desde 2026-10-08 incluye las rutas de metas.)
   ----------------------------------------------------------------------------------------------------------------------
   GET    /panel                                           panel                            [Juan J8 · routes/modulos/panel.php]
          vista: app.dashboard                            controlador futuro: DashboardController@index
@@ -374,9 +440,9 @@ Cómo están organizadas:
   POST   /notificaciones/leer                             notificaciones.leer              [Nikol N4 · routes/modulos/notificaciones.php]
          vista: -                                        controlador futuro: NotificacionController@leer
   GET    /creditos/simulador                              creditos.simulador               [Valeria V1 · routes/modulos/creditos.php]
-         vista: app.creditos.simulador                   controlador futuro: SimulacionCreditoController@index
+         vista: app.creditos.simulador                   controlador: SimulacionCreditoController@index
   POST   /creditos                                        creditos.guardar                 [Valeria V1 · routes/modulos/creditos.php]
-         vista: -                                        controlador futuro: SimulacionCreditoController@store
+         vista: -                                        controlador: SimulacionCreditoController@store
   GET    /creditos/historial                              creditos.historial               [Valeria V2 · routes/modulos/creditos.php]
          vista: app.creditos.historial                   controlador futuro: SimulacionCreditoController@historial
   DELETE /creditos/{simulacion}                           creditos.eliminar                [Valeria V2 · routes/modulos/creditos.php]
@@ -385,29 +451,31 @@ Cómo están organizadas:
          vista: app.informes.actual                      controlador futuro: InformeController@actual
   GET    /informes/historial                              informes.historial               [Valeria V3 · routes/modulos/informes.php]
          vista: app.informes.historial                   controlador futuro: InformeController@historial
+  GET    /metas                                           metas.index                      [Juan J5 · routes/modulos/metas.php]
+         vista: app.metas.index                          controlador: MetaController@index (HECHO)
+  POST   /metas                                           metas.store                      [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador: MetaController@store (HECHO; compartida solo si familiar)
+  GET    /metas/invitaciones                              metas.invitaciones               [Juan J5 · routes/modulos/metas.php]
+         vista: app.metas.invitaciones                   controlador: InvitacionMetaController@index (HECHO)
+  POST   /metas/invitaciones/{participacion}/aceptar      metas.aceptar                    [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador: InvitacionMetaController@aceptar (HECHO; bloquea si el invitado es estándar)
+  POST   /metas/invitaciones/{participacion}/rechazar     metas.rechazar                   [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador: InvitacionMetaController@rechazar (HECHO)
+  GET    /metas/{meta}                                    metas.show                       [Juan J5 · routes/modulos/metas.php]
+         vista: app.metas.show                           controlador: MetaController@show (HECHO)
+  POST   /metas/{meta}/invitar                            metas.invitar                    [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador: MetaController@invitar (HECHO; permite invitar a estándar con notificación especial)
+  POST   /metas/{meta}/aportes                            metas.aportes                    [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador: AporteMetaController@store (HECHO)
+  POST   /metas/{meta}/finalizar                          metas.finalizar                  [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador: MetaController@finalizar (HECHO)
+  POST   /metas/{meta}/abandonar                          metas.abandonar                  [Juan J5 · routes/modulos/metas.php]
+         vista: -                                        controlador: MetaController@abandonar (HECHO)
 
   GRUPO D  SOLO FAMILIAR ......... auth + cuenta.activa + rol:familiar
-  ----------------------------------------------------------------------------------------------------------------------
-  GET    /metas                                           metas.index                      [Juan J5 · routes/modulos/metas.php]
-         vista: app.metas.index                          controlador: MetaController@index (J5, HECHO)
-  POST   /metas                                           metas.store                      [Juan J5 · routes/modulos/metas.php]
-         vista: -                                        controlador: MetaController@store (J5, HECHO)
-  GET    /metas/invitaciones                              metas.invitaciones               [Juan J5 · routes/modulos/metas.php]
-         vista: app.metas.invitaciones                   controlador: InvitacionMetaController@index (J5, HECHO)
-  POST   /metas/invitaciones/{participacion}/aceptar      metas.aceptar                    [Juan J5 · routes/modulos/metas.php]
-         vista: -                                        controlador: InvitacionMetaController@aceptar (J5, HECHO)
-  POST   /metas/invitaciones/{participacion}/rechazar     metas.rechazar                   [Juan J5 · routes/modulos/metas.php]
-         vista: -                                        controlador: InvitacionMetaController@rechazar (J5, HECHO)
-  GET    /metas/{meta}                                    metas.show                       [Juan J5 · routes/modulos/metas.php]
-         vista: app.metas.show                           controlador: MetaController@show (J5, HECHO)
-  POST   /metas/{meta}/invitar                            metas.invitar                    [Juan J5 · routes/modulos/metas.php]
-         vista: -                                        controlador: MetaController@invitar (J5, HECHO)
-  POST   /metas/{meta}/aportes                            metas.aportes                    [Juan J5 · routes/modulos/metas.php]
-         vista: -                                        controlador: AporteMetaController@store (J5, HECHO)
-  POST   /metas/{meta}/finalizar                          metas.finalizar                  [Juan J5 · routes/modulos/metas.php]
-         vista: -                                        controlador: MetaController@finalizar (J5, HECHO)
-  POST   /metas/{meta}/abandonar                          metas.abandonar                  [Juan J5 · routes/modulos/metas.php]
-         vista: -                                        controlador: MetaController@abandonar (J5, HECHO)
+  *** ELIMINADO el 2026-10-08 ***
+  Las 10 rutas de metas pasaron al GRUPO C. Motivo: el estándar también debe poder tener metas
+  individuales y recibir invitaciones (aunque solo podrá aceptarlas si cambia a familiar).
 
   GRUPO E  SOLO ADMINISTRADOR .... auth + cuenta.activa + rol:administrador ; prefijo /admin ; nombres admin.*
   ----------------------------------------------------------------------------------------------------------------------
@@ -434,7 +502,8 @@ Notas de la tabla:
   - "vista: -" significa que la ruta no devuelve vista: valida, actúa y redirige con mensaje.
   - Los nombres de controlador son el plan de docs/backend/01-controladores.php; los marcados
     "(sugerido)" no estaban en el plan y los decide quien implementa (sin cambiar URL ni nombre).
-  - Hoy todas las rutas son "de maqueta": Route::view o aviso. El dueño reemplaza SOLO su línea.
+  - Las rutas de auth, metas y ajustes.tipo-cuenta YA NO son maqueta. El resto sigue con aviso
+    "MAQUETA". El dueño reemplaza SOLO su línea.
   - La ruta "demo" ya NO existe.
 
 
@@ -485,16 +554,20 @@ eliminar una cuenta completa). Los nombres de tablas y columnas están en españ
                         categoria_nombre, bloque, monto_gastado, porcentaje_real (5,2),
                         porcentaje_recomendado, excede (bool). Sin timestamps. Guarda una COPIA
                         del nombre para que el informe cerrado no cambie si se borra la categoría.
-  metas ............... id, creador_id, nombre, monto_objetivo, fecha_limite (nullable), estado, compartida (bool, default true)
-                        (por defecto activa), timestamps. NO guarda monto_actual: el total
-                        conjunto se calcula sumando aportes_meta (Meta::totalConjunto()).
+  metas ............... id, creador_id, nombre, monto_objetivo, fecha_limite (nullable), estado
+                        (por defecto activa), compartida (bool, default true; migración
+                        2026_10_07_100000), timestamps. NO guarda monto_actual: el total conjunto
+                        se calcula sumando aportes_meta (Meta::totalConjunto()).
   participaciones_meta  id, meta_id, user_id, estado_invitacion (por defecto pendiente), fecha_union
                         (nullable) · único (meta_id, user_id) (máx. 2 participantes por meta se
                         valida en ServicioMetas)
   aportes_meta ........ id, meta_id, user_id, monto, fecha, timestamps
   notificaciones ...... id, user_id, tipo (30), mensaje (255), estado (pendiente|leida|cancelada),
                         pago_gasto_fijo_id (nullable), meta_id (nullable), clave_unica (nullable)
-                        · único (user_id, clave_unica) (evita alertas duplicadas: idempotencia)
+                        · único (user_id, clave_unica) (evita alertas duplicadas: idempotencia).
+                        Tipos conocidos: por_vencer, vencido, invitacion_meta,
+                        invitacion_meta_requiere_familiar (2026-10-08), respuesta_meta,
+                        meta_finalizada, meta_abandonada.
   cache, jobs ......... tablas de Laravel (CACHE_STORE y QUEUE_CONNECTION = database)
 
 ELIMINADAS del diagrama original (decisiones cerradas): "saldo" (#14, el disponible se calcula) y
@@ -506,8 +579,9 @@ Relaciones (en los modelos):
   GastoFijo tiene muchos PagoGastoFijo. Informe tiene muchos DetalleInforme. Meta tiene muchas
   ParticipacionMeta y AporteMeta, y pertenece a su creador.
 Constantes y ayudas útiles: Categoria::BLOQUES (contrato C2), Categoria::esDelSistema(),
-  Gasto::delUsuario($id) (scope; existe en todos los modelos con user_id), Meta::totalConjunto(). Los modelos de dominio usan $guarded = []
-  (la validación va en los FormRequests); User sí usa $fillable y NO incluye rol ni activo.
+  Gasto::delUsuario($id) (scope; existe en todos los modelos con user_id), Meta::totalConjunto().
+  Los modelos de dominio usan $guarded = [] (la validación va en los FormRequests); User sí usa
+  $fillable y NO incluye rol ni activo.
 Alcance global "del usuario actual": se decidió NO usar global scope (escondería errores y rompería
   consultas del administrador y de los servicios). Regla: en listados y totales siempre
   Modelo::delUsuario(auth()->id()) o $usuario->relacion(); para un registro puntual,
@@ -544,12 +618,20 @@ ServicioGastosFijos · ServicioNotificaciones · ServicioCuentas.
       Real: users.ingreso_mensual (entero, nullable; la columna ya existe, V4 solo la edita).
   C4  Servicio de notificaciones ....... Juan (J6) -> Nikol y la campana. Crear, cancelar las ligadas a
       un pago, marcar leída, contar pendientes. Nadie crea notificaciones a mano.
+      *** VERSIÓN MÍNIMA EN PRODUCCIÓN: ServicioMetas::notificar() (método privado) es lo que
+      existe. Se reemplaza cuando llegue J6. ***
   C5  Pagos del periodo de gastos fijos  Nikol (N3, ServicioGastosFijos) -> Juan (comando diario).
       Crea el pago del mes de cada gasto fijo activo sin duplicar, marca vencidos y devuelve los que
       vencen en 3 días o menos y siguen sin pagar.
-  C6  "Tiene metas activas" ............ Juan (J5, HECHO): ServicioMetas::tieneMetasActivas($usuario) -> Valeria.
+  C6  "Tiene metas activas" ............ Juan (J5, HECHO) -> Valeria.
+      ServicioMetas::tieneMetasActivas($usuario)
+      *** AMPLIADO 2026-10-08 ***
+      ServicioMetas::tieneMetasCompartidasActivas($usuario)  <- NUEVO. Bloquea el cambio a estándar.
       También Meta::aportesDelUsuario($id, $desde, $hasta) para dashboard e informes (solo aportes propios).
-  C7  Cambiar tipo de cuenta y eliminar  Juan (J8, ServicioCuentas) -> Valeria (solo arma la pantalla).
+  C7  Cambiar tipo de cuenta y eliminar  Juan (J8) -> Valeria (solo arma la pantalla).
+      *** PARCIALMENTE HECHO 2026-10-08 ***
+      ServicioCuentas::cambiarTipo($usuario, 'estandar'|'familiar')  <- HECHO
+      ServicioCuentas::eliminarCuenta($usuario)  <- PENDIENTE (J8)
   C8  Variables del armazón ............ Juan: $notificacionesPendientes, mensaje flash 'exito'
       (lo muestra <x-toast />), usuario autenticado con nombre y rol, ruta "logout".
   C9  Nombres de rutas ................. Juan. No se cambian; uno nuevo se agrega a docs/backend/00-rutas.php.
@@ -557,6 +639,8 @@ ServicioGastosFijos · ServicioNotificaciones · ServicioCuentas.
       recurso (gasto, categoría, gasto fijo, simulación, notificación, informe, meta y aporte de meta).
       Uso: $this->authorize('update', $gasto); Gasto::delUsuario(auth()->id()); al guardar un gasto o
       gasto fijo, $this->authorize('usar', $categoria) (la categoría debe ser propia o del sistema).
+      *** 2026-10-08: MetaPolicy y ParticipacionMetaPolicy antes bloqueaban al estándar; ahora solo
+      bloquean al administrador. El control fino lo hace ServicioMetas (mensajes amables). ***
   C11 Categorías globales .............. Juan (J2 semillas HECHO, J7 admin): categorias.user_id vacío = del sistema;
       se ven para todos y no se editan desde la zona del usuario.
 
@@ -576,16 +660,32 @@ Seguridad y privacidad
   - Límite de intentos en login y recuperación. Recuperar contraseña con mensaje neutro (no revela
     si el correo existe); enlace de un solo uso que vence.
   - Consentimiento de datos obligatorio en el registro, guardado con fecha.
-Metas compartidas
-  - Meta INDIVIDUAL (solo la persona) o COMPARTIDA entre DOS usuarios familiares (máx. 2 participantes).
-    La persona decide al crearla. Invitar (solo en compartidas) valida: no existe, es estándar,
-    ya participa (mensajes exactos de la guía).
+Metas (ampliadas 2026-10-08)
+  - Meta INDIVIDUAL: la crea un usuario estandar o familiar. Solo participa su creador. Es privada:
+    otro familiar recibe 403. Aportes, avance, finalizar y cancelar funcionan igual.
+  - Meta COMPARTIDA: solo la crea un usuario familiar. Máximo 2 participantes (aceptados + pendientes
+    cuentan para reservar el cupo). Al invitar a un usuario estándar, se crea la invitación + una
+    notificación de tipo 'invitacion_meta_requiere_familiar' que lo manda a Ajustes.
+  - Invitar valida en este orden: no existe / es la misma creadora / ya participa / cupo lleno. Ya NO
+    valida "es estándar": eso se maneja al aceptar.
+  - Aceptar una invitación: requiere ser familiar. Si el invitado es estándar, ServicioMetas::aceptar()
+    lanza ValidationException con el mensaje "Para aceptar esta invitación debes cambiar tu tipo de
+    cuenta a familiar en Ajustes."
   - PRIVACIDAD: el detalle muestra el total conjunto y el aporte PROPIO; el aporte individual del
     otro NO aparece en la página, ni en datos ocultos, ni en ninguna ruta. Las consultas calculan el
     total con suma, sin traer las filas del otro. Prueba automática obligatoria.
-  - Cambiar de familiar a estándar se bloquea con metas activas (ServicioMetas::tieneMetasActivas, C6).
-  - Implementado en J5: la creadora invita; el cupo lo reservan aceptados + pendientes; finalizar solo al
-    alcanzar el objetivo; abandonar cancela la meta y conserva el historial.
+  - Cambiar de familiar a estándar se bloquea con metas COMPARTIDAS activas
+    (ServicioMetas::tieneMetasCompartidasActivas). Cambiar de estándar a familiar siempre se permite.
+  - Implementado en J5: la creadora invita; finalizar solo al alcanzar el objetivo; abandonar cancela
+    la meta y conserva el historial.
+Cambio de tipo de cuenta (nuevo 2026-10-08)
+  - Se hace desde Ajustes > Tipo de cuenta (GET + PUT) vía ServicioCuentas::cambiarTipo.
+  - El mismo usuario cambia su propio rol. NO cierra la sesión.
+  - 'rol' no es fillable: se asigna a mano en ServicioCuentas.
+  - estandar -> familiar: siempre permitido.
+  - familiar -> estandar: solo si el usuario no tiene metas compartidas activas.
+  - El administrador puede cambiar su propio rol si quiere (es su cuenta). Cuidado: podría dejar
+    el sistema sin administrador activo. Se valida en J7.
 Gastos fijos y alertas
   - Solo mensuales (decisión #6). Si el mes no tiene ese día, vence el último día del mes.
   - Una alerta a los 3 días y una de vencido (decisión #16). El comando diario es IDEMPOTENTE:
@@ -612,10 +712,16 @@ Categorías
     otra categoría (#17).
 
 Mensajes EXACTOS conocidos (no inventar sinónimos): "Gasto guardado" · "Gasto actualizado" ·
-"Gasto eliminado" · "Meta creada" · "Gasto fijo pagado" · "Esta categoría ya se encuentra
-registrada" · "Este correo ya se encuentra registrado" · "Usuario o contraseña incorrectos" ·
-"No hay gastos registrados en este periodo" · "No tienes simulaciones guardadas" ·
-"No hay datos suficientes para generar el informe" · "No tienes notificaciones pendientes".
+"Gasto eliminado" · "Meta creada" · "Meta abandonada" · "Meta cancelada" · "Meta finalizada" ·
+"Invitación enviada" · "Invitación aceptada" · "Invitación rechazada" · "Aporte registrado" ·
+"Gasto fijo pagado" · "Tipo de cuenta actualizado" · "Esta categoría ya se encuentra registrada" ·
+"Este correo ya se encuentra registrado" · "Usuario o contraseña incorrectos" · "No hay gastos
+registrados en este periodo" · "No tienes simulaciones guardadas" · "No hay datos suficientes para
+generar el informe" · "No tienes notificaciones pendientes".
+Mensajes nuevos 2026-10-08 (propuesta; si la especificación tiene otros, se cambian en un solo lugar):
+  · "Solo las cuentas familiares pueden crear metas compartidas. Cambia tu tipo de cuenta en Ajustes."
+  · "Para aceptar esta invitación debes cambiar tu tipo de cuenta a familiar en Ajustes."
+  · "Debes finalizar o cancelar tus metas compartidas activas antes de cambiar a una cuenta estándar."
 Los demás están en los comentarios de cabecera de cada vista.
 
 
@@ -653,17 +759,21 @@ Los demás están en los comentarios de cabecera de cada vista.
   1. J1 armazón y rutas (HECHO)          2. J2 base de datos (HECHO 2026-10-05)
   3. J3 autenticación (HECHO 2026-10-06)   4. J4 permisos (HECHO 2026-10-06)
   5. N1 -> N2 -> V1 -> V2 -> V4 (perfil e ingreso)   (V1 y V2 ya están en main)
-  6. J5 metas (HECHO 2026-10-07), N3, V3                          7. J6 alertas, N4, J8 (dashboard y cuentas), V4 (resto)
+  6. J5 metas (HECHO 2026-10-07; reabierto 2026-10-08), N3, V3
+  7. J6 alertas, N4, J8 (dashboard y cuentas), V4 (resto)
   8. J7 administración, N5 landing       9. V5 revisión visual y J9 seguridad/despliegue
 Regla: lo que otros necesitan se une primero. Si alguien depende de algo que aún no existe, usa
 datos falsos o un servicio simulado y avanza. Como J2 ya está, Nikol y Valeria pueden usar los
 modelos y las fábricas (Gasto::factory(), Categoria::factory()...) para sus pantallas y pruebas.
-J3 borró UsuarioMaqueta.php y activó 'auth'; J4 activó 'cuenta.activa' y 'rol:...' en los grupos B-E.
-J5 creó MetaPolicy, ServicioMetas y los controladores de metas. Siguiente de Juan: J6 (notificaciones y alertas) y J8,
-en paralelo a la revisión de los PR de Nikol y Valeria.
+J3 borró UsuarioMaqueta.php y activó 'auth'; J4 activó 'cuenta.activa' y 'rol:...' en los grupos
+B, C y E. J5 creó MetaPolicy, ServicioMetas y los controladores de metas; y en su reapertura
+(2026-10-08) agregó ServicioCuentas::cambiarTipo (C7 parcial) y AjustesController. Siguiente de
+Juan: J6 (notificaciones y alertas) y J8 (dashboard y eliminar cuenta), en paralelo a la revisión
+de los PR de Nikol y Valeria.
 Antes de J7: cerrar la decisión #23 (columna categorias.activa) con una migración nueva.
 Al terminar todo (J9): no debe quedar ningún aviso "MAQUETA", ni Route::view de maqueta, ni imágenes
-externas, ni routes/maqueta.php (nunca existió); comparar php artisan route:list con docs/backend/00-rutas.php.
+externas, ni routes/maqueta.php (nunca existió); comparar php artisan route:list con
+docs/backend/00-rutas.php.
 
 
 ----------------------------------------------------------------------
@@ -691,6 +801,24 @@ externas, ni routes/maqueta.php (nunca existió); comparar php artisan route:lis
       la ruta PATCH /admin/categorias/{categoria}/desactivar existe. Opciones: (a) migración nueva
       que agrega activa boolean default true (recomendada; no se edita la migración ya unida);
       (b) cambiar la regla a "no se pueden borrar" y quitar la ruta. Decide Juan antes de J7.
+
+DECISIONES NUEVAS DEL 2026-10-08 (reapertura de J5):
+  - Metas y rol estándar: el módulo de metas pasa al GRUPO C (estandar + familiar). El estándar solo
+    puede crear metas INDIVIDUALES; el familiar sigue siendo el único que puede crear COMPARTIDAS o
+    aceptar una invitación a una compartida.
+  - Invitar a un estándar: se permite. Se crea la invitación + una notificación de tipo
+    'invitacion_meta_requiere_familiar' que lo manda a cambiar de tipo de cuenta en Ajustes.
+  - Aceptar siendo estándar: ServicioMetas::aceptar() lanza ValidationException con mensaje a Ajustes.
+  - Ajustes · tipo de cuenta: nuevo ServicioCuentas::cambiarTipo (C7 parcial).
+  - Familiar -> estándar: bloqueado con metas compartidas activas
+    (ServicioMetas::tieneMetasCompartidasActivas).
+  - Notificaciones: se reutiliza ServicioMetas::notificar() (versión mínima de C4). Cuando llegue
+    el servicio de J6, se cambia solo ese método.
+  - Policy de metas: MetaPolicy y ParticipacionMetaPolicy 'before' solo bloquea al administrador.
+    El control fino lo hace el servicio con mensajes amables en lugar de 403 seco.
+  - Sidebar y tabs de Ajustes: cambios visuales, no rompen nada del backend.
+  - Grupo D de rutas: eliminado.
+
 Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué y por qué.
 
 
@@ -734,6 +862,15 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
      (c) el administrador recibe 403 en datos financieros. Agrega tu ruta a la matriz de PermisosTest.
  18. Los middleware se usan por su alias ('cuenta.activa', 'rol:...'), nunca con closures en grupos.
      Las líneas 'use' de un archivo PHP van arriba, nunca dentro de una función.
+ 19. El rol estándar ahora también entra a Metas. Si trabajas en un módulo con middleware
+     'rol:estandar,familiar', NO asumas que el usuario es familiar. Al crear metas o invitar,
+     consulta $usuario->rol o usa ServicioMetas::tieneMetasCompartidasActivas().
+ 20. ServicioCuentas::cambiarTipo es la ÚNICA vía para cambiar el rol de un usuario. Nunca
+     $user->rol = '...' desde un formulario.
+ 21. ServicioMetas::tieneMetasCompartidasActivas es la única vía para verificar si un usuario puede
+     bajar a estándar. No duplicar la lógica en controladores.
+ 22. La lógica de "aceptar invitación siendo estándar" vive en ServicioMetas::aceptar(), no en la
+     Policy. La Policy solo valida que sea el invitado pendiente.
 
 
 ----------------------------------------------------------------------
@@ -747,6 +884,12 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
   J3_Autenticacion_Documentacion.txt ................. qué cambió en J3, cómo probarlo y cómo lo usan los demás
   J4_Roles_Permisos_Documentacion.txt ................ qué cambió en J4, matriz rol x ruta y cómo usar Policies y scope
   J5_Metas_Compartidas_Documentacion.txt ............. qué cambió en J5, reglas, privacidad de aportes y pruebas
+  J5_Rebrir_Metas_y_Ajustes_Cambios_2026-10-08.txt ... qué cambió en la reapertura de J5 (metas para
+                                                       estándar, ServicioCuentas, AjustesController,
+                                                       notificación especial, tabs de Ajustes)
+  J6_ServicioNotificaciones_Documentacion.txt ........ (pendiente; se escribe cuando termine J6)
+  J8_ServicioCuentas_Documentacion.txt ............... (pendiente; se escribe cuando termine J8
+                                                       completo: cambiar tipo + eliminar cuenta)
   diagrama_tablas.png / .svg ......................... diagrama de las 20 tablas y su contenido
   docs/backend/03-migraciones.php .................... diccionario de datos real (HECHO 2026-10-05)
   docs/backend/*.php ................................. planes técnicos por tema

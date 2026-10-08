@@ -41,10 +41,12 @@ class MetasTest extends TestCase
 
     // ------------------------------------------------------------ acceso por rol
 
-    public function test_estandar_y_administrador_reciben_403_en_metas(): void
+    public function test_administrador_recibe_403_en_metas_pero_estandar_no(): void
     {
-        $this->actingAs(User::factory()->create())->get('/metas')->assertForbidden();
         $this->actingAs(User::factory()->administrador()->create())->get('/metas')->assertForbidden();
+
+        // El estándar SÍ entra (metas individuales + invitaciones).
+        $this->actingAs(User::factory()->create())->get('/metas')->assertOk();
     }
 
     public function test_sin_sesion_redirige_a_iniciar_sesion(): void
@@ -107,15 +109,23 @@ class MetasTest extends TestCase
         $this->assertSame(0, ParticipacionMeta::count());
     }
 
-    public function test_un_estandar_no_puede_crear_metas(): void
+    public function test_un_estandar_puede_crear_meta_individual_pero_no_compartida(): void
     {
-        $this->actingAs(User::factory()->create())->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '1000', 'correo' => 'a@a.com'])->assertForbidden();
-        $this->assertSame(0, Meta::count());
+        $est = User::factory()->create();
+
+        $this->actingAs($est)->post('/metas', ['nombre' => 'Moto', 'monto_objetivo' => '1000'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(1, Meta::count());
+        $this->assertFalse(Meta::first()->esCompartida());
+
+        $this->post('/metas', ['compartida' => '1', 'nombre' => 'X', 'monto_objetivo' => '1000', 'correo' => 'a@a.com'])
+            ->assertSessionHasErrors('compartida');
+        $this->assertSame(1, Meta::count());
     }
 
     // ------------------------------------------------------------ invitar
 
-    public function test_invitar_las_tres_validaciones_y_el_maximo(): void
+    public function test_invitar_valida_existencia_duplicado_yo_mismo_y_cupo(): void
     {
         [$meta, $ana, $beto] = $this->metaDeDos();
         $estandar = User::factory()->create(['email' => 'est@test.com']);
@@ -123,11 +133,11 @@ class MetasTest extends TestCase
         $this->actingAs($ana);
 
         $this->post("/metas/{$meta->id}/invitar", ['correo' => 'noexiste@test.com'])->assertSessionHasErrors(['correo' => ServicioMetas::MSG_NO_EXISTE]);
-        $this->post("/metas/{$meta->id}/invitar", ['correo' => 'est@test.com'])->assertSessionHasErrors(['correo' => ServicioMetas::MSG_ESTANDAR]);
         $this->post("/metas/{$meta->id}/invitar", ['correo' => $beto->email])->assertSessionHasErrors(['correo' => ServicioMetas::MSG_YA_PARTICIPA]);
         $this->post("/metas/{$meta->id}/invitar", ['correo' => $ana->email])->assertSessionHasErrors(['correo' => ServicioMetas::MSG_YO_MISMO]);
-        // La meta ya tiene 2 aceptados: un tercero familiar no cabe.
+        // La meta ya tiene 2 aceptados: un tercero no cabe (ni familiar ni estándar).
         $this->post("/metas/{$meta->id}/invitar", ['correo' => 'tercero@test.com'])->assertSessionHasErrors(['correo' => ServicioMetas::MSG_LLENA]);
+        $this->post("/metas/{$meta->id}/invitar", ['correo' => 'est@test.com'])->assertSessionHasErrors(['correo' => ServicioMetas::MSG_LLENA]);
 
         $this->assertSame(2, $meta->participaciones()->count());
     }
@@ -501,5 +511,48 @@ class MetasTest extends TestCase
 
         $meta->update(['estado' => 'completada']);
         $this->assertFalse($servicio->tieneMetasActivas($ana));
+    }
+
+        public function test_invitar_a_un_estandar_crea_invitacion_y_notificacion_especial(): void
+    {
+        $ana = User::factory()->familiar()->create();
+        $est = User::factory()->create(['email' => 'est@test.com']);
+
+        $this->actingAs($ana)->post('/metas', ['compartida' => '1', 'nombre' => 'Viaje', 'monto_objetivo' => '1000', 'correo' => 'est@test.com']);
+
+        $meta = Meta::firstOrFail();
+        $this->assertDatabaseHas('participaciones_meta', [
+            'meta_id' => $meta->id, 'user_id' => $est->id, 'estado_invitacion' => 'pendiente',
+        ]);
+        $this->assertDatabaseHas('notificaciones', [
+            'user_id' => $est->id, 'tipo' => 'invitacion_meta_requiere_familiar', 'meta_id' => $meta->id,
+        ]);
+        $this->assertDatabaseMissing('notificaciones', [
+            'user_id' => $est->id, 'tipo' => 'invitacion_meta',
+        ]);
+    }
+
+    public function test_estandar_no_puede_aceptar_hasta_cambiar_a_familiar(): void
+    {
+        $ana = User::factory()->familiar()->create();
+        $est = User::factory()->create(['email' => 'est@test.com']);
+
+        $this->actingAs($ana)->post('/metas', ['compartida' => '1', 'nombre' => 'Viaje', 'monto_objetivo' => '1000', 'correo' => 'est@test.com']);
+        $meta = Meta::firstOrFail();
+        $part = $meta->participaciones()->where('user_id', $est->id)->firstOrFail();
+
+        // Intenta aceptar siendo estándar: error y sigue pendiente.
+        $this->actingAs($est)->post("/metas/invitaciones/{$part->id}/aceptar")
+            ->assertSessionHasErrors('invitacion');
+        $this->assertSame('pendiente', $part->fresh()->estado_invitacion);
+
+        // Cambia a familiar desde Ajustes.
+        $this->put(route('ajustes.tipo-cuenta.update'), ['tipo_cuenta' => 'familiar'])
+            ->assertRedirect(route('ajustes.tipo-cuenta'));
+
+        // Ahora sí acepta.
+        $this->post("/metas/invitaciones/{$part->id}/aceptar")
+            ->assertRedirect(route('metas.show', $meta));
+        $this->assertSame('aceptada', $part->fresh()->estado_invitacion);
     }
 }

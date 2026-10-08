@@ -18,7 +18,7 @@ class MetaPolicy
 {
     public function before(User $usuario, string $habilidad): ?bool
     {
-        return $usuario->rol === 'familiar' ? null : false;
+        return $usuario->rol === 'administrador' ? false : null;   // estandar y familiar pasan; admin nunca
     }
 
     public function viewAny(User $usuario): bool

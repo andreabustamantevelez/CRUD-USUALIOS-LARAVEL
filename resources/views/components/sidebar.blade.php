@@ -9,8 +9,9 @@
   QUÉ HAY QUE HACER (en orden):
     1. Nombrar las rutas exactamente como aparecen aquí (panel, gastos.index, gastos.create,
        gastos-fijos.index, creditos.simulador, metas.index, informes.actual, categorias.index).
-    2. "Metas Compartidas" solo se dibuja si el rol es familiar; ADEMÁS la ruta debe tener
-       middleware de rol (ocultar el enlace no protege).
+    2. "Metas" se dibuja para estandar y familiar (2026-10-08): el estándar puede tener metas
+       individuales y recibir invitaciones; el familiar además puede crear compartidas.
+       El administrador usa sidebar-admin.blade.php y no ve Metas.
     3. Reemplazar la comprobación de rol por una Gate/Policy cuando exista (ej.
        @can('usar-metas')).
   CÓMO HACERLO / NOTAS:
@@ -18,7 +19,7 @@
   ==============================================================================
 --}}
 
-{{-- Menú lateral de usuario (estándar / familiar). "Metas Compartidas" solo se dibuja si el rol es familiar. --}}
+{{-- Menú lateral de usuario (estándar / familiar). Metas visible para ambos roles. --}}
 <aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between py-space-lg px-space-md">
   <div class="flex flex-col gap-space-lg">
     <div class="flex items-center gap-space-sm px-space-sm">
@@ -54,12 +55,10 @@
         class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('creditos.*') ? ' nav-active' : '' }}"
         href="{{ route('creditos.simulador') }}"
       >Simulador de Créditos</a>
-      @if(auth()->user()->rol === 'familiar')
-        <a
-          class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('metas.*') ? ' nav-active' : '' }}"
-          href="{{ route('metas.index') }}"
-        >Metas Compartidas</a>
-      @endif
+      <a
+        class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('metas.*') ? ' nav-active' : '' }}"
+        href="{{ route('metas.index') }}"
+      >Metas</a>
       <a
         class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('informes.*') ? ' nav-active' : '' }}"
         href="{{ route('informes.actual') }}"

@@ -46,6 +46,7 @@
         <h1 class="font-headline-xl text-headline-xl text-on-surface">Ajustes · Eliminar cuenta</h1>
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">Acción permanente</p>
       </header>
+      @include('app.ajustes._tabs')
       <section class="card p-space-lg" data-dinamico="usuario">
         <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
           Zona de peligro (pide contraseña y confirmación)
