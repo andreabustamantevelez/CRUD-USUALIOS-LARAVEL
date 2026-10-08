@@ -2,22 +2,35 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\PerteneceAUsuario;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Gasto extends Model
 {
-    use HasFactory, PerteneceAUsuario;
+    use HasFactory;
 
     protected $table = 'gastos';
 
-    protected $guarded = [];   // Los controladores usan FormRequest + $request->validated(), nunca $request->all().
+    protected $fillable = [
+        'user_id',
+        'categoria_id',
+        'monto',
+        'fecha',
+        'descripcion',
+    ];
 
-    protected $casts = ['fecha' => 'date', 'monto' => 'integer'];
+    public function scopeDelUsuario($query, $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
 
-    public function usuario(): BelongsTo { return $this->belongsTo(User::class, 'user_id'); }
-    public function categoria(): BelongsTo { return $this->belongsTo(Categoria::class); }
+    public function categoria()
+    {
+        return $this->belongsTo(Categoria::class, 'categoria_id');
+    }
+
+    public function usuario()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }
