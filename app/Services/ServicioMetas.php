@@ -88,9 +88,11 @@ class ServicioMetas
             if ($invitado->id === (int) $meta->creador_id) {
                 $this->fallar(self::MSG_YO_MISMO);
             }
-            if ($invitado->rol !== 'familiar') {
-                $this->fallar(self::MSG_ESTANDAR);
+            if (! in_array($invitado->rol, ['estandar', 'familiar'], true)) {
+                $this->fallar(self::MSG_NO_EXISTE);   // administrador: tratar como si no existiera
             }
+
+            $invitadoEsEstandar = $invitado->rol === 'estandar';
 
             $existente = $meta->participaciones()->where('user_id', $invitado->id)->first();
             if ($existente && in_array($existente->estado_invitacion, ['pendiente', 'aceptada'], true)) {
@@ -108,8 +110,21 @@ class ServicioMetas
             $participacion->fecha_union = null;
             $participacion->save();
 
-            $this->notificar($invitado->id, 'invitacion_meta',
-                "{$meta->creador->nombre} te invitó a la meta \"{$meta->nombre}\"", $meta);
+            if ($invitadoEsEstandar) {
+                $this->notificar(
+                    $invitado->id,
+                    'invitacion_meta_requiere_familiar',
+                    "{$meta->creador->nombre} te invitó a la meta \"{$meta->nombre}\". Para aceptar debes cambiar tu tipo de cuenta a familiar en Ajustes.",
+                    $meta
+                );
+            } else {
+                $this->notificar(
+                    $invitado->id,
+                    'invitacion_meta',
+                    "{$meta->creador->nombre} te invitó a la meta \"{$meta->nombre}\"",
+                    $meta
+                );
+            }
 
             return $participacion;
         });
@@ -120,6 +135,16 @@ class ServicioMetas
         $meta = $participacion->meta;
         if (! $meta->estaActiva()) {
             $this->fallar('Esta meta ya no está activa', 'invitacion');
+        }
+
+        // Si la persona sigue siendo estándar, no puede aceptar una meta compartida:
+        // le decimos que cambie su tipo de cuenta primero.
+        $invitado = $participacion->usuario;
+        if ($invitado->rol !== 'familiar') {
+            $this->fallar(
+                'Para aceptar esta invitación debes cambiar tu tipo de cuenta a familiar en Ajustes.',
+                'invitacion'
+            );
         }
 
         $participacion->update(['estado_invitacion' => 'aceptada', 'fecha_union' => now()->toDateString()]);
@@ -195,6 +220,16 @@ class ServicioMetas
     public function tieneMetasActivas(User $usuario): bool
     {
         return Meta::query()->where('estado', 'activa')->delParticipante($usuario->id)->exists();
+    }
+
+        /** ¿Participa la persona en alguna meta COMPARTIDA activa? (bloquea el cambio a estándar). */
+    public function tieneMetasCompartidasActivas(User $usuario): bool
+    {
+        return Meta::query()
+            ->where('estado', 'activa')
+            ->where('compartida', true)
+            ->delParticipante($usuario->id)
+            ->exists();
     }
 
     // ------------------------------------------------------------------ internos
