@@ -21,4 +21,8 @@ class Categoria extends Model
     public function usuario(): BelongsTo { return $this->belongsTo(User::class, 'user_id'); }
     public function gastos(): HasMany { return $this->hasMany(Gasto::class); }
     public function esDelSistema(): bool { return is_null($this->user_id); }
+    public function getBloqueAttribute(): string
+{
+    return $this->attributes['bloque'];
+}
 }
