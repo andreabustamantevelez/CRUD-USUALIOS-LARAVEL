@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="{{ asset('css/menu-usuario.css') }}">
 @endpush
 
-{{-- Barra superior: menú móvil, nuevo gasto (no para el administrador) y menú del usuario. --}}
+{{-- Barra superior: menú móvil, nuevo gasto (no para el administrador) y acciones de cuenta. --}}
 <header class="fixed top-0 left-72 right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-margin">
   <div class="flex items-center gap-space-md">
     <button
@@ -44,7 +44,8 @@
       class="lg:hidden p-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container flex items-center justify-center"
     ><span class="material-symbols-outlined text-[24px]">menu</span></button>
   </div>
-  <div class="flex items-center gap-space-lg">
+
+  <div class="flex items-center gap-3">
     @unless($esAdministrador)
       <a
         class="hidden sm:inline-flex items-center gap-1.5 py-1.5 px-space-md bg-surface-container hover:bg-surface-container-high text-primary rounded-lg font-label-md text-label-md transition-colors"
@@ -52,74 +53,93 @@
       ><span class="material-symbols-outlined text-[18px]">add</span><span>Nuevo Gasto</span></a>
     @endunless
 
-    {{-- Menú del usuario: el avatar abre Notificaciones, Ajustes y Cerrar sesión. --}}
-    <div class="menu-usuario" data-user-menu>
+    {{-- Píldora de acciones: botón de tema + menú del usuario. --}}
+    <div class="topbar-acciones">
+
+      {{-- Botón de tema claro/oscuro (ver public/js/theme.js) --}}
       <button
         type="button"
-        class="menu-usuario__boton"
-        data-user-menu-button
-        aria-haspopup="menu"
-        aria-expanded="false"
-        aria-controls="menu-usuario-panel"
-        aria-label="Menú de {{ $usuario->nombre ?? 'usuario' }}"
+        class="boton-tema"
+        data-theme-toggle
+        aria-label="Cambiar tema"
+        title="Cambiar tema"
       >
-        <span class="menu-usuario__datos">
-          <span class="menu-usuario__nombre font-label-md text-label-md">{{ $usuario->nombre ?? 'Usuario' }}</span>
-          <span class="menu-usuario__rol font-label-sm text-label-sm">{{ $nombreRol }}</span>
-        </span>
-        <span class="menu-usuario__avatar font-label-md">
-          {{ $inicial }}
-          @if($pendientes > 0)
-            <span class="menu-usuario__punto" aria-hidden="true"></span>
-          @endif
-        </span>
-        <span class="material-symbols-outlined menu-usuario__flecha" aria-hidden="true">expand_more</span>
+        <span class="material-symbols-outlined" data-theme-icon aria-hidden="true">dark_mode</span>
       </button>
 
-      <div class="menu-usuario__panel" id="menu-usuario-panel" role="menu">
-        <div class="menu-usuario__tarjeta">
-          <div class="menu-usuario__cabecera">
-            <span class="menu-usuario__avatar menu-usuario__avatar--grande font-label-md" aria-hidden="true">{{ $inicial }}</span>
-            <span class="menu-usuario__identidad">
-              <span class="menu-usuario__nombre font-label-md text-label-md">{{ $usuario->nombre ?? 'Usuario' }}</span>
-              <span class="menu-usuario__correo font-body-sm text-body-sm">{{ $usuario->email ?? '' }}</span>
-              <span class="menu-usuario__etiqueta font-label-sm text-label-sm">{{ $nombreRol }}</span>
-            </span>
-          </div>
-          <div class="menu-usuario__lista">
-            @unless($esAdministrador)
+      {{-- Menú del usuario: el avatar abre Notificaciones, Ajustes y Cerrar sesión. --}}
+      <div class="menu-usuario" data-user-menu>
+        <button
+          type="button"
+          class="menu-usuario__boton"
+          data-user-menu-button
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-controls="menu-usuario-panel"
+          aria-label="Menú de {{ $usuario->nombre ?? 'usuario' }}"
+        >
+          <span class="menu-usuario__datos">
+            <span class="menu-usuario__nombre font-label-md text-label-md">{{ $usuario->nombre ?? 'Usuario' }}</span>
+            <span class="menu-usuario__rol font-label-sm text-label-sm">{{ $nombreRol }}</span>
+          </span>
+          <span class="menu-usuario__avatar font-label-md">
+            {{ $inicial }}
+            @if($pendientes > 0)
+              <span class="menu-usuario__punto" aria-hidden="true"></span>
+            @endif
+          </span>
+          <span class="material-symbols-outlined menu-usuario__flecha" aria-hidden="true">expand_more</span>
+        </button>
+
+        <div class="menu-usuario__panel" id="menu-usuario-panel" role="menu">
+          <div class="menu-usuario__tarjeta">
+            <div class="menu-usuario__cabecera">
+              <span class="menu-usuario__avatar menu-usuario__avatar--grande font-label-md" aria-hidden="true">{{ $inicial }}</span>
+              <span class="menu-usuario__identidad">
+                <span class="menu-usuario__nombre font-label-md text-label-md">{{ $usuario->nombre ?? 'Usuario' }}</span>
+                <span class="menu-usuario__correo font-body-sm text-body-sm">{{ $usuario->email ?? '' }}</span>
+                <span class="menu-usuario__etiqueta font-label-sm text-label-sm">{{ $nombreRol }}</span>
+              </span>
+            </div>
+
+            <div class="menu-usuario__lista">
+              @unless($esAdministrador)
+                <a
+                  class="menu-usuario__item font-body-md text-body-md{{ request()->routeIs('notificaciones.*') ? ' menu-usuario__item--activo' : '' }}"
+                  href="{{ route('notificaciones.index') }}"
+                  role="menuitem"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
+                  <span>Notificaciones</span>
+                  @if($pendientes > 0)
+                    <span class="menu-usuario__contador" aria-label="{{ $pendientes }} pendientes">{{ $pendientes > 9 ? '9+' : $pendientes }}</span>
+                  @endif
+                </a>
+              @endunless
+
               <a
-                class="menu-usuario__item font-body-md text-body-md{{ request()->routeIs('notificaciones.*') ? ' menu-usuario__item--activo' : '' }}"
-                href="{{ route('notificaciones.index') }}"
+                class="menu-usuario__item font-body-md text-body-md{{ request()->routeIs('ajustes.*') ? ' menu-usuario__item--activo' : '' }}"
+                href="{{ route('ajustes.perfil') }}"
                 role="menuitem"
               >
-                <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
-                <span>Notificaciones</span>
-                @if($pendientes > 0)
-                  <span class="menu-usuario__contador" aria-label="{{ $pendientes }} pendientes">{{ $pendientes > 9 ? '9+' : $pendientes }}</span>
-                @endif
+                <span class="material-symbols-outlined" aria-hidden="true">settings</span>
+                <span>Ajustes</span>
               </a>
-            @endunless
-            <a
-              class="menu-usuario__item font-body-md text-body-md{{ request()->routeIs('ajustes.*') ? ' menu-usuario__item--activo' : '' }}"
-              href="{{ route('ajustes.perfil') }}"
-              role="menuitem"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">settings</span>
-              <span>Ajustes</span>
-            </a>
-            <div class="menu-usuario__separador" role="separator"></div>
-            <form method="POST" action="{{ route('logout') }}">
-              @csrf
-              <button
-                type="submit"
-                class="menu-usuario__item menu-usuario__item--salir font-body-md text-body-md"
-                role="menuitem"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">logout</span>
-                <span>Cerrar sesión</span>
-              </button>
-            </form>
+
+              <div class="menu-usuario__separador" role="separator"></div>
+
+              <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button
+                  type="submit"
+                  class="menu-usuario__item menu-usuario__item--salir font-body-md text-body-md"
+                  role="menuitem"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">logout</span>
+                  <span>Cerrar sesión</span>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>

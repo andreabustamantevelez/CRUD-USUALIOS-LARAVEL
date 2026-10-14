@@ -1,13 +1,7 @@
 /*
  * ==============================================================================
  * ARCHIVO : public/css/landing-page.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Landing page pública. Se carga después de style.css (vía
- *           @push('styles') en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Mantener aquí lo exclusivo de esta pantalla.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): compensar el header fijo al saltar a una sección
- *     (scroll-padding).
+ * QUÉ ES  : Estilos EXCLUSIVOS de la Landing page pública.
  * ==============================================================================
  */
 
