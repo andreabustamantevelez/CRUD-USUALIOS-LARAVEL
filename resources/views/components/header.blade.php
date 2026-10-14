@@ -4,14 +4,10 @@
   QUÉ ES  : Header público fijo (landing, login, registro, recuperar). Uso: <x-header />
   DATOS QUE LLEGAN DEL CONTROLADOR:
     - Ninguno (usa route()).
-  QUÉ HAY QUE HACER (en orden):
-    1. Mostrar "Ir a mi panel" cuando haya sesión (@auth) y los botones actuales solo a invitados
-       (@guest).
-    2. Cambiar el logo externo por asset('img/logo.png').
-    3. El panel móvil se abre con el botón hamburguesa (public/js/shell.js).
-  CÓMO HACERLO / NOTAS:
-    - Los enlaces ancla apuntan a route('inicio')#seccion para que funcionen desde cualquier
-      página pública.
+  ACTUALIZADO 2026-10-14:
+    - Se agregó el botón de tema claro/oscuro (.boton-tema, ver public/js/theme.js).
+    - Se corrigió la lógica @auth/@guest (la cabecera ya lo pedía desde J1).
+    - Se quitó el <div> con el ícono "person" que estaba fuera de contexto (no hacía nada).
   ==============================================================================
 --}}
 
@@ -56,25 +52,48 @@
       >Seguridad</a>
     </nav>
     <div class="flex items-center gap-space-sm">
-      <a
-        class="px-space-md py-space-xs rounded-lg text-on-surface hover:bg-surface-container hover:text-on-surface font-label-md text-label-md whitespace-nowrap transition-all"
-        data-path="iniciar-sesion"
-        href="{{ route('login') }}"
-      >Iniciar Sesión</a>
-      <a
-        class="inline-flex items-center px-space-md py-space-xs rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md whitespace-nowrap transition-all shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
-        data-path="crear-cuenta"
-        href="{{ route('registro') }}"
-      >Crear Cuenta Gratis</a>
+
+      {{-- Botón de tema claro/oscuro (ver public/js/theme.js y public/css/theme.css) --}}
+      <button
+        type="button"
+        class="boton-tema"
+        data-theme-toggle
+        aria-label="Cambiar tema"
+        title="Cambiar tema"
+      >
+        <span class="material-symbols-outlined" data-theme-icon aria-hidden="true">dark_mode</span>
+      </button>
+
+      @guest
+        <a
+          class="hidden sm:inline-flex px-space-md py-space-xs rounded-lg text-on-surface hover:bg-surface-container hover:text-on-surface font-label-md text-label-md whitespace-nowrap transition-all"
+          data-path="iniciar-sesion"
+          href="{{ route('login') }}"
+        >Iniciar Sesión</a>
+        <a
+          class="hidden sm:inline-flex items-center px-space-md py-space-xs rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md whitespace-nowrap transition-all shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+          data-path="crear-cuenta"
+          href="{{ route('registro') }}"
+        >Crear Cuenta Gratis</a>
+      @endguest
+
+      @auth
+        <a
+          class="inline-flex items-center gap-1.5 px-space-md py-space-xs rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md whitespace-nowrap transition-all shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+          data-path="panel"
+          href="{{ route('panel') }}"
+        >
+          <span class="material-symbols-outlined text-[18px]">dashboard</span>
+          <span>Ir a mi panel</span>
+        </a>
+      @endauth
+
       <button
         type="button"
         data-menu-toggle
         aria-label="Abrir menú"
         class="lg:hidden p-space-xs rounded-lg text-on-surface hover:bg-surface-container flex items-center justify-center"
       ><span class="material-symbols-outlined text-[24px]">menu</span></button>
-      <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 ml-space-xs">
-        <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
-      </div>
     </div>
   </div>
   <div
@@ -101,5 +120,25 @@
       class="px-space-sm py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-low font-label-md text-label-md whitespace-nowrap"
       href="{{ route('inicio') }}#seguridad"
     >Seguridad</a>
+
+    {{-- Acciones de sesión también en el panel móvil --}}
+    <div class="pt-space-sm mt-space-xs border-t border-outline-variant/30 flex flex-col gap-space-xs">
+      @guest
+        <a
+          class="px-space-sm py-space-sm rounded-lg text-on-surface hover:bg-surface-container-low font-label-md text-label-md"
+          href="{{ route('login') }}"
+        >Iniciar Sesión</a>
+        <a
+          class="px-space-sm py-space-sm rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md text-center"
+          href="{{ route('registro') }}"
+        >Crear Cuenta Gratis</a>
+      @endguest
+      @auth
+        <a
+          class="px-space-sm py-space-sm rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md text-center"
+          href="{{ route('panel') }}"
+        >Ir a mi panel</a>
+      @endauth
+    </div>
   </div>
 </header>

@@ -471,7 +471,7 @@
           <!-- Pricing / Mode Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto w-full">
             <!-- Standard Account -->
-            <div class="flex flex-col bg-surface-container-lowest rounded-2xl p-8 sm:p-10 shadow-sm hover:shadow-md transition-shadow relative">
+            <div class="tarjeta-tinte tarjeta-tinte--estandar flex flex-col bg-surface-container-lowest rounded-2xl p-8 sm:p-10 shadow-sm hover:shadow-md transition-shadow relative">
               <div class="flex items-center justify-between mb-4">
                 <span class="px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">Control Personal</span>
                 <span class="font-numeric-md text-numeric-md text-on-surface font-bold">Gratis</span>
@@ -512,7 +512,7 @@
               </div>
             </div>
             <!-- Familiar Account (Highlighted) -->
-            <div class="flex flex-col bg-surface-container-lowest rounded-2xl p-8 sm:p-10 shadow-lg relative overflow-hidden">
+            <div class="tarjeta-tinte tarjeta-tinte--familiar flex flex-col bg-surface-container-lowest rounded-2xl p-8 sm:p-10 shadow-lg relative overflow-hidden">
               <!-- Subtle Accent bar on top -->
               <div class="absolute top-0 left-0 right-0 h-2 bg-primary"></div>
               <div class="flex items-center justify-between mb-4">

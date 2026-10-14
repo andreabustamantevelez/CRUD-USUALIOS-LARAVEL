@@ -73,7 +73,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="account-type-group">
                   <!-- Option A: Standard (Default) -->
                   <div
-                    class="cursor-pointer rounded-lg p-4 bg-surface-container-low transition-all duration-200 shadow-sm relative flex flex-col justify-between group"
+                    class="tarjeta-tinte tarjeta-tinte--estandar cursor-pointer rounded-lg p-4 bg-surface-container-low transition-all duration-200 shadow-sm relative flex flex-col justify-between group"
                     id="card-standard"
                     onclick="selectAccountType('standard')"
                   >
@@ -104,7 +104,7 @@
                   </div>
                   <!-- Option B: Family / Collaborative -->
                   <div
-                    class="cursor-pointer rounded-lg p-4 bg-surface-container transition-all duration-200 opacity-90 relative flex flex-col justify-between group hover:opacity-100"
+                    class="tarjeta-tinte tarjeta-tinte--familiar cursor-pointer rounded-lg p-4 bg-surface-container transition-all duration-200 opacity-90 relative flex flex-col justify-between group hover:opacity-100"
                     id="card-family"
                     onclick="selectAccountType('family')"
                   >

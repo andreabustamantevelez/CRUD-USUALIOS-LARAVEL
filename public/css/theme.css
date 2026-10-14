@@ -1,0 +1,480 @@
+/*
+ * ==============================================================================
+ * ARCHIVO : public/css/theme.css
+ * QUÉ ES  : Modo claro/oscuro + overrides de style.css.
+ * CARGA  : después de style.css (ver layouts/base.blade.php).
+ * ==============================================================================
+ */
+
+/* ==========================================================================
+   1. TOKENS DEL TEMA OSCURO
+   ========================================================================== */
+[data-theme="oscuro"] {
+  --background: #0f1216;
+  --surface: #0f1216;
+  --surface-bright: #1c2128;
+  --surface-dim: #08090b;
+  --surface-tint: #6eddb2;
+  --surface-variant: #24292f;
+  --surface-container-lowest: #0a0d10;
+  --surface-container-low: #14181d;
+  --surface-container: #181d23;
+  --surface-container-high: #1f252c;
+  --surface-container-highest: #262d35;
+
+  --on-surface: #e3e6ea;
+  --on-surface-variant: #b8bfc7;
+  --on-background: #e3e6ea;
+  --inverse-surface: #e3e6ea;
+  --inverse-on-surface: #1c2128;
+
+  --primary: #6eddb2;
+  --primary-container: #005236;
+  --on-primary: #003824;
+  --on-primary-container: #d3f7e3;
+  --primary-fixed: #005137;
+  --primary-fixed-dim: #004a32;
+  --on-primary-fixed: #d3f7e3;
+  --on-primary-fixed-variant: #6eddb2;
+  --inverse-primary: #005137;
+
+  --secondary: #bcc6db;
+  --secondary-container: #3d475c;
+  --on-secondary: #1c2537;
+  --on-secondary-container: #d9e2f8;
+  --secondary-fixed: #3d475c;
+  --secondary-fixed-dim: #2d3447;
+  --on-secondary-fixed: #d9e2f8;
+
+  --tertiary: #c1c2ff;
+  --tertiary-container: #2f2ebe;
+  --on-tertiary: #1c1c66;
+  --on-tertiary-container: #e1e0ff;
+  --tertiary-fixed: #2d2d8f;
+  --tertiary-fixed-dim: #232370;
+  --on-tertiary-fixed: #e1e0ff;
+
+  --error: #ffb4ab;
+  --error-container: #93000a;
+  --on-error: #690005;
+  --on-error-container: #ffdad6;
+
+  --outline: #8d938d;
+  --outline-variant: #434944;
+
+  --bg-app: #0f1216;
+  --line: #24292f;
+  --line-strong: #343b42;
+  --slate: #e3e6ea;
+  --slate-muted: #98a0a8;
+
+  --need: #7fa9f0;      --need-bg: #1a2739;
+  --want: #b79df1;      --want-bg: #241f36;
+  --save: #6eddb2;      --save-bg: #103127;
+  --ok: #6eddb2;        --ok-bg: #103127;    --ok-line: #1e4a3a;
+  --soon: #f2c067;      --soon-bg: #3a2c0f;  --soon-line: #4b3a15;
+  --late: #f29a5e;      --late-bg: #391c0d;  --late-line: #4a2611;
+  --wait: #98a0a8;      --wait-bg: #1a1f25;  --wait-line: #2a3038;
+}
+
+[data-theme="oscuro"] body {
+  background: var(--background) !important;
+  color: var(--on-surface) !important;
+}
+
+/* ==========================================================================
+   2. BOTÓN DE TEMA (sol/luna)
+   ========================================================================== */
+.boton-tema {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0 .5rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.boton-tema:hover { background: var(--surface-container); color: var(--on-surface); }
+.boton-tema:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.boton-tema .material-symbols-outlined { font-size: 20px; }
+
+/* ==========================================================================
+   3. TINTE POR TIPO DE CUENTA (landing + registro)
+   ========================================================================== */
+.tarjeta-tinte--estandar {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--primary-fixed) 45%, var(--surface-container-lowest)) 0%,
+    var(--surface-container-lowest) 100%);
+  border: 2px solid var(--primary);
+}
+.tarjeta-tinte--familiar {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--tertiary-fixed) 55%, var(--surface-container-lowest)) 0%,
+    var(--surface-container-lowest) 100%);
+  border: 2px solid var(--tertiary);
+}
+/* Botón con bg-on-surface + text-surface-bright: forzar el texto claro
+   para que no se pierda cuando el tema oscuro redefine surface-bright. */
+[data-theme="oscuro"] .bg-on-surface.text-surface-bright,
+[data-theme="oscuro"] .bg-on-surface .text-surface-bright,
+[data-theme="oscuro"] .bg-on-background.text-surface-bright,
+[data-theme="oscuro"] .bg-on-background .text-surface-bright {
+  color: #f8f9ff !important;
+}
+
+/* Y por si acaso en claro no lo hereda del padre: */
+.bg-on-surface.text-surface-bright,
+.bg-on-surface .text-surface-bright,
+.bg-on-background.text-surface-bright,
+.bg-on-background .text-surface-bright {
+  color: #f8f9ff;
+}
+/* ==========================================================================
+   4. OVERRIDES DE style.css EN MODO OSCURO
+   --------------------------------------------------------------------------
+   REGLA DE ORO:
+   - SUPERFICIES (bg-surface*, bg-background, bg-white) SÍ se invierten.
+   - CONTENEDORES INVERTIDOS (bg-on-surface, bg-on-background,
+     bg-inverse-surface) NO se invierten: en claro son oscuros con texto
+     blanco encima, en oscuro se quedan oscuros con un tono distinto al
+     fondo para seguir distinguiéndose. Si los invirtiéramos, el texto
+     blanco quedaría invisible sobre fondo claro.
+   - COLORES DE MARCA (bg-primary, bg-secondary, bg-tertiary, bg-error) se
+     quedan como estén; ver nota al final para text-white encima.
+   ========================================================================== */
+
+/* ---- 4.1 Superficies (SÍ se invierten) ---- */
+[data-theme="oscuro"] .bg-background               { background-color: var(--background) !important; }
+[data-theme="oscuro"] .bg-surface                  { background-color: var(--surface) !important; }
+[data-theme="oscuro"] .bg-surface-bright           { background-color: var(--surface-bright) !important; }
+[data-theme="oscuro"] .bg-surface-dim              { background-color: var(--surface-dim) !important; }
+[data-theme="oscuro"] .bg-surface-container-lowest { background-color: var(--surface-container-lowest) !important; }
+[data-theme="oscuro"] .bg-surface-container-low    { background-color: var(--surface-container-low) !important; }
+[data-theme="oscuro"] .bg-surface-container        { background-color: var(--surface-container) !important; }
+[data-theme="oscuro"] .bg-surface-container-high   { background-color: var(--surface-container-high) !important; }
+[data-theme="oscuro"] .bg-surface-container-highest{ background-color: var(--surface-container-highest) !important; }
+
+/* bg-white: tarjeta blanca en claro → tarjeta oscura en oscuro */
+[data-theme="oscuro"] .bg-white { background-color: var(--surface-container-lowest) !important; }
+
+/* Superficies con opacidad (header, topbar, banners translúcidos) */
+[data-theme="oscuro"] .bg-surface\/80 { background-color: color-mix(in srgb, var(--surface) 80%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface\/85 { background-color: color-mix(in srgb, var(--surface) 85%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface-container-low\/40  { background-color: color-mix(in srgb, var(--surface-container-low) 40%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface-container-low\/60  { background-color: color-mix(in srgb, var(--surface-container-low) 60%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface-container-high\/40 { background-color: color-mix(in srgb, var(--surface-container-high) 40%, transparent) !important; }
+
+/* ---- 4.2 Contenedores invertidos (NO se invierten) ----
+   En claro: fondo oscuro con texto claro encima (hero, banner, footer,
+   tarjeta destacada). En oscuro: se quedan oscuros pero un escalón por
+   encima del fondo para que se sigan notando. */
+[data-theme="oscuro"] .bg-on-surface,
+[data-theme="oscuro"] .bg-on-background,
+[data-theme="oscuro"] .bg-inverse-surface { background-color: #1c2128 !important; } /* = surface-bright */
+
+/* Y sus variantes con opacidad (hover, decoraciones) */
+[data-theme="oscuro"] .bg-on-surface\/5,
+[data-theme="oscuro"] .bg-on-background\/5  { background-color: color-mix(in srgb, #1c2128 5%,  transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/10,
+[data-theme="oscuro"] .bg-on-background\/10 { background-color: color-mix(in srgb, #1c2128 10%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/15,
+[data-theme="oscuro"] .bg-on-background\/15 { background-color: color-mix(in srgb, #1c2128 15%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/20,
+[data-theme="oscuro"] .bg-on-background\/20 { background-color: color-mix(in srgb, #1c2128 20%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/30,
+[data-theme="oscuro"] .bg-on-background\/30 { background-color: color-mix(in srgb, #1c2128 30%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/40,
+[data-theme="oscuro"] .bg-on-background\/40 { background-color: color-mix(in srgb, #1c2128 40%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/50,
+[data-theme="oscuro"] .bg-on-background\/50 { background-color: color-mix(in srgb, #1c2128 50%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/60,
+[data-theme="oscuro"] .bg-on-background\/60 { background-color: color-mix(in srgb, #1c2128 60%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/70,
+[data-theme="oscuro"] .bg-on-background\/70 { background-color: color-mix(in srgb, #1c2128 70%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/80,
+[data-theme="oscuro"] .bg-on-background\/80 { background-color: color-mix(in srgb, #1c2128 80%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/85,
+[data-theme="oscuro"] .bg-on-background\/85 { background-color: color-mix(in srgb, #1c2128 85%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/90,
+[data-theme="oscuro"] .bg-on-background\/90 { background-color: color-mix(in srgb, #1c2128 90%, transparent) !important; }
+[data-theme="oscuro"] .bg-on-surface\/95,
+[data-theme="oscuro"] .bg-on-background\/95 { background-color: color-mix(in srgb, #1c2128 95%, transparent) !important; }
+
+/* ---- 4.3 Colores de marca (se quedan como están) ----
+   Se mantienen para no romper botones que usan bg-primary con texto blanco.
+   El color claro de marca (var(--primary), var(--tertiary)...) sigue
+   disponible para TEXTO e ICONOS. */
+[data-theme="oscuro"] .bg-primary                    { background-color: var(--primary) !important; }
+[data-theme="oscuro"] .bg-primary-container          { background-color: var(--primary-container) !important; }
+[data-theme="oscuro"] .bg-primary-fixed              { background-color: var(--primary-fixed) !important; }
+[data-theme="oscuro"] .bg-primary-fixed-dim          { background-color: var(--primary-fixed-dim) !important; }
+[data-theme="oscuro"] .bg-primary\/10                { background-color: color-mix(in srgb, var(--primary) 10%, transparent) !important; }
+[data-theme="oscuro"] .bg-primary\/20                { background-color: color-mix(in srgb, var(--primary) 20%, transparent) !important; }
+[data-theme="oscuro"] .bg-primary-fixed\/30          { background-color: color-mix(in srgb, var(--primary-fixed) 30%, transparent) !important; }
+[data-theme="oscuro"] .bg-primary-fixed\/40          { background-color: color-mix(in srgb, var(--primary-fixed) 40%, transparent) !important; }
+[data-theme="oscuro"] .bg-primary-fixed\/50          { background-color: color-mix(in srgb, var(--primary-fixed) 50%, transparent) !important; }
+
+[data-theme="oscuro"] .bg-secondary-container        { background-color: var(--secondary-container) !important; }
+[data-theme="oscuro"] .bg-secondary-container\/40     { background-color: color-mix(in srgb, var(--secondary-container) 40%, transparent) !important; }
+
+[data-theme="oscuro"] .bg-tertiary                   { background-color: var(--tertiary) !important; }
+[data-theme="oscuro"] .bg-tertiary-container         { background-color: var(--tertiary-container) !important; }
+[data-theme="oscuro"] .bg-tertiary-fixed             { background-color: var(--tertiary-fixed) !important; }
+[data-theme="oscuro"] .bg-tertiary-container\/15     { background-color: color-mix(in srgb, var(--tertiary-container) 15%, transparent) !important; }
+[data-theme="oscuro"] .bg-tertiary-container\/20     { background-color: color-mix(in srgb, var(--tertiary-container) 20%, transparent) !important; }
+
+[data-theme="oscuro"] .bg-error-container            { background-color: var(--error-container) !important; }
+[data-theme="oscuro"] .bg-error-container\/40        { background-color: color-mix(in srgb, var(--error-container) 40%, transparent) !important; }
+[data-theme="oscuro"] .bg-error\/10                  { background-color: color-mix(in srgb, var(--error) 10%, transparent) !important; }
+[data-theme="oscuro"] .bg-error\/15                  { background-color: color-mix(in srgb, var(--error) 15%, transparent) !important; }
+
+[data-theme="oscuro"] .bg-on-surface { background-color: var(--on-surface) !important; } /* eliminado: ver 4.2 */
+
+/* NOTA sobre bg-primary + text-white:
+   Si alguna vista usa bg-primary con text-white, en oscuro el fondo es
+   verde claro (var(--primary)) y el texto blanco pierde contraste. Dos
+   soluciones:
+     a) Cambiar en la vista text-white → text-on-primary (recomendado).
+     b) Descomentar la siguiente regla para forzar el texto oscuro: */
+
+/* [data-theme="oscuro"] .bg-primary.text-white,
+   [data-theme="oscuro"] .bg-primary > .text-white { color: var(--on-primary) !important; } */
+
+/* ---- 4.4 Texto ---- */
+[data-theme="oscuro"] .text-on-surface          { color: var(--on-surface) !important; }
+[data-theme="oscuro"] .text-on-surface-variant  { color: var(--on-surface-variant) !important; }
+[data-theme="oscuro"] .text-on-background       { color: var(--on-background) !important; }
+
+/* "secondary" en style.css = gris; en oscuro debe aclararse */
+[data-theme="oscuro"] .text-secondary           { color: var(--on-surface-variant) !important; }
+[data-theme="oscuro"] .text-secondary\/80       { color: color-mix(in srgb, var(--on-surface-variant) 80%, transparent) !important; }
+
+[data-theme="oscuro"] .text-primary                 { color: var(--primary) !important; }
+[data-theme="oscuro"] .text-primary-container       { color: var(--primary-container) !important; }
+[data-theme="oscuro"] .text-primary-fixed           { color: var(--primary-fixed) !important; }
+[data-theme="oscuro"] .text-primary-fixed-dim       { color: var(--primary-fixed-dim) !important; }
+[data-theme="oscuro"] .text-on-primary              { color: var(--on-primary) !important; }
+[data-theme="oscuro"] .text-on-primary-container    { color: var(--on-primary-container) !important; }
+[data-theme="oscuro"] .text-on-primary-fixed        { color: var(--on-primary-fixed) !important; }
+
+[data-theme="oscuro"] .text-tertiary                { color: var(--tertiary) !important; }
+[data-theme="oscuro"] .text-tertiary-container      { color: var(--tertiary-container) !important; }
+[data-theme="oscuro"] .text-tertiary-fixed          { color: var(--tertiary-fixed) !important; }
+[data-theme="oscuro"] .text-on-tertiary-fixed       { color: var(--on-tertiary-fixed) !important; }
+[data-theme="oscuro"] .text-on-tertiary-container   { color: var(--on-tertiary-container) !important; }
+
+[data-theme="oscuro"] .text-error                   { color: var(--error) !important; }
+[data-theme="oscuro"] .text-on-error                { color: var(--on-error) !important; }
+[data-theme="oscuro"] .text-on-error-container      { color: var(--on-error-container) !important; }
+
+[data-theme="oscuro"] .text-on-secondary-container  { color: var(--on-secondary-container) !important; }
+[data-theme="oscuro"] .text-on-secondary-fixed      { color: var(--on-secondary-fixed) !important; }
+
+[data-theme="oscuro"] .text-outline                 { color: var(--outline) !important; }
+[data-theme="oscuro"] .text-outline-variant         { color: var(--outline-variant) !important; }
+
+/* El banner final debe quedarse blanco sobre fondo oscuro */
+[data-theme="oscuro"] .text-white                   { color: #fff !important; }
+
+/* ---- 4.5 Bordes ---- */
+[data-theme="oscuro"] .border-outline-variant       { border-color: var(--outline-variant) !important; }
+[data-theme="oscuro"] .border-outline-variant\/30   { border-color: color-mix(in srgb, var(--outline-variant) 30%, transparent) !important; }
+[data-theme="oscuro"] .border-primary               { border-color: var(--primary) !important; }
+[data-theme="oscuro"] .border-primary\/30           { border-color: color-mix(in srgb, var(--primary) 30%, transparent) !important; }
+[data-theme="oscuro"] .border-error\/20             { border-color: color-mix(in srgb, var(--error) 20%, transparent) !important; }
+[data-theme="oscuro"] .border-surface-container-highest { border-color: var(--surface-container-highest) !important; }
+
+/* ---- 4.6 Placeholder de inputs ---- */
+[data-theme="oscuro"] .placeholder\:text-outline\/70::placeholder { color: color-mix(in srgb, var(--outline) 70%, transparent) !important; }
+[data-theme="oscuro"] .placeholder\:text-outline::placeholder     { color: var(--outline) !important; }
+
+/* ---- 4.7 Sombras: en oscuro se ven feas, las atenuamos ---- */
+[data-theme="oscuro"] .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,.5) !important; }
+[data-theme="oscuro"] .shadow    { box-shadow: 0 1px 3px rgba(0,0,0,.5) !important; }
+[data-theme="oscuro"] .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,.5), 0 2px 4px -2px rgba(0,0,0,.4) !important; }
+[data-theme="oscuro"] .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,.5), 0 4px 6px -4px rgba(0,0,0,.4) !important; }
+[data-theme="oscuro"] .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,.5), 0 8px 10px -6px rgba(0,0,0,.4) !important; }
+
+/* ---- 4.8 Componentes del CSS global (sección 4 de style.css) ---- */
+[data-theme="oscuro"] .card         { background-color: var(--surface-container-lowest) !important; border-color: var(--line) !important; }
+[data-theme="oscuro"] .input        { background-color: var(--surface-container-lowest) !important; color: var(--on-surface) !important; border-color: var(--line-strong) !important; }
+[data-theme="oscuro"] .modal        { background-color: var(--surface-container-lowest) !important; }
+[data-theme="oscuro"] .btn-secondary{ background-color: var(--surface-container) !important; color: var(--on-surface) !important; border-color: var(--line-strong) !important; }
+/* Botón con bg-on-surface + text-surface-bright: en oscuro el fondo
+   se mantiene oscuro (por 4.2), así que el texto debe seguir claro. */
+[data-theme="oscuro"] .bg-on-surface.text-surface-bright,
+[data-theme="oscuro"] .bg-on-surface .text-surface-bright,
+[data-theme="oscuro"] .bg-on-background.text-surface-bright,
+[data-theme="oscuro"] .bg-on-background .text-surface-bright {
+  color: #f8f9ff !important;
+}
+
+/* Y por si acaso en claro no lo hereda del padre: */
+.bg-on-surface.text-surface-bright,
+.bg-on-surface .text-surface-bright,
+.bg-on-background.text-surface-bright,
+.bg-on-background .text-surface-bright {
+  color: #f8f9ff;
+}
+
+/* Superficies con opacidad (tarjetas flotantes, chips de fondo) */
+[data-theme="oscuro"] .bg-surface-container-highest\/90 { background-color: color-mix(in srgb, var(--surface-container-highest) 90%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface-container-highest\/80 { background-color: color-mix(in srgb, var(--surface-container-highest) 80%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface-container-highest\/70 { background-color: color-mix(in srgb, var(--surface-container-highest) 70%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface-container-highest\/50 { background-color: color-mix(in srgb, var(--surface-container-highest) 50%, transparent) !important; }
+
+[data-theme="oscuro"] .bg-surface-container\/90 { background-color: color-mix(in srgb, var(--surface-container) 90%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface-container\/80 { background-color: color-mix(in srgb, var(--surface-container) 80%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface-container\/70 { background-color: color-mix(in srgb, var(--surface-container) 70%, transparent) !important; }
+
+[data-theme="oscuro"] .bg-surface\/90 { background-color: color-mix(in srgb, var(--surface) 90%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface\/70 { background-color: color-mix(in srgb, var(--surface) 70%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface\/60 { background-color: color-mix(in srgb, var(--surface) 60%, transparent) !important; }
+[data-theme="oscuro"] .bg-surface\/50 { background-color: color-mix(in srgb, var(--surface) 50%, transparent) !important; }
+
+/* ==========================================================================
+   5. TINTE POR TIPO DE CUENTA
+   --------------------------------------------------------------------------
+   - Estándar → acento = primary (verde de marca)
+   - Familiar → acento = tertiary (moradito de marca)
+   Cambia SOLO botones/chips/acentos, nunca el fondo de la app.
+   ========================================================================== */
+
+/* --- 5.1 Tokens de acento (claro) --- */
+:root {
+  --accent:               var(--primary);
+  --accent-hover:         #047857;
+  --accent-container:     var(--primary-container);
+  --accent-fixed:         var(--primary-fixed);
+  --accent-on:            var(--on-primary);
+  --accent-on-container:  var(--on-primary-container);
+  --accent-on-fixed:      var(--on-primary-fixed);
+}
+
+/* --- 5.2 Tokens de acento (oscuro) --- */
+[data-theme="oscuro"] {
+  --accent:               var(--primary);
+  --accent-hover:         #8ce7c4;
+  --accent-container:     var(--primary-container);
+  --accent-fixed:         var(--primary-fixed);
+  --accent-on:            var(--on-primary);
+  --accent-on-container:  var(--on-primary-container);
+  --accent-on-fixed:      var(--on-primary-fixed);
+}
+
+/* --- 5.3 Cuenta familiar: reasignamos la familia "primary" para que
+       apunte a los valores de "tertiary". Así TODO lo que use var(--primary)
+       se vuelve morado sin tocar vistas ni utilidades. --- */
+[data-account-type="familiar"] {
+  /* Reasignación de tokens (claro) */
+  --primary:                   var(--tertiary);
+  --primary-container:         var(--tertiary-container);
+  --primary-fixed:             var(--tertiary-fixed);
+  --primary-fixed-dim:         var(--tertiary-fixed-dim);
+  --on-primary:                var(--on-tertiary);
+  --on-primary-container:      var(--on-tertiary-container);
+  --on-primary-fixed:          var(--on-tertiary-fixed);
+  --on-primary-fixed-variant:  var(--on-tertiary-fixed-variant);
+  --inverse-primary:           var(--tertiary-fixed);
+
+  /* Acento (píldora topbar, avatar, menú-usuario, nav-active…) */
+  --accent:                    var(--tertiary);
+  --accent-hover:              #2f2ebe;
+  --accent-container:          var(--tertiary-container);
+  --accent-fixed:              var(--tertiary-fixed);
+  --accent-on:                 var(--on-tertiary);
+  --accent-on-container:       var(--on-tertiary-container);
+  --accent-on-fixed:           var(--on-tertiary-fixed);
+}
+
+[data-theme="oscuro"][data-account-type="familiar"] {
+  /* Reasignación de tokens (oscuro) */
+  --primary:                   var(--tertiary);
+  --primary-container:         var(--tertiary-container);
+  --primary-fixed:             var(--tertiary-fixed);
+  --primary-fixed-dim:         var(--tertiary-fixed-dim);
+  --on-primary:                var(--on-tertiary);
+  --on-primary-container:      var(--on-tertiary-container);
+  --on-primary-fixed:          var(--on-tertiary-fixed);
+  --on-primary-fixed-variant:  var(--on-tertiary-fixed-variant);
+  --inverse-primary:           var(--tertiary-fixed);
+
+  /* Acento (oscuro) */
+  --accent:                    var(--tertiary);
+  --accent-hover:              #d6d7ff;
+  --accent-container:          var(--tertiary-container);
+  --accent-fixed:              var(--tertiary-fixed);
+  --accent-on:                 var(--on-tertiary);
+  --accent-on-container:       var(--on-tertiary-container);
+  --accent-on-fixed:           var(--on-tertiary-fixed);
+}
+
+/* --- 5.4 Overrides de utilidades para familiar --- */
+
+/* Fondos sólidos */
+[data-account-type="familiar"] .bg-primary              { background-color: var(--accent) !important; }
+[data-account-type="familiar"] .bg-primary-container    { background-color: var(--accent-container) !important; }
+[data-account-type="familiar"] .bg-primary-fixed        { background-color: var(--accent-fixed) !important; }
+[data-account-type="familiar"] .bg-primary\/10          { background-color: color-mix(in srgb, var(--accent) 10%, transparent) !important; }
+[data-account-type="familiar"] .bg-primary\/15          { background-color: color-mix(in srgb, var(--accent) 15%, transparent) !important; }
+[data-account-type="familiar"] .bg-primary\/20          { background-color: color-mix(in srgb, var(--accent) 20%, transparent) !important; }
+[data-account-type="familiar"] .bg-primary\/30          { background-color: color-mix(in srgb, var(--accent) 30%, transparent) !important; }
+[data-account-type="familiar"] .bg-primary-fixed\/30    { background-color: color-mix(in srgb, var(--accent-fixed) 30%, transparent) !important; }
+[data-account-type="familiar"] .bg-primary-fixed\/40    { background-color: color-mix(in srgb, var(--accent-fixed) 40%, transparent) !important; }
+[data-account-type="familiar"] .bg-primary-fixed\/50    { background-color: color-mix(in srgb, var(--accent-fixed) 50%, transparent) !important; }
+
+/* Texto / iconos */
+[data-account-type="familiar"] .text-primary            { color: var(--accent) !important; }
+[data-account-type="familiar"] .text-primary-container  { color: var(--accent-container) !important; }
+[data-account-type="familiar"] .text-on-primary         { color: var(--accent-on) !important; }
+[data-account-type="familiar"] .text-on-primary-container { color: var(--accent-on-container) !important; }
+[data-account-type="familiar"] .text-primary-fixed      { color: var(--accent-fixed) !important; }
+
+/* Bordes y rings */
+[data-account-type="familiar"] .border-primary          { border-color: var(--accent) !important; }
+[data-account-type="familiar"] .border-primary\/30      { border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important; }
+[data-account-type="familiar"] .ring-primary            { --tw-ring-color: var(--accent) !important; }
+
+/* Hovers */
+[data-account-type="familiar"] .hover\:bg-primary:hover           { background-color: var(--accent-hover) !important; }
+[data-account-type="familiar"] .hover\:bg-primary-container:hover { background-color: var(--accent-hover) !important; }
+[data-account-type="familiar"] .hover\:bg-primary\/10:hover       { background-color: color-mix(in srgb, var(--accent) 10%, transparent) !important; }
+[data-account-type="familiar"] .hover\:bg-primary\/20:hover       { background-color: color-mix(in srgb, var(--accent) 20%, transparent) !important; }
+[data-account-type="familiar"] .hover\:text-primary:hover         { color: var(--accent-hover) !important; }
+[data-account-type="familiar"] .hover\:border-primary:hover       { border-color: var(--accent-hover) !important; }
+
+/* Focus */
+[data-account-type="familiar"] .focus\:ring-primary:focus   { --tw-ring-color: var(--accent) !important; }
+[data-account-type="familiar"] .focus\:border-primary:focus { border-color: var(--accent) !important; }
+
+/* Componentes del CSS global (.btn-primary de style.css) */
+.btn-primary {
+  background-color: var(--accent-container) !important;
+  color: var(--accent-on-container) !important;
+}
+.btn-primary:hover {
+  background-color: var(--accent-hover) !important;
+}
+.btn-primary:focus-visible {
+  outline: 0 !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent) !important;
+}
+
+/* Link activo del menú lateral y del menú usuario */
+[data-account-type="familiar"] .nav-active {
+  background: var(--accent-container) !important;
+  color: var(--accent-on-container) !important;
+}
+[data-account-type="familiar"] .menu-usuario__item--activo {
+  background: var(--accent-container) !important;
+  color: var(--accent-on-container) !important;
+}
+[data-account-type="familiar"] .menu-usuario__avatar {
+  background: var(--accent-container) !important;
+  color: var(--accent-on-container) !important;
+}

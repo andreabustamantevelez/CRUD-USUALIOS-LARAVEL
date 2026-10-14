@@ -21,15 +21,27 @@
         <h2 class="text-lg font-bold text-gray-800 mb-4">Registrar Nuevo Gasto</h2>
         <form method="POST" action="{{ route('gastos.store') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             @csrf
+
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">Monto ($ COP)</label>
-                <input type="number" name="monto" min="1" placeholder="Ej: 45000" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                <input
+                    type="number"
+                    name="monto"
+                    min="1"
+                    placeholder="Ej: 45000"
+                    required
+                    class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                >
                 @error('monto') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">Categoría</label>
-                <select name="categoria_id" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                <select
+                    name="categoria_id"
+                    required
+                    class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                >
                     <option value="">Selecciona categoría</option>
                     @foreach($categorias as $cat)
                         <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
@@ -40,22 +52,30 @@
 
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">Fecha</label>
-                <input type="date" name="fecha" value="{{ date('Y-m-d') }}" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                <input
+                    type="date"
+                    name="fecha"
+                    value="{{ date('Y-m-d') }}"
+                    required
+                    class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                >
                 @error('fecha') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">Descripción</label>
-                <input type="text" name="descripcion" placeholder="Ej: Compra de mercado" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                <input
+                    type="text"
+                    name="descripcion"
+                    placeholder="Ej: Compra de mercado"
+                    class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                >
             </div>
 
             <div class="md:col-span-4 flex justify-end">
-                <button
-    type="submit"
-    style="background-color: #00855d !important; color: white !important; padding: 10px 20px !important; border: none !important; border-radius: 8px !important; font-weight: 600 !important; cursor: pointer !important;"
->
-    Guardar Gasto
-</button>
+                <button type="submit" class="btn btn-primary">
+                    Guardar Gasto
+                </button>
             </div>
         </form>
     </div>
@@ -88,36 +108,48 @@
                 <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
                     @forelse($gastos as $gasto)
                         <tr class="hover:bg-gray-50/50 transition-colors">
-                            <td class="p-4 text-gray-500">{{ \Carbon\Carbon::parse($gasto->fecha)->format('d/m/Y') }}</td>
-                            <td class="p-4 font-medium text-gray-900">{{ $gasto->descripcion ?? 'Sin descripción' }}</td>
+                            <td class="p-4 text-gray-500">
+                                {{ \Carbon\Carbon::parse($gasto->fecha)->format('d/m/Y') }}
+                            </td>
+                            <td class="p-4 font-medium text-gray-900">
+                                {{ $gasto->descripcion ?? 'Sin descripción' }}
+                            </td>
                             <td class="p-4">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                     {{ $gasto->categoria->nombre ?? 'General' }}
                                 </span>
                             </td>
-                            <td class="p-4 text-right font-bold text-red-600">$ {{ number_format($gasto->monto, 0, ',', '.') }}</td>
+                            <td class="p-4 text-right font-bold text-red-600">
+                                $ {{ number_format($gasto->monto, 0, ',', '.') }}
+                            </td>
                             <td class="p-4 text-center">
-    <div class="flex items-center justify-center gap-3">
+                                <div class="flex items-center justify-center gap-3">
 
-        <a href="{{ route('gastos.edit', $gasto->id) }}"
-           class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold">
-            Editar
-        </a>
+                                    <a
+                                        href="{{ route('gastos.edit', $gasto->id) }}"
+                                        class="text-primary hover:opacity-80 text-xs font-semibold"
+                                    >
+                                        Editar
+                                    </a>
 
-        <form method="POST"
-              action="{{ route('gastos.destroy', $gasto->id) }}"
-              onsubmit="return confirm('¿Seguro que deseas eliminar este gasto?');">
-            @csrf
-            @method('DELETE')
+                                    <form
+                                        method="POST"
+                                        action="{{ route('gastos.destroy', $gasto->id) }}"
+                                        onsubmit="return confirm('¿Seguro que deseas eliminar este gasto?');"
+                                    >
+                                        @csrf
+                                        @method('DELETE')
 
-            <button type="submit"
-                    class="text-red-600 hover:text-red-800 text-xs font-semibold">
-                Eliminar
-            </button>
-        </form>
+                                        <button
+                                            type="submit"
+                                            class="text-error hover:opacity-80 text-xs font-semibold"
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </form>
 
-    </div>
-</td>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>

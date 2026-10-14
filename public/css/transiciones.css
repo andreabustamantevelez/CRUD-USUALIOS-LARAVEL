@@ -1,0 +1,139 @@
+/*
+ * ==============================================================================
+ * ARCHIVO : public/css/transiciones.css
+ * QUÉ ES  : Suaviza la carga de página y los cambios de estado (tema, hover).
+ *           - Fuente fallback con métricas ajustadas (evita reflow al swap).
+ *           - Reserva de espacio para Material Symbols (evita saltos de layout).
+ *           - Fade-in de la página en cada navegación.
+ *           - View Transitions API (navegación suave en Chrome/Edge/Safari).
+ *           - Transición global suave SOLO cuando cambia el tema.
+ * CARGA : después de theme.css, antes de @stack('styles').
+ * ==============================================================================
+ */
+
+/* ==========================================================================
+   1. FUENTE FALLBACK CON MÉTRICAS AJUSTADAS
+   Cuando Plus Jakarta Sans aún no cargó, el navegador usa esta fallback con
+   proporciones parecidas. Así el salto al swap es mínimo.
+   ========================================================================== */
+@font-face {
+  font-family: 'PJS Fallback';
+  src: local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), local('Arial');
+  size-adjust: 100%;
+  ascent-override: 100%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+  font-display: swap;
+}
+
+html {
+  /* Fallback métrico entre Plus Jakarta y system-ui */
+  font-family: 'Plus Jakarta Sans', 'PJS Fallback', system-ui, -apple-system, sans-serif;
+}
+
+/* ==========================================================================
+   2. MATERIAL SYMBOLS: RESERVA DE ESPACIO
+   Mientras la fuente carga, el icono tiene el mismo alto/ancho que cuando ya
+   está, así nada se corre. Además, si aún no cargó, se oculta el texto crudo.
+   ========================================================================== */
+.material-symbols-outlined {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
+  overflow: hidden;
+  vertical-align: middle;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  /* Ocultar el texto crudo mientras la fuente no haya cargado del todo.
+     La clase .fuentes-listas la agrega transiciones.js cuando document.fonts.ready. */
+  visibility: hidden;
+}
+
+html.fuentes-listas .material-symbols-outlined {
+  visibility: visible;
+}
+
+/* Fallback duro: si en 800 ms no cargó, mostrar igual (mejor texto que nada). */
+html.fuentes-listas-fallback .material-symbols-outlined {
+  visibility: visible;
+}
+
+/* ==========================================================================
+   3. FADE-IN DE PÁGINA
+   Se ejecuta en cada carga. Muy sutil, 180 ms, para que no se sienta lento.
+   ========================================================================== */
+@keyframes cc-aparecer {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+body {
+  animation: cc-aparecer .18s ease-out both;
+}
+
+/* ==========================================================================
+   4. VIEW TRANSITIONS API
+   Habilita transición suave al navegar entre páginas (mismo dominio) en
+   navegadores que lo soportan (Chrome 111+, Edge 111+, Safari 18+, FF 139+).
+   Degrada solo: en navegadores sin soporte no pasa nada.
+   ========================================================================== */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: cc-fade-out .16s cubic-bezier(.4, 0, .2, 1);
+}
+::view-transition-new(root) {
+  animation: cc-fade-in .18s cubic-bezier(.4, 0, .2, 1);
+}
+
+@keyframes cc-fade-out {
+  to { opacity: 0; }
+}
+@keyframes cc-fade-in {
+  from { opacity: 0; }
+}
+
+/* Evitar que el header y el sidebar "parpadeen" en cada navegación:
+   se quedan estáticos y solo cambia el <main>. */
+header,
+aside,
+.menu-usuario,
+.topbar-acciones {
+  view-transition-name: none;
+}
+
+/* ==========================================================================
+   5. TRANSICIÓN GLOBAL SOLO CUANDO CAMBIA EL TEMA
+   No aplicamos transition a * siempre (mata el performance). Solo mientras
+   el <html> tenga .cambiando-tema (theme.js la pone y la quita).
+   ========================================================================== */
+html.cambiando-tema *,
+html.cambiando-tema *::before,
+html.cambiando-tema *::after {
+  transition:
+    background-color .22s cubic-bezier(.4, 0, .2, 1),
+    color            .22s cubic-bezier(.4, 0, .2, 1),
+    border-color     .22s cubic-bezier(.4, 0, .2, 1),
+    box-shadow       .22s cubic-bezier(.4, 0, .2, 1) !important;
+  transition-delay: 0s !important;
+}
+
+/* ==========================================================================
+   6. ACCESIBILIDAD: reduce-motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  body {
+    animation: none;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  html.cambiando-tema *,
+  html.cambiando-tema *::before,
+  html.cambiando-tema *::after {
+    transition: none !important;
+  }
+}

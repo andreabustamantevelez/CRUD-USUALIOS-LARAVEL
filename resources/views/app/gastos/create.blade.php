@@ -118,23 +118,21 @@
 
                 </div>
 
-               <div class="flex justify-end gap-3 mt-6">
+                <div class="flex justify-end gap-3 mt-6">
 
-    <a
-        href="{{ route('gastos.index') }}"
-        style="display: inline-block; padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; color: #666; text-decoration: none;"
-    >
-        Cancelar
-    </a>
+                    <a href="{{ route('gastos.index') }}" class="btn btn-secondary">
+                        Cancelar
+                    </a>
 
-    <button
-        type="submit"
-        style="display: inline-block !important; padding: 10px 20px !important; background-color: #00855d !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; cursor: pointer !important;"
-    >
-        Guardar Gasto
-    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Guardar Gasto
+                    </button>
 
-</div>
+                </div>
+
+            </form>
+
+        </div>
 
     </div>
 
