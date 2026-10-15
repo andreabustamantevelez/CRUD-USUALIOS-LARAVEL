@@ -1,17 +1,29 @@
 <?php
 
+use App\Http\Controllers\GastoFijoController;
 use Illuminate\Support\Facades\Route;
 
-/*
- * routes/modulos/gastos-fijos.php — DUEÑO: Nikol (N3).
- * Nombres: gastos-fijos.index/store/update/destroy/pagar
- * MAQUETA: cambia cada closure por GastoFijoController.
- */
+Route::get('/gastos-fijos', [
+    GastoFijoController::class,
+    'index',
+])->name('gastos-fijos.index');
 
-$pendiente = fn () => back()->with('exito', 'MAQUETA: esta acción aún no está implementada');
+Route::post('/gastos-fijos', [
+    GastoFijoController::class,
+    'store',
+])->name('gastos-fijos.store');
 
-Route::view('/gastos-fijos', 'app.gastos-fijos.index')->name('gastos-fijos.index');
-Route::post('/gastos-fijos', $pendiente)->name('gastos-fijos.store');
-Route::put('/gastos-fijos/{gastoFijo}', $pendiente)->name('gastos-fijos.update');
-Route::delete('/gastos-fijos/{gastoFijo}', $pendiente)->name('gastos-fijos.destroy');
-Route::post('/gastos-fijos/{gastoFijo}/pagar', $pendiente)->name('gastos-fijos.pagar');
+Route::put('/gastos-fijos/{gastoFijo}', [
+    GastoFijoController::class,
+    'update',
+])->name('gastos-fijos.update');
+
+Route::delete('/gastos-fijos/{gastoFijo}', [
+    GastoFijoController::class,
+    'destroy',
+])->name('gastos-fijos.destroy');
+
+Route::post('/gastos-fijos/{gastoFijo}/pagar', [
+    GastoFijoController::class,
+    'pagar',
+])->name('gastos-fijos.pagar');
