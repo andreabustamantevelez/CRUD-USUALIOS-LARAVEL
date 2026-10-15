@@ -1,59 +1,176 @@
-{{--
-  ==============================================================================
-  ARCHIVO : resources/views/app/informes/historial.blade.php
-  QUÉ ES  : Estructura Blade de la pantalla "Informes anteriores" (SIN diseño original todavía: el
-            contenido es una plantilla con zonas dinámicas).
-  RUTA    : GET /informes/historial (informes.historial) · Controlador:
-            InformeController@historial
-  DATOS QUE LLEGAN DEL CONTROLADOR:
-    - $informes (uno por mes)
-  BASE DE DATOS: informes_mensuales, detalle_informe
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear la ruta con el NOMBRE indicado en routes/web.php, dentro del grupo con los middleware
-       de la sección RUTA.
-    2. Crear el controlador y devolver esta vista con las variables listadas en DATOS (compact o
-       arreglo).
-    3. Consultar SIEMPRE por el usuario autenticado (auth()->user()->relación()); nunca
-       Modelo::all().
-    4. Reemplazar el bloque "DISEÑO PENDIENTE" por el code.html original de esta pantalla,
-       conservando los @forelse/@empty.
-    5. Formularios: @csrf, @method cuando no sea POST, name= igual al de la validación
-       (FormRequest) y @error bajo cada campo.
-    6. Mensajes de éxito: redirect()->with('exito', 'texto de la especificación') (se muestran en
-       <x-toast />).
-    7. Abrir un informe guardado tal como se generó.
-  CÓMO HACERLO / NOTAS:
-    - Los textos de "estado vacío" ya son los de la especificación.
-    - El CSS exclusivo de esta pantalla va en public/css/informes-historial.css.
-  CÓMO SE COMPRUEBA:
-    - Entrar con un usuario sin datos: se ve el texto de estado vacío.
-    - Entrar con dos usuarios: ninguno ve datos del otro.
-    - Probar en 1440, 768 y 390 px sin scroll horizontal.
-  ==============================================================================
---}}
 
 @extends('layouts.app')
+
 @section('titulo', 'Informes anteriores · Cuentas Claras')
+
 @push('styles')
-  <link rel="stylesheet" href="{{ asset('css/informes-historial.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/informes-historial.css') }}">
 @endpush
+
 @section('content')
-  <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
+<main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
     <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
-      {{-- DISEÑO PENDIENTE: reemplazar por el code.html original de esta pantalla --}}
-      <header>
-        <h1 class="font-headline-xl text-headline-xl text-on-surface">Informes anteriores</h1>
-        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Consulta informes guardados</p>
-      </header>
-      <section class="card p-space-lg" data-dinamico="informes">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Informes por mes</h2>
-        {{-- DINÁMICO: informes --}}
-        @forelse(($informes ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
-        @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">No hay informes anteriores</p>
-        @endforelse
-      </section>
+
+        <header>
+            <h1 class="font-headline-xl text-headline-xl text-on-surface">
+                Informes anteriores
+            </h1>
+
+            <p class="font-body-md text-body-md text-on-surface-variant mt-1">
+                Consulta tus informes mensuales guardados y compara cómo distribuías tu dinero.
+            </p>
+        </header>
+
+        <section class="card p-space-lg" data-dinamico="informes">
+            <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
+                Informes por mes
+            </h2>
+
+            @forelse ($informes as $item)
+                @php
+                    $totalesBloque = [
+                        'necesidades' => 0,
+                        'discrecionales' => 0,
+                        'ahorro' => 0,
+                    ];
+
+                    foreach ($item->detalles as $detalle) {
+                        if (array_key_exists($detalle->bloque, $totalesBloque)) {
+                            $totalesBloque[$detalle->bloque] += (int) $detalle->monto_gastado;
+                        }
+                    }
+
+                    $bloquesMostrar = [
+                        'necesidades' => [
+                            'nombre' => 'Necesidades',
+                            'recomendado' => 50,
+                        ],
+                        'discrecionales' => [
+                            'nombre' => 'Gastos discrecionales',
+                            'recomendado' => 30,
+                        ],
+                        'ahorro' => [
+                            'nombre' => 'Ahorro',
+                            'recomendado' => 20,
+                        ],
+                    ];
+                @endphp
+
+                <article class="border rounded-lg p-space-md mb-space-md">
+                    <div class="flex flex-wrap justify-between items-start gap-3">
+                        <div>
+                            <h3 class="font-headline-sm text-on-surface">
+                                {{ \Carbon\Carbon::create($item->anio, $item->mes, 1)->locale('es')->translatedFormat('F Y') }}
+                            </h3>
+
+                            <p class="text-on-surface-variant mt-1">
+                                Informe guardado el
+                                {{ $item->created_at->format('d/m/Y') }}
+                            </p>
+                        </div>
+
+                        <span class="text-sm border rounded-lg px-3 py-1">
+                            Guardado
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md mt-space-md">
+                        <div class="border rounded-lg p-space-md">
+                            <p class="text-on-surface-variant">Ingreso registrado</p>
+                            <p class="font-headline-sm">
+                                ${{ number_format($item->ingreso, 0, ',', '.') }}
+                            </p>
+                        </div>
+
+                        <div class="border rounded-lg p-space-md">
+                            <p class="text-on-surface-variant">Total gastado</p>
+                            <p class="font-headline-sm">
+                                ${{ number_format($item->total_gastado, 0, ',', '.') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-space-md">
+                        <h4 class="font-headline-sm mb-3">
+                            Distribución registrada
+                        </h4>
+
+                        @foreach ($bloquesMostrar as $clave => $bloque)
+                            @php
+                                $monto = $totalesBloque[$clave];
+                                $porcentaje = (int) $item->ingreso > 0
+                                    ? ($monto / (int) $item->ingreso) * 100
+                                    : null;
+                                $excede = $porcentaje !== null
+                                    && $porcentaje > $bloque['recomendado'];
+                            @endphp
+
+                            <div class="border-b py-3">
+                                <div class="flex flex-wrap justify-between gap-2">
+                                    <span>{{ $bloque['nombre'] }}</span>
+
+                                    <strong>
+                                        {{ $porcentaje === null
+                                            ? 'No disponible'
+                                            : number_format($porcentaje, 1, ',', '.') . '%' }}
+                                    </strong>
+                                </div>
+
+                                <p class="text-on-surface-variant text-sm mt-1">
+                                    Recomendado: {{ $bloque['recomendado'] }}%
+                                    · Gastado: ${{ number_format($monto, 0, ',', '.') }}
+                                </p>
+
+                                <p class="text-sm mt-1">
+                                    @if ($porcentaje === null)
+                                        No se puede calcular sin un ingreso registrado.
+                                    @elseif ($excede)
+                                        Supera el porcentaje recomendado.
+                                    @elseif ($clave === 'ahorro' && $porcentaje < 20)
+                                        Está por debajo del porcentaje recomendado.
+                                    @else
+                                        Dentro del límite recomendado.
+                                    @endif
+                                </p>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="mt-space-md">
+                        <a
+                            href="{{ route('informes.ver', $item->id) }}"
+                            class="btn btn-primary inline-block"
+                        >
+                            Ver informe guardado
+                        </a>
+                    </div>
+                </article>
+            @empty
+                <div class="py-space-lg text-center" role="status">
+                    <h3 class="font-headline-sm text-on-surface">
+                        No hay informes anteriores
+                    </h3>
+
+                    <p class="font-body-md text-on-surface-variant mt-2">
+                        Cuando guardes tu primer informe mensual, aparecerá aquí.
+                    </p>
+
+                    <a
+                        href="{{ route('informes.actual') }}"
+                        class="underline inline-block mt-3"
+                    >
+                        Ir al informe mensual
+                    </a>
+                </div>
+            @endforelse
+
+            @if ($informes->hasPages())
+                <div class="mt-space-lg">
+                    {{ $informes->links() }}
+                </div>
+            @endif
+        </section>
+
     </div>
-  </main>
+</main>
 @endsection

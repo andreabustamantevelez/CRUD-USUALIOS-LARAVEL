@@ -1,12 +1,18 @@
+
 <?php
 
+use App\Http\Controllers\InformeController;
 use Illuminate\Support\Facades\Route;
 
-/*
- * routes/modulos/informes.php — DUEÑA: Valeria (V3).
- * Nombres: informes.actual, informes.historial
- * MAQUETA: cambia por InformeController.
- */
+Route::get('/informes', [InformeController::class, 'mes'])
+    ->name('informes.actual');
 
-Route::view('/informes', 'app.informes.actual')->name('informes.actual');
-Route::view('/informes/historial', 'app.informes.historial')->name('informes.historial');
+Route::post('/informes/guardar', [InformeController::class, 'guardar'])
+    ->name('informes.guardar');
+
+Route::get('/informes/historial', [InformeController::class, 'historial'])
+    ->name('informes.historial');
+
+Route::get('/informes/historial/{id}', [InformeController::class, 'ver'])
+    ->whereNumber('id')
+    ->name('informes.ver');
