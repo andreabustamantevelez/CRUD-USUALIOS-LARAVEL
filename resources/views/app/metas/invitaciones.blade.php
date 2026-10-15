@@ -23,7 +23,14 @@
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">Acepta o rechaza invitaciones</p>
       </header>
       <section class="card p-space-lg" data-dinamico="invitaciones">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Invitaciones recibidas</h2>
+        @if(auth()->user()->rol === 'estandar' && $invitaciones->isNotEmpty())
+          <div class="card p-space-md" role="note" style="margin-bottom: 16px;">
+            <p class="font-body-md text-body-md text-on-surface-variant">
+              Para aceptar una invitación a una meta compartida debes
+              <a href="{{ route('ajustes.tipo-cuenta') }}" class="text-primary">cambiar tu tipo de cuenta a familiar</a>.
+            </p>
+          </div>
+        @endif
         @forelse($invitaciones as $invitacion)
           <article class="invitacion">
             <div class="invitacion__datos">

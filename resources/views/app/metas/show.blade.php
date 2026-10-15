@@ -85,7 +85,7 @@
         @endforelse
       </section>
 
-      @if($puedeInvitar)
+      @if($puedeInvitar && auth()->user()->rol === 'familiar')
         <section class="card p-space-lg">
           <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Invitar a alguien</h2>
           <form method="POST" action="{{ route('metas.invitar', $meta) }}" class="detalle-formulario" novalidate>

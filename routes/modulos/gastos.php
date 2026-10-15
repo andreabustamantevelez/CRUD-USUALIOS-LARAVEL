@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GastoController;
+use App\Http\Controllers\CategoriaController;
 
 /*
  * routes/modulos/gastos.php — DUEÑO: Nikol (N1 gastos, N2 categorías).
@@ -21,7 +22,7 @@ Route::put('/gastos/{gasto}', [GastoController::class, 'update'])->name('gastos.
 Route::delete('/gastos/{gasto}', [GastoController::class, 'destroy'])->name('gastos.destroy');
 
 // N2 - Categorías
-Route::view('/categorias', 'app.categorias.index')->name('categorias.index');
-Route::post('/categorias', $pendiente)->name('categorias.store');
-Route::put('/categorias/{categoria}', $pendiente)->name('categorias.update');
-Route::delete('/categorias/{categoria}', $pendiente)->name('categorias.destroy');
+Route::get('/categorias', [CategoriaController::class, 'index'])->name('categorias.index');
+Route::post('/categorias', [CategoriaController::class, 'store'])->name('categorias.store');
+Route::put('/categorias/{categoria}', [CategoriaController::class, 'update'])->name('categorias.update');
+Route::delete('/categorias/{categoria}', [CategoriaController::class, 'destroy'])->name('categorias.destroy');

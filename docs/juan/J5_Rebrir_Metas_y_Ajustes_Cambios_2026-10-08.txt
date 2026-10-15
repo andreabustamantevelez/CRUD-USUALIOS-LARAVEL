@@ -1,0 +1,281 @@
+======================================================================
+CUENTAS CLARAS - CAMBIOS DEL 2026-10-08
+Reapertura de J5: metas para estándar + cambio de tipo desde Ajustes
+Responsable: Juan · Rama: juan/j5-metas-compartidas
+======================================================================
+Estado: HECHO. php artisan test => 117 pruebas, 535 aserciones, todas pasan.
+
+
+----------------------------------------------------------------------
+1. QUÉ SE HIZO (en una frase por pieza)
+----------------------------------------------------------------------
+  Metas para estándar ......... el módulo de metas se abrió al rol estándar. Puede crear metas
+                                INDIVIDUALES (sin invitar a nadie) y recibir invitaciones a metas
+                                COMPARTIDAS, pero solo podrá aceptarlas si cambia a familiar.
+  Invitación a un estándar .... ya no se rechaza. Se crea la invitación + una notificación especial
+                                ("invitacion_meta_requiere_familiar") que le dice que debe cambiar su
+                                tipo de cuenta en Ajustes para poder aceptar.
+  Cambio de tipo de cuenta .... nuevo AjustesController + ServicioCuentas (contrato C7). Permite
+                                cambiar estandar <-> familiar desde Ajustes > Tipo de cuenta.
+  Familiar -> estándar ........ bloqueado si el usuario tiene METAS COMPARTIDAS ACTIVAS (regla 11).
+                                El aviso se ve en la propia pantalla.
+  Sidebar ..................... "Metas" ahora visible para estandar y familiar.
+  Tabs de Ajustes ............. partial _tabs.blade.php con 3 pestañas (Perfil · Tipo de cuenta ·
+                                Eliminar cuenta) para navegar dentro de Ajustes.
+  Políticas ................... MetaPolicy y ParticipacionMetaPolicy: before solo bloquea al
+                                administrador. El estándar pasa; el control fino lo hace el servicio.
+
+
+----------------------------------------------------------------------
+2. DECISIONES TOMADAS (para DECISIONES.md)
+----------------------------------------------------------------------
+  - Metas y rol estándar: el módulo pasa al Grupo C (estandar + familiar). El estándar solo puede
+    crear metas individuales; el familiar sigue siendo el único que puede crear compartidas o
+    aceptar una invitación a una compartida.
+  - Invitar a un estándar: se permite y se manda una notificación de tipo
+    "invitacion_meta_requiere_familiar".
+  - Aceptar siendo estándar: ServicioMetas::aceptar() lanza ValidationException con el mensaje
+    "Para aceptar esta invitación debes cambiar tu tipo de cuenta a familiar en Ajustes."
+  - Ajustes · tipo de cuenta: nuevo ServicioCuentas::cambiarTipo (contrato C7).
+  - Familiar -> estándar: bloqueado con metas compartidas activas. Nuevo método
+    ServicioMetas::tieneMetasCompartidasActivas().
+  - Notificaciones: se reutiliza ServicioMetas::notificar() (versión mínima de C4). Cuando llegue
+    el servicio de J6 se cambia solo ese método.
+  - Policy de metas: before solo bloquea al administrador.
+  - Sidebar y tabs: cambios visuales, no rompen nada del backend.
+  - Grupo D de rutas: desaparece. Metas pasa al Grupo C.
+  - El administrador sigue bloqueado en metas (decisión #20).
+
+
+----------------------------------------------------------------------
+3. ARCHIVOS MODIFICADOS
+----------------------------------------------------------------------
+
+routes/web.php
+  - Se eliminó el bloque GRUPO D (solo familiar). Se agregó require __DIR__.'/modulos/metas.php'
+    al GRUPO C (estandar, familiar).
+  - Cabecera actualizada: metas ahora está en Grupo C.
+
+routes/modulos/ajustes.php
+  - GET /ajustes/tipo-cuenta   -> [AjustesController::class, 'tipoCuenta']
+  - PUT /ajustes/tipo-cuenta   -> [AjustesController::class, 'cambiarTipo']
+  - GET /ajustes/perfil        -> [AjustesController::class, 'perfil']
+  - GET /ajustes/eliminar-cuenta -> [AjustesController::class, 'eliminarCuenta']
+  - PUT perfil.update y DELETE eliminar-cuenta.destroy siguen maqueta (los hace V4).
+  - Cabecera actualizada.
+
+routes/modulos/metas.php
+  - Cabecera actualizada: ya no es "solo familiar". Nombres de ruta NO cambiaron.
+
+app/Services/ServicioMetas.php
+  - invitar(): se permite invitar a un usuario con rol estandar. Si el invitado es estándar, la
+    notificación es de tipo 'invitacion_meta_requiere_familiar' con un mensaje que lo manda a
+    Ajustes. Si es familiar, sigue siendo 'invitacion_meta'.
+  - aceptar(): si el invitado no es familiar, lanza ValidationException con el mensaje:
+    "Para aceptar esta invitación debes cambiar tu tipo de cuenta a familiar en Ajustes."
+  - Nuevo método tieneMetasCompartidasActivas(User $usuario): bool (contrato C6 extendido).
+  - Constante MSG_ESTANDAR se conserva por si otra parte la usa, pero ya no se lanza desde invitar().
+
+app/Policies/MetaPolicy.php
+  - before(): "return $usuario->rol === 'administrador' ? false : null;".
+  - El resto de métodos no cambia: viewAny/create devuelven true; view/invitar/aportar/finalizar/
+    abandonar siguen decidiendo por participante + compartida + activa.
+  - Cabecera actualizada.
+
+app/Policies/ParticipacionMetaPolicy.php
+  - before(): "return $usuario->rol === 'administrador' ? false : null;".
+  - Así el estándar no recibe 403 seco; el ServicioMetas::aceptar() es quien lanza el mensaje amable.
+
+app/Http/Requests/Metas/StoreMetaRequest.php
+  - Regla 'compartida' extendida con closure: si el usuario intenta marcar compartida y su rol no es
+    familiar, falla con el mensaje:
+    "Solo las cuentas familiares pueden crear metas compartidas. Cambia tu tipo de cuenta en Ajustes."
+  - Se agregó 'compartida.boolean' a los mensajes.
+
+resources/views/app/ajustes/tipo-cuenta.blade.php
+  - Reemplazado el placeholder por la vista real: muestra el rol actual, 2 radios (Estándar /
+    Familiar), un aviso cuando el usuario tiene metas compartidas activas y el formulario PUT.
+  - Incluye @include('app.ajustes._tabs').
+
+resources/views/app/ajustes/perfil.blade.php
+  - Se agregó @include('app.ajustes._tabs') después del </header>.
+  - El contenido sigue siendo placeholder hasta que V4 lo haga.
+
+resources/views/app/ajustes/eliminar-cuenta.blade.php
+  - Se agregó @include('app.ajustes._tabs') después del </header>.
+  - El contenido sigue siendo placeholder hasta que V4 lo haga.
+
+resources/views/components/sidebar.blade.php
+  - El enlace "Metas" ya no está dentro de @if(auth()->user()->rol === 'familiar'). Ahora se dibuja
+    para estandar y familiar.
+  - Cabecera actualizada.
+
+resources/views/app/metas/index.blade.php
+  - Nuevo bloque visible solo si el rol es estandar, arriba del encabezado, con el aviso:
+    "Puedes tener metas individuales. Para compartir una meta con otra persona, cambia tu tipo de
+    cuenta a familiar" (con enlace a ajustes.tipo-cuenta).
+  - El bloque del formulario "Compartir esta meta" + "Correo de la persona a invitar" ahora solo se
+    dibuja si el rol es familiar.
+  - Estado vacío cambiado de "Aún no tienes metas compartidas" a "Aún no tienes metas" (porque ya no
+    todas son compartidas).
+  - Cabecera actualizada.
+
+resources/views/app/metas/show.blade.php
+  - El bloque "Invitar a alguien" ahora solo se dibuja si $puedeInvitar && el rol es familiar.
+
+resources/views/app/metas/invitaciones.blade.php
+  - Si el rol es estandar y hay invitaciones pendientes, se muestra arriba un banner:
+    "Para aceptar una invitación a una meta compartida debes cambiar tu tipo de cuenta a familiar"
+    (con enlace a ajustes.tipo-cuenta).
+
+
+----------------------------------------------------------------------
+4. ARCHIVOS NUEVOS
+----------------------------------------------------------------------
+
+app/Http/Controllers/AjustesController.php
+  - perfil(Request): View                 -> app.ajustes.perfil
+  - tipoCuenta(Request): View             -> app.ajustes.tipo-cuenta (pasa $usuario y
+                                             $tieneMetasCompartidasActivas)
+  - cambiarTipo(Request): RedirectResponse -> valida tipo_cuenta (estandar|familiar), llama a
+                                             ServicioCuentas::cambiarTipo y redirige con
+                                             'exito' => 'Tipo de cuenta actualizado'
+  - eliminarCuenta(Request): View         -> app.ajustes.eliminar-cuenta (placeholder)
+
+app/Services/ServicioCuentas.php
+  - cambiarTipo(User $usuario, string $nuevoTipo): void
+    * Valida que sea estandar|familiar.
+    * Si es el mismo, no hace nada.
+    * Si es familiar -> estandar y tiene metas compartidas activas, lanza ValidationException.
+    * Cambia el rol dentro de una transacción.
+
+resources/views/app/ajustes/_tabs.blade.php
+  - Partial con 3 pestañas (Perfil · Tipo de cuenta · Eliminar cuenta).
+  - Marca la activa con request()->routeIs('ajustes.*').
+
+tests/Feature/AjustesTest.php
+  - 5 pruebas: estandar -> familiar, familiar sin metas -> estandar, familiar con meta compartida
+    activa NO puede bajar, familiar con solo meta individual SÍ puede bajar, cualquier rol puede ver
+    la pantalla.
+
+
+----------------------------------------------------------------------
+5. ARCHIVOS DE TEST MODIFICADOS
+----------------------------------------------------------------------
+
+tests/Feature/MetasTest.php
+  - test_estandar_y_administrador_reciben_403_en_metas
+    -> renombrado a test_administrador_recibe_403_en_metas_pero_estandar_no
+    -> el estándar ahora recibe 200 en GET /metas.
+  - test_un_estandar_no_puede_crear_metas
+    -> renombrado a test_un_estandar_puede_crear_meta_individual_pero_no_compartida.
+  - test_invitar_las_tres_validaciones_y_el_maximo
+    -> renombrado a test_invitar_valida_existencia_duplicado_yo_mismo_y_cupo
+    -> ya no valida "es estándar"; en su lugar verifica que un estándar no cabe solo por cupo.
+  - Dos pruebas nuevas:
+    * test_invitar_a_un_estandar_crea_invitacion_y_notificacion_especial
+    * test_estandar_no_puede_aceptar_hasta_cambiar_a_familiar
+
+tests/Feature/PermisosTest.php
+  - Constante GRUPO_D ELIMINADA.
+  - 'metas.index' y 'metas.invitaciones' agregadas a GRUPO_C.
+  - Método test_grupo_d_metas_solo_familiar ELIMINADO.
+  - test_sin_sesion_todo_lo_privado_redirige_al_login: ya no incluye GRUPO_D en el array_merge.
+  - test_las_acciones_que_modifican_tambien_estan_protegidas: ya no espera 403 en
+    POST metas.store para el estándar. Ahora verifica que el estándar recibe 302 con error de
+    validación en 'compartida'.
+
+
+----------------------------------------------------------------------
+6. ESTADO DE LAS PRUEBAS
+----------------------------------------------------------------------
+  Antes ........ 77 pruebas (J2, J3, J4, CalculadoraCredito).
+  Ahora ........ 117 pruebas, 535 aserciones, todas verdes.
+  Distribución:
+    AuthTest .................. 32 pruebas
+    BaseDeDatosTest ........... 20 pruebas
+    AislamientoTest ........... 10 pruebas
+    PermisosTest ..............  8 pruebas (antes 10, se eliminaron 2 del Grupo D)
+    MetasTest ................. 36 pruebas (antes 34, +2 nuevas)
+    AjustesTest ...............  5 pruebas (nuevas)
+    CalculadoraCreditoTest ....  3 pruebas
+    ExampleTest ...............  2 pruebas
+
+
+----------------------------------------------------------------------
+7. CÓMO PROBARLO A MANO
+----------------------------------------------------------------------
+  1. php artisan migrate:fresh --seed
+  2. php artisan test  -> 117 passed.
+  3. Como estandar@test.com (password "password"):
+     - Sidebar > Metas: entra sin 403.
+     - Pantalla de metas: ves el banner "Puedes tener metas individuales..." y el formulario NO
+       tiene la casilla de compartir.
+     - Crea una meta individual: se guarda y aparece en "Mis metas".
+  4. Como familiar@test.com:
+     - Crea una meta COMPARTIDA e invita a estandar@test.com.
+  5. Como estandar@test.com otra vez:
+     - Menú del usuario (arriba derecha) > Ajustes > tab "Tipo de cuenta".
+     - Verás los 3 tabs (Perfil · Tipo de cuenta · Eliminar cuenta) y el aviso de que para aceptar
+       una invitación debes cambiar a familiar.
+     - Cambia a Familiar y guarda: mensaje "Tipo de cuenta actualizado".
+     - Vuelve a Metas > Invitaciones y acepta: ahora sí funciona.
+  6. Como familiar@test.com con metas compartidas activas:
+     - Ajustes > Tipo de cuenta: el radio "Estándar" está deshabilitado y hay aviso.
+  7. Como admin@test.com:
+     - /metas da 403 (sigue bloqueado).
+     - Ajustes > Tipo de cuenta: entra, ve su rol "Administrador" y los radios funcionan (puede
+       cambiar su propio rol si quiere, es su cuenta).
+
+
+----------------------------------------------------------------------
+8. PENDIENTES Y LIMITACIONES
+----------------------------------------------------------------------
+  - ServicioNotificaciones (J6) aún no existe: ServicioMetas::notificar() sigue siendo la versión
+    mínima. Cuando llegue J6 se cambia solo ese método.
+  - Ajustes > Perfil y Ajustes > Eliminar cuenta siguen siendo maqueta (los hace Valeria V4).
+  - Los mensajes exactos "Tipo de cuenta actualizado" y "Para aceptar esta invitación..." son
+    propuesta; si la especificación tiene otros, cambiarlos en un solo lugar.
+  - AjustesController::perfil y ::eliminarCuenta son solo las vistas; sus PUT/DELETE son maqueta.
+  - El cambio de rol en Ajustes no cierra la sesión: el usuario sigue autenticado, solo cambia su
+    rol. Es lo esperado (regla 11 del documento de arquitectura).
+
+
+----------------------------------------------------------------------
+9. TEXTO PARA EL PULL REQUEST
+----------------------------------------------------------------------
+Título: [J5] Metas para estándar, invitación con aviso y cambio de tipo desde Ajustes
+
+Qué se hizo
+- Metas pasaron al Grupo C: el estándar puede crear metas individuales y recibir invitaciones.
+- Invitar a un estándar crea la invitación + notificación "invitacion_meta_requiere_familiar".
+- ServicioMetas::aceptar() bloquea al estándar con un mensaje que lo manda a Ajustes.
+- Nuevo ServicioCuentas::cambiarTipo (contrato C7) y AjustesController para cambiar tipo.
+- Vista funcional de Ajustes > Tipo de cuenta con tabs internos.
+- Sidebar: Metas visible para estandar y familiar.
+- Políticas actualizadas: before solo bloquea al administrador.
+- Nuevas pruebas: AjustesTest (5) + 2 en MetasTest + ajustes en PermisosTest.
+
+Cómo probar
+- php artisan migrate:fresh --seed
+- php artisan test  -> 117 passed
+- Cuentas: estandar@test.com, familiar@test.com, admin@test.com (password "password")
+
+Notas
+- Familiar -> estándar bloqueado con metas compartidas activas.
+- ServicioNotificaciones (J6) aún no existe: ServicioMetas::notificar() es la versión mínima.
+- Ajustes > Perfil y Eliminar cuenta siguen maqueta (V4).
+
+Lista de terminado
+[x] hace lo que dice la guía
+[x] nombres de ruta sin cambios
+[x] mensajes exactos
+[x] pruebas pasan
+[x] cabeceras actualizadas
+[ ] capturas
+[ ] revisada por otra persona
+
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================

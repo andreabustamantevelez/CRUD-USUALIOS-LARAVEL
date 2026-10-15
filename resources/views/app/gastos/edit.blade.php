@@ -1,4 +1,3 @@
-```blade
 @extends('layouts.app')
 
 @section('content')
@@ -111,19 +110,13 @@
 
                 <div class="flex justify-end gap-3 mt-6">
 
-                    <a
-                        href="{{ route('gastos.index') }}"
-                        class="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50"
-                    >
+                    <a href="{{ route('gastos.index') }}" class="btn btn-secondary">
                         Cancelar
                     </a>
 
-                    <button
-    type="submit"
-    style="display: block !important; background: #00855d !important; color: white !important; padding: 10px 20px !important; border-radius: 8px !important;"
->
-    Guardar cambios
-</button>
+                    <button type="submit" class="btn btn-primary">
+                        Guardar cambios
+                    </button>
 
                 </div>
 
@@ -136,4 +129,3 @@
 </div>
 
 @endsection
-```

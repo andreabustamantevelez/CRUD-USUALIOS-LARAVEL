@@ -6110,7 +6110,7 @@ cc-topbar {
 .bg-gradient-to-tr { --gs: var(--gf,transparent),var(--gt,transparent); background-image: linear-gradient(to top right,var(--gs)); }
 .bg-gradient-to-r { --gs: var(--gf,transparent),var(--gt,transparent); background-image: linear-gradient(to right,var(--gs)); }
 .bg-gradient-to-br { --gs: var(--gf,transparent),var(--gt,transparent); background-image: linear-gradient(to bottom right,var(--gs)); }
-.bg-gradient-to-b { --gs: var(--gf,transparent),var(--gt,transparent); background-image: linear-gradient(to bottom,var(--gs)); }
+.bg-gradient-to-b { --gs: var(--gf,transparent),var(--gt,transparent); }
 .bg-gradient-to-bl { --gs: var(--gf,transparent),var(--gt,transparent); background-image: linear-gradient(to bottom left,var(--gs)); }
 .bg-gradient-to-l { --gs: var(--gf,transparent),var(--gt,transparent); background-image: linear-gradient(to left,var(--gs)); }
 .bg-gradient-to-tl { --gs: var(--gf,transparent),var(--gt,transparent); background-image: linear-gradient(to top left,var(--gs)); }

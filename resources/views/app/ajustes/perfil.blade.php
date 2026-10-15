@@ -1,4 +1,3 @@
-```blade
 @extends('layouts.app')
 
 @section('titulo', 'Ajustes · Perfil · Cuentas Claras')
@@ -10,7 +9,6 @@
 @section('content')
     <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
         <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
-
             <header>
                 <h1 class="font-headline-xl text-headline-xl text-on-surface">
                     Ajustes · Perfil
@@ -20,6 +18,8 @@
                     Actualiza tus datos personales y tu ingreso mensual.
                 </p>
             </header>
+
+            @include('app.ajustes._tabs')
 
             <section class="card p-space-lg">
                 <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
@@ -50,7 +50,6 @@
 
                     <div class="flex flex-col gap-2 mb-4">
                         <label for="nombre">Nombre completo</label>
-
                         <input
                             type="text"
                             id="nombre"
@@ -60,7 +59,6 @@
                             required
                             class="w-full p-3 rounded border"
                         >
-
                         @error('nombre')
                             <p class="text-red-600">{{ $message }}</p>
                         @enderror
@@ -68,7 +66,6 @@
 
                     <div class="flex flex-col gap-2 mb-4">
                         <label for="email">Correo electrónico</label>
-
                         <input
                             type="email"
                             id="email"
@@ -78,7 +75,6 @@
                             required
                             class="w-full p-3 rounded border"
                         >
-
                         @error('email')
                             <p class="text-red-600">{{ $message }}</p>
                         @enderror
@@ -86,7 +82,6 @@
 
                     <div class="flex flex-col gap-2 mb-6">
                         <label for="ingreso_mensual">Ingreso mensual (COP)</label>
-
                         <input
                             type="number"
                             id="ingreso_mensual"
@@ -98,7 +93,6 @@
                             required
                             class="w-full p-3 rounded border"
                         >
-
                         @error('ingreso_mensual')
                             <p class="text-red-600">{{ $message }}</p>
                         @enderror
@@ -119,4 +113,3 @@
         </div>
     </main>
 @endsection
-```
