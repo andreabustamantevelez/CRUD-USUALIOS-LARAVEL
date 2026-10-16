@@ -187,15 +187,7 @@ class GastoFijoController extends Controller
     private function cancelarNotificacionesPendientes(
         GastoFijo $gastoFijo
     ): void {
-        $idsPagos = $gastoFijo->pagos()->pluck('id');
-
-        if ($idsPagos->isEmpty()) {
-            return;
-        }
-
-        Notificacion::delUsuario((int) $gastoFijo->user_id)
-            ->whereIn('pago_gasto_fijo_id', $idsPagos)
-            ->where('estado', 'pendiente')
-            ->update(['estado' => 'cancelada']);
+        app(\App\Services\ServicioNotificaciones::class)
+            ->cancelarPorGastoFijo(auth()->user(), $gastoFijo);
     }
 }
