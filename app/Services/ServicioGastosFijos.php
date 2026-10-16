@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\GastoFijo;
-use App\Models\Notificacion;
 use App\Models\PagoGastoFijo;
 use App\Models\User;
 use Carbon\Carbon;
@@ -117,7 +116,8 @@ class ServicioGastosFijos
 
         return PagoGastoFijo::delUsuario((int) $usuario->id)
             ->where('estado', 'pendiente')
-            ->whereBetween('fecha_vencimiento', [$hoy, $limite])
+            ->whereDate('fecha_vencimiento', '>=', $hoy)
+            ->whereDate('fecha_vencimiento', '<=', $limite)
             ->with('gastoFijo.categoria')
             ->orderBy('fecha_vencimiento')
             ->get();
@@ -158,7 +158,7 @@ class ServicioGastosFijos
             ->where('estado', 'pagado')
             ->exists();
     }
-        /**
+    /**
      * Marca como pagado el gasto fijo correspondiente al periodo.
      * Si el pago ya existe, lo reutiliza y no crea duplicados.
      */
@@ -173,11 +173,7 @@ class ServicioGastosFijos
             );
         }
 
-        return DB::transaction(function () use (
-            $usuario,
-            $gastoFijo,
-            $fecha
-        ) {
+        return DB::transaction(function () use ($usuario, $gastoFijo, $fecha) {
             $periodo = $fecha->format('Y-m');
 
             $pago = PagoGastoFijo::where('user_id', $usuario->id)
@@ -191,10 +187,7 @@ class ServicioGastosFijos
                     'user_id' => $usuario->id,
                     'gasto_fijo_id' => $gastoFijo->id,
                     'periodo' => $periodo,
-                    'fecha_vencimiento' => $this->fechaVencimiento(
-                        $gastoFijo,
-                        $fecha
-                    )->toDateString(),
+                    'fecha_vencimiento' => $this->fechaVencimiento($gastoFijo, $fecha)->toDateString(),
                     'estado' => 'pagado',
                     'fecha_pago' => $fecha->toDateString(),
                     'monto' => $gastoFijo->monto,
@@ -206,10 +199,8 @@ class ServicioGastosFijos
                 ]);
             }
 
-            Notificacion::delUsuario((int) $usuario->id)
-                ->where('pago_gasto_fijo_id', $pago->id)
-                ->where('estado', 'pendiente')
-                ->update(['estado' => 'cancelada']);
+            app(\App\Services\ServicioNotificaciones::class)
+                ->cancelarPorPago($usuario, $pago);
 
             return $pago->fresh();
         });

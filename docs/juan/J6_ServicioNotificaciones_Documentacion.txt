@@ -1,0 +1,226 @@
+======================================================================
+J6 - ALERTAS AUTOMÁTICAS Y SERVICIO DE NOTIFICACIONES  ·  DOCUMENTACIÓN
+Responsable: Juan · Fecha: 2026-10-16 · Rama: juan/j6-notificaciones
+======================================================================
+Estado: HECHO. php artisan test --filter=AlertasTest => 7 pruebas, todas pasan.
+Incluye el bugfix de N3 (proximosAVencer) y el refactor de marcarPagado.
+
+
+----------------------------------------------------------------------
+1. QUÉ SE HIZO (en una frase por pieza)
+----------------------------------------------------------------------
+  ServicioNotificaciones .... centraliza crear, contar, cancelar y marcar como leídas
+                              las notificaciones. Es el contrato C4.
+  Comando diario ............ alertas:gastos-fijos recorre usuarios activos, genera los
+                              pagos del mes, marca vencidos y crea alertas "por vencer"
+                              (3 días o menos) y "vencido". Idempotente.
+  Cancelación por pago ...... marcar un gasto fijo como pagado cancela su alerta pendiente.
+  Campana del topbar ........ $notificacionesPendientes ya cuenta notificaciones reales
+                              por usuario (contrato C8).
+  Refactor de N3 ............ ServicioGastosFijos::marcarPagado y GastoFijoController
+                              delegan la cancelación en ServicioNotificaciones. Ya no
+                              escriben en la tabla notificaciones directamente.
+  Bugfix .................... proximosAVencer usaba whereBetween con fecha guardada como
+                              datetime; el día límite quedaba fuera. Se cambió a whereDate.
+
+
+----------------------------------------------------------------------
+2. ARCHIVOS NUEVOS Y MODIFICADOS
+----------------------------------------------------------------------
+NUEVOS
+  app/Services/ServicioNotificaciones.php ......... contrato C4 (crear, contar, cancelar,
+                                                    marcarLeida, marcarTodasLeidas)
+  app/Console/Commands/GenerarAlertasGastosFijos.php  comando alertas:gastos-fijos
+  tests/Feature/AlertasTest.php ................... 7 pruebas
+
+MODIFICADOS
+  routes/console.php .............................. Schedule::command('alertas:gastos-fijos')
+                                                    ->dailyAt('07:00')
+  app/Providers/AppServiceProvider.php ............ el View Composer de la campana ya no
+                                                    devuelve 0: cuenta pendientes reales
+  app/Services/ServicioGastosFijos.php ............ marcarPagado delega la cancelación en
+                                                    ServicioNotificaciones; bugfix en
+                                                    proximosAVencer (whereDate); se quitó
+                                                    el use Notificacion
+  app/Http/Controllers/GastoFijoController.php .... cancelarNotificacionesPendientes delega
+                                                    en ServicioNotificaciones; se quitó el
+                                                    use Notificacion
+  docs/backend/07-alertas-programadas.php ......... pasa de plan a documentación real
+  Arquitectura_Cuentas_Claras.txt ................. secciones 2, 5, 10, 13, 16
+
+NO SE TOCÓ: el diseño (HTML/CSS), los nombres de ruta, la base de datos (no hay
+  migraciones nuevas).
+
+
+----------------------------------------------------------------------
+3. CONTRATO C4 - EL SERVICIO
+----------------------------------------------------------------------
+Firma y comportamiento:
+
+  crear(User $usuario, string $tipo, string $mensaje, array $opciones = []): Notificacion
+      $opciones admite: pago_gasto_fijo_id, meta_id, clave_unica.
+      Si clave_unica ya existe para ese usuario:
+        - estado = 'cancelada' -> se reactiva a 'pendiente' con el mensaje nuevo;
+        - estado = 'pendiente' | 'leida' -> se deja como está.
+      Sin clave_unica: siempre crea una fila nueva.
+
+  contarPendientes(User $usuario): int
+
+  cancelarPorPago(User $usuario, PagoGastoFijo $pago): int
+      Cancela todas las pendientes ligadas a ese pago.
+
+  cancelarPorGastoFijo(User $usuario, GastoFijo $gastoFijo): int
+      Cancela todas las pendientes ligadas a cualquier pago del gasto fijo.
+
+  marcarLeida(Notificacion $notificacion): void
+      Solo cambia si estaba pendiente.
+
+  marcarTodasLeidas(User $usuario): int
+
+Constantes para no escribir strings a mano:
+  TIPO_POR_VENCER, TIPO_VENCIDO, TIPO_INVITACION_META,
+  TIPO_INVITACION_META_REQUIERE_FAMILIAR, TIPO_RESPUESTA_META,
+  TIPO_META_FINALIZADA, TIPO_META_ABANDONADA
+  ESTADO_PENDIENTE, ESTADO_LEIDA, ESTADO_CANCELADA
+
+
+----------------------------------------------------------------------
+4. CÓMO FUNCIONA EL COMANDO DIARIO
+----------------------------------------------------------------------
+  php artisan alertas:gastos-fijos [--fecha=YYYY-MM-DD]
+
+  1. Fecha por defecto: hoy. Con --fecha se puede simular otro día (útil en pruebas).
+  2. Recorre usuarios con activo = true y rol en (estandar, familiar), en lotes de 100.
+  3. Por cada usuario llama a ServicioGastosFijos::proximosAVencer($u, $fecha, 3)
+     y a vencidos($u, $fecha). Esos métodos ya generan los pagos del mes y marcan vencidos.
+  4. Por cada pago próximo a vencer:
+       - clave_unica = "por_vencer:{pago_id}";
+       - si ya hay una pendiente con esa clave, no cuenta como nueva;
+       - crea con tipo 'por_vencer'.
+  5. Por cada pago vencido:
+       - cancela la alerta 'por_vencer' pendiente si existía;
+       - clave_unica = "vencido:{pago_id}";
+       - crea con tipo 'vencido'.
+  6. Idempotencia real: la combinación (user_id, clave_unica) es única en la tabla; el
+     servicio no crea una segunda fila, y si estaba cancelada, la reactiva.
+  7. La salida imprime cuántas nuevas por vencer y cuántas nuevas vencidas.
+
+Registro en routes/console.php:
+  Schedule::command('alertas:gastos-fijos')->dailyAt('07:00');
+  El cron del servidor debe correr `php artisan schedule:run` cada minuto (J9).
+
+
+----------------------------------------------------------------------
+5. LO QUE CAMBIÓ EN EL CÓDIGO DE NIKOL (AVISO)
+----------------------------------------------------------------------
+  ServicioGastosFijos::marcarPagado
+      Antes: Notificacion::...->update(['estado' => 'cancelada'])
+      Ahora: app(ServicioNotificaciones::class)->cancelarPorPago($usuario, $pago)
+
+  GastoFijoController::cancelarNotificacionesPendientes
+      Antes: Notificacion::...->update(['estado' => 'cancelada'])
+      Ahora: app(ServicioNotificaciones::class)->cancelarPorGastoFijo(auth()->user(), $gastoFijo)
+
+  ServicioGastosFijos::proximosAVencer
+      Antes: whereBetween('fecha_vencimiento', [$hoy, $limite])
+             (el día límite quedaba fuera porque la columna se guarda como datetime)
+      Ahora: whereDate('fecha_vencimiento', '>=', $hoy)
+             ->whereDate('fecha_vencimiento', '<=', $limite)
+
+  Se quitó `use App\Models\Notificacion;` de ServicioGastosFijos y GastoFijoController.
+
+
+----------------------------------------------------------------------
+6. LO QUE NIKOL (N4) Y LOS DEMÁS USAN DE J6
+----------------------------------------------------------------------
+  N4 (pantalla de notificaciones):
+      - GET /notificaciones, POST /notificaciones/leer (ya declaradas).
+      - Listar con Notificacion::delUsuario(auth()->id()) filtrando por estado.
+      - Marcar todas con ServicioNotificaciones::marcarTodasLeidas().
+      - Constantes TIPO_* y ESTADO_* para no escribir strings a mano.
+
+  La campana del topbar (C8):
+      - Ya muestra el conteo real de cada usuario en cada render.
+      - No hay que hacer nada en las vistas.
+
+  Cuando llegue J8 dashboard:
+      - Puede pedir las últimas N con Notificacion::delUsuario(...)->latest()->take(N).
+
+
+----------------------------------------------------------------------
+7. PRUEBAS (tests/Feature/AlertasTest.php)
+----------------------------------------------------------------------
+  1. test_el_comando_crea_una_alerta_para_un_pago_que_vence_en_3_dias
+  2. test_el_comando_no_duplica_alertas_si_se_corre_dos_veces
+  3. test_el_comando_crea_alerta_de_vencido_para_pago_vencido
+  4. test_marcar_pagado_cancela_la_notificacion_pendiente
+  5. test_contar_pendientes_solo_cuenta_las_del_usuario
+  6. test_el_comando_ignora_administradores_y_suspendidos
+  7. test_marcar_todas_leidas_actualiza_solo_las_pendientes_del_usuario
+
+  Uso de Carbon::setTestNow para fijar la fecha. Las pruebas no dependen del reloj real.
+
+
+----------------------------------------------------------------------
+8. CÓMO PROBARLO A MANO
+----------------------------------------------------------------------
+  1. php artisan migrate:fresh --seed   y   php artisan serve
+  2. Entra como estandar@test.com. Crea un gasto fijo con día de vencimiento = hoy + 3.
+  3. Corre: php artisan alertas:gastos-fijos
+     -> "Nuevas por vencer: 1. Nuevas vencidas: 0."
+  4. Recarga la app. La campana sube a 1.
+  5. Corre el comando otra vez: "Nuevas por vencer: 0. Nuevas vencidas: 0."
+     -> la campana sigue en 1 (idempotencia).
+  6. Marca el gasto fijo como pagado. La campana baja a 0.
+  7. Crea un gasto fijo con día de vencimiento anterior a hoy. Corre el comando:
+     "Nuevas vencidas: 1". En la campana sube a 1.
+  8. Simular otra fecha: php artisan alertas:gastos-fijos --fecha=2026-11-25
+  9. Pruebas automáticas: php artisan test --filter=AlertasTest
+
+
+----------------------------------------------------------------------
+9. LIMITACIONES CONOCIDAS
+----------------------------------------------------------------------
+  - La pantalla /notificaciones (N4) todavía es maqueta. Por eso, al abrirla, no se ven
+    las alertas aunque la campana sí las cuenta. Se conecta en N4 (Nikol).
+  - ServicioMetas::notificar() sigue siendo la versión mínima de J5 y escribe
+    notificaciones directo. Cuando se pueda, se refactoriza para usar ServicioNotificaciones
+    (mismo patrón que N3). No es urgente: las notificaciones que crea son válidas.
+  - El comando recorre todos los usuarios activos. Cuando el número crezca, se puede
+    pasar a un Job por usuario. Para la escala del proyecto no hace falta.
+  - No hay notificaciones push ni correo: son solo filas en la tabla y la campana. El
+    correo real de alertas no estaba en el alcance de J6.
+
+
+----------------------------------------------------------------------
+10. TEXTO PARA EL PULL REQUEST
+----------------------------------------------------------------------
+Título: [J6] Alertas automáticas y servicio de notificaciones
+
+Qué se hizo
+- ServicioNotificaciones (contrato C4): crear, contar, cancelar por pago o gasto fijo,
+  marcar una o todas como leídas, con clave_unica para no duplicar.
+- Comando alertas:gastos-fijos con programación diaria a las 07:00. Idempotente.
+- La campana del topbar ya cuenta notificaciones reales por usuario (C8).
+- Refactor de N3: marcarPagado y GastoFijoController delegan en ServicioNotificaciones;
+  ya no escriben en la tabla notificaciones directo.
+- Bugfix de N3: proximosAVencer incluye el día límite (whereDate en vez de whereBetween).
+- 7 pruebas nuevas (AlertasTest).
+
+Cómo probar
+- php artisan migrate:fresh --seed
+- php artisan alertas:gastos-fijos   (con un gasto fijo a 3 días)
+- php artisan test --filter=AlertasTest
+
+Notas para quien revise
+- La pantalla /notificaciones es N4 (Nikol); la campana sí funciona.
+- ServicioMetas::notificar() (J5) todavía escribe directo; se refactoriza después.
+- Se agregó Schedule::command(...) en routes/console.php. El cron del servidor debe
+  correr `php artisan schedule:run` cada minuto (J9).
+
+Lista de terminado: [x] hace lo que dice la guía  [x] nombres de ruta sin cambios
+[x] pruebas pasan  [x] cabeceras actualizadas  [ ] capturas  [ ] revisada por otra persona
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================
