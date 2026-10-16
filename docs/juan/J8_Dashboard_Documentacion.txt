@@ -1,0 +1,233 @@
+======================================================================
+J8 - DASHBOARD PRINCIPAL + REFINAMIENTO VISUAL  ·  DOCUMENTACIÓN
+Responsable: Juan · Fecha: 2026-10-16 · Rama: juan/j8-dashboard
+======================================================================
+Estado: HECHO. php artisan test => 159 pruebas, todas pasan
+(151 anteriores + 8 de DashboardTest).
+
+
+----------------------------------------------------------------------
+1. QUÉ SE HIZO (en una frase por pieza)
+----------------------------------------------------------------------
+  DashboardController ....... arma la pantalla principal del usuario estándar o familiar.
+  Métricas del mes .......... ingreso, gastos, disponible = ingreso − gastos (#14), fijos pendientes.
+  Distribución 50/30/20 ..... reutiliza GeneradorInforme de Valeria (V3).
+  Próximos vencimientos ..... usa ServicioGastosFijos::proximosAVencer (C5 de Nikol).
+  Últimos gastos ............ 5 más recientes del usuario.
+  Notificaciones recientes .. 3 pendientes (C4).
+  Tarjeta de metas .......... solo si rol = familiar.
+  Tarjeta de bienvenida ..... si no tiene ingreso ni gastos ni gastos fijos.
+  Vista con diseño .......... se reemplazó la plantilla genérica por el diseño del
+                              code.html (KPIs, dos columnas 8/4, vencimientos, gastos
+                              recientes, 50/30/20, metas, notificaciones, simulador).
+  Refinamiento visual ....... theme.css y gastos-fijos.css actualizados para que el
+                              modo oscuro y el tinte por tipo de cuenta funcionen en
+                              TODO el dashboard y en los módulos ya existentes.
+  Casts de Gasto ............ se agregó 'fecha' => 'date' y 'monto' => 'integer'.
+
+
+----------------------------------------------------------------------
+2. ARCHIVOS NUEVOS Y MODIFICADOS
+----------------------------------------------------------------------
+NUEVOS
+  app/Http/Controllers/DashboardController.php ... controlador del panel
+  tests/Feature/DashboardTest.php ................ 8 pruebas
+
+MODIFICADOS
+  routes/modulos/panel.php ....................... de Route::view a
+                                                   [DashboardController::class, 'index']
+  resources/views/app/dashboard.blade.php ........ datos reales + diseño del code.html
+  app/Models/Gasto.php ........................... + casts (fecha => date, monto => integer)
+  public/css/dashboard-principal.css ............. estilos locales (chips, responsive)
+  public/css/theme.css ........................... REESCRITO completo:
+                                                   - Modo oscuro con todos los tokens.
+                                                   - Overrides de style.css por sección
+                                                     (superficies, contenedores invertidos,
+                                                     texto, bordes, componentes, chips,
+                                                     sombras, placeholders).
+                                                   - Hovers en modo oscuro (superficies,
+                                                     texto, bordes) para que el texto no
+                                                     quede invisible al pasar el mouse.
+                                                   - Tinte por tipo de cuenta con tokens
+                                                     --accent-* y reasignación de --primary-*
+                                                     en familiar.
+                                                   - Sección de selects nativos adaptados
+                                                     al diseño y a los 4 estados
+                                                     (claro/oscuro × estándar/familiar).
+  public/css/gastos-fijos.css .................... + bloque modo oscuro completo
+                                                   (chips, botones, inputs, cards, estado
+                                                   vacío, alertas).
+
+NO SE TOCÓ: el diseño base del code.html (solo se trasladó a Blade), los nombres de ruta,
+  la base de datos, ni el modelo de User.
+
+
+----------------------------------------------------------------------
+3. CÓMO FUNCIONA EL CONTROLADOR
+----------------------------------------------------------------------
+  DashboardController::index(Request, GeneradorInforme, ServicioGastosFijos)
+
+  1. Refresca pagos del mes y vencidos con ServicioGastosFijos para que el dashboard
+     siempre vea datos al día.
+  2. Calcula $totalGastadoMes con whereYear + whereMonth directo.
+     TODO(J8): reemplazar por Gasto::delPeriodo($anio, $mes) cuando Nikol agregue el
+     scope del contrato C1.
+  3. Ingreso = users.ingreso_mensual (0 si null).
+  4. Disponible = ingreso − totalGastadoMes (decisión #14: no se guarda saldo).
+  5. Fijos pendientes = pagos del mes con estado pendiente o vencido.
+  6. Construye $metricas como arreglo de 4 elementos.
+  7. Calcula totales por bloque 50/30/20 y llama a GeneradorInforme::generar.
+  8. Próximos vencimientos con ServicioGastosFijos::proximosAVencer($user, hoy, 3).
+  9. Últimos gastos, notificaciones y metas del usuario (si es familiar).
+ 10. Usuario nuevo: si ingreso = 0, sin gastos y sin gastos fijos → $esUsuarioNuevo = true.
+
+
+----------------------------------------------------------------------
+4. VARIABLES QUE RECIBE LA VISTA
+----------------------------------------------------------------------
+  $metricas ......... array de 4 items: ingreso, gastos, disponible, fijos_pendientes
+  $distribucion ..... array con los 3 bloques 50/30/20 (salida de GeneradorInforme)
+  $proximos ......... Colección de PagoGastoFijo que vencen en 3 días o menos (máx. 5)
+  $ultimosGastos .... Colección de 5 Gasto con su categoría
+  $notificaciones ... Colección de 3 Notificacion pendientes
+  $metas ............ Colección de hasta 3 Meta activas (solo si familiar, si no, vacía)
+  $esUsuarioNuevo ... bool
+
+
+----------------------------------------------------------------------
+5. DISEÑO DE LA VISTA (code.html trasladado a Blade)
+----------------------------------------------------------------------
+  Estructura:
+    - Header: "Hola, {nombre}" + chip de tipo de cuenta + fecha del período.
+    - Botones de acción: "Registrar Gasto" (primario) y "Nuevo Gasto Fijo" (secundario).
+    - 4 KPIs en grid (ingreso, gastos, disponible, fijos pendientes) con iconos y
+      micro-progreso.
+    - Tarjeta de bienvenida si es usuario nuevo.
+    - Grid de dos columnas (8/4):
+        Izquierda: Próximos vencimientos + Gastos recientes.
+        Derecha: 50/30/20, Metas (solo familiar), Notificaciones, atajo al simulador.
+  Clases usadas:
+    - Globales (.card, .btn, .btn-primary, .btn-secondary).
+    - Tinte por tipo de cuenta (chip-estandar, chip-familiar, chip-ok) definidos en
+      dashboard-principal.css usando var(--accent-*).
+    - Colores del 50/30/20 fijos (verde/azul/morado propios del gráfico, no se tinta).
+
+
+----------------------------------------------------------------------
+6. REFINAMIENTO VISUAL DE theme.css Y gastos-fijos.css
+----------------------------------------------------------------------
+  theme.css (reescrito completo):
+    - Tokens del tema oscuro: superficies, texto, primary/secondary/tertiary/error,
+      bordes, bloques 50/30/20, estados operativos.
+    - Sección 4.1: superficies invertidas (bg-surface*, bg-white).
+    - Sección 4.1b: hover:bg-surface-* en oscuro (bugfix: sin esto el fondo se volvía
+      claro al pasar el mouse y el texto claro quedaba invisible).
+    - Sección 4.1c: hover:bg-on-*, hover:bg-outline-*, hover:bg-white en oscuro.
+    - Sección 4.2: contenedores invertidos (bg-on-surface, bg-inverse-surface) NO se
+      invierten, se quedan oscuros para preservar el contraste con texto claro.
+    - Sección 4.4b: hover:text-* en oscuro.
+    - Sección 4.5b: hover:border-* en oscuro.
+    - Sección 5: tinte por tipo de cuenta con tokens --accent-* y reasignación de
+      --primary-* a --tertiary-* cuando data-account-type="familiar".
+    - Sección 5.4: hovers de marca y neutros aplicables a todos los roles, para que
+      el hover de un enlace text-primary se vea morado en familiar (antes se quedaba
+      verde por los hovers hardcodeados de style.css).
+    - Sección 6: gastos fijos en modo oscuro.
+    - Sección 7: selects nativos adaptados (quita el fondo blanco y la flecha del
+      navegador, pone una flecha SVG propia con color por tema, y usa color-scheme
+      para que el popup nativo también respete el tema).
+
+  gastos-fijos.css:
+    - Bloque final con [data-theme="oscuro"] para chips de estado, botones, inputs,
+      detalles, formulario de edición, alertas, estado vacío y bordes superiores
+      de las tarjetas de resumen.
+
+
+----------------------------------------------------------------------
+7. PRUEBAS (tests/Feature/DashboardTest.php)
+----------------------------------------------------------------------
+  1. usuario nuevo ve la bienvenida
+  2. usuario con datos ve sus metricas
+  3. solo ve sus propios gastos
+  4. familiar ve tarjeta de metas
+  5. estandar no ve tarjeta de metas
+  6. administrador recibe 403 en panel
+  7. sin sesion redirige a iniciar sesion
+  8. no muestra notificaciones de otros
+
+
+----------------------------------------------------------------------
+8. CÓMO PROBARLO A MANO
+----------------------------------------------------------------------
+  1. php artisan migrate:fresh --seed   y   php artisan serve
+  2. Entra como estandar@test.com (password). Debe ver:
+       - KPIs con ingreso/gastos/disponible/fijos pendientes.
+       - Próximos vencimientos (si hay).
+       - Gastos recientes.
+       - 50/30/20 con los 3 bloques.
+       - Notificaciones recientes.
+       - Atajo al simulador.
+       - SIN tarjeta de metas.
+  3. Entra como familiar@test.com. Además debe ver:
+       - Tarjeta "Mis metas".
+  4. Entra como admin@test.com en /panel. Debe dar 403.
+  5. Regístrate con un usuario nuevo. Debe ver la tarjeta de bienvenida con los 3 pasos.
+  6. Pruebas automáticas: php artisan test --filter=DashboardTest
+  7. Cambia el tema (botón sol/luna del topbar). En oscuro:
+       - KPIs con fondo oscuro, texto claro.
+       - Hover de tarjetas y botones sin texto invisible.
+       - Chips de estado legibles.
+       - Selects (si los usas) con fondo oscuro y flecha clara.
+  8. Cambia a familiar y repite. Todo el acento debe ser morado, no verde.
+  9. Pruebas automáticas: php artisan test
+
+
+----------------------------------------------------------------------
+9. LIMITACIONES Y PENDIENTES
+----------------------------------------------------------------------
+  - El scope delPeriodo de C1 no existe aún. Se usa whereYear/whereMonth directo.
+    TODO(J8) marcado en el controlador.
+  - C3 (ingreso mensual) lo llena la semilla o V4; el dashboard maneja el caso vacío.
+  - El popup de opciones de los <select> nativos tiene soporte limitado en algunos
+    navegadores (Safari iOS). Se mitiga con color-scheme, pero no se puede controlar
+    al 100% sin reemplazar por un componente custom.
+  - El diseño del dashboard sigue con clases del code.html, no el diseño final
+    "pixel perfect" de Cuentas Claras. Cuando exista el diseño definitivo, se
+    reemplaza el marcado, no los datos.
+
+
+----------------------------------------------------------------------
+10. TEXTO PARA EL PULL REQUEST
+----------------------------------------------------------------------
+Título: [J8] Dashboard principal + refinamiento visual (oscuro y tinte)
+
+Qué se hizo
+- DashboardController con métricas del mes, distribución 50/30/20 (GeneradorInforme),
+  próximos vencimientos (ServicioGastosFijos), últimos gastos, notificaciones recientes
+  y tarjeta de metas si es familiar.
+- Tarjeta de bienvenida para usuarios nuevos.
+- Vista con el diseño del code.html.
+- theme.css reescrito: modo oscuro completo, hovers, tinte por tipo de cuenta, y
+  sección de selects nativos adaptados al tema.
+- gastos-fijos.css con bloque de modo oscuro.
+- Cast añadido a Gasto (fecha => date, monto => integer).
+- 8 pruebas nuevas (DashboardTest).
+
+Cómo probar
+- php artisan migrate:fresh --seed
+- php artisan serve
+- Entrar con estandar@test.com y familiar@test.com en /panel.
+- Cambiar tema con el botón sol/luna.
+- php artisan test  -> 159 passed
+
+Notas para quien revise
+- C1 (scope delPeriodo de Nikol) aún no existe; se usa whereYear/whereMonth directo.
+- El diseño del dashboard sigue con clases del code.html; falta el diseño definitivo.
+- Los selects nativos respetan el tema vía color-scheme (el popup lo dibuja el SO).
+
+Lista de terminado: [x] hace lo que dice la guía  [x] nombres de ruta sin cambios
+[x] pruebas pasan  [x] cabeceras actualizadas  [ ] capturas  [ ] revisada por otra persona
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================
