@@ -11,7 +11,7 @@
 @section('body')
   <x-sidebar-admin />
   <div class="nav-backdrop" data-nav-close></div>
-  <div class="pl-72">
+  <div class="pl-72 pt-16 min-h-screen">
     <x-topbar />
     @yield('content')
   </div>
