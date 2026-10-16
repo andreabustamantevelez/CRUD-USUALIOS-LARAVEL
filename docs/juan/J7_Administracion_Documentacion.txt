@@ -1,0 +1,293 @@
+======================================================================
+J7 - ADMINISTRACIÓN  ·  DOCUMENTACIÓN
+Responsable: Juan · Fecha: 2026-10-16 · Rama: juan/j7-administracion
+======================================================================
+Estado: HECHO. php artisan test => 178 pruebas, todas pasan
+(151 anteriores + 20 de Admin + 8 de Dashboard ajustadas + 2 en Ajustes).
+
+
+----------------------------------------------------------------------
+1. QUÉ SE HIZO (en una frase por pieza)
+----------------------------------------------------------------------
+  Migración #23 ............ categorias.activa (boolean, default true) + índice
+                             (user_id, activa). Cierra la decisión pendiente.
+  ServicioCuentas .......... + cambiarRol, suspender, reactivar. Reutiliza
+                             verificarUltimoAdministrador.
+  Admin\UsuarioController .. listado con filtros, cambio de rol, suspender/
+                             reactivar, eliminar. No ve datos financieros.
+  Admin\CategoriaSistema... CRUD de categorías del sistema. Desactivar en vez
+                             de borrar.
+  Admin\EstadisticaController conteos agregados. Nunca consulta montos.
+  Vistas rediseñadas ....... usuarios, categorías y estadísticas con layout
+                             más limpio, chips de rol tintados, KPIs con iconos.
+  Tinte admin .............. nuevo color azul (Core Blue del sistema) para el
+                             rol administrador. Coherente con verde y morado.
+  Fix dashboard ............ route('gastos-fijos.pagar', $pago->gastoFijo) en
+                             vez del id suelto. Antes daba 500 cuando había
+                             vencimientos próximos.
+
+
+----------------------------------------------------------------------
+2. ARCHIVOS NUEVOS Y MODIFICADOS
+----------------------------------------------------------------------
+NUEVOS
+  database/migrations/2026_10_16_163307_agregar_activa_a_categorias_table.php
+  app/Http/Controllers/Admin/UsuarioController.php
+  app/Http/Controllers/Admin/CategoriaSistemaController.php
+  app/Http/Controllers/Admin/EstadisticaController.php
+  app/Http/Requests/Admin/ActualizarRolRequest.php
+  app/Http/Requests/Admin/ActualizarEstadoRequest.php
+  app/Http/Requests/Admin/StoreCategoriaSistemaRequest.php
+  app/Http/Requests/Admin/UpdateCategoriaSistemaRequest.php
+  tests/Feature/Admin/UsuariosTest.php .................. 9 pruebas
+  tests/Feature/Admin/CategoriasSistemaTest.php ......... 6 pruebas
+  tests/Feature/Admin/EstadisticasTest.php .............. 3 pruebas
+
+MODIFICADOS
+  app/Services/ServicioCuentas.php .............. + cambiarRol, suspender, reactivar
+  app/Models/Categoria.php ...................... + casts activa, scopeActivas,
+                                                  relación gastosFijos
+  database/factories/CategoriaFactory.php ....... + activa = true
+  database/seeders/CategoriaSeeder.php .......... + activa = true explícito
+  routes/modulos/admin.php ...................... de Route::view a controladores
+  resources/views/admin/usuarios.blade.php ...... rediseñada
+  resources/views/admin/categorias.blade.php .... rediseñada (agrupada por bloque)
+  resources/views/admin/estadisticas.blade.php .. rediseñada (KPIs, barras)
+  resources/views/app/dashboard.blade.php ....... fix del route del pagar
+  resources/views/layouts/base.blade.php ........ match de rol para admin
+  public/css/theme.css .......................... + bloque 8 (tinte admin azul)
+  public/css/admin-usuarios.css ................. reescrito
+  public/css/admin-categorias.css ............... reescrito
+  public/css/admin-estadisticas.css ............. reescrito
+
+NO SE TOCÓ: el diseño base del armazón, los nombres de ruta, la base de datos
+  (excepto la migración nueva de #23).
+
+
+----------------------------------------------------------------------
+3. DECISIÓN #23 CERRADA
+----------------------------------------------------------------------
+La tabla categorias ganó la columna activa (boolean, default true) con índice
+compuesto (user_id, activa).
+
+Regla:
+  - Las categorías del sistema (user_id = null) se DESACTIVAN, no se borran.
+  - Al desactivar una: deja de aparecer al registrar gastos nuevos.
+  - Los gastos históricos que la usan siguen mostrándola (la FK no se rompe).
+  - El admin solo gestiona las del sistema. Las personales no aparecen aquí.
+
+Aviso a Nikol (N1, N2): sus pantallas pueden filtrar con Categoria::activas()
+para no mostrar las desactivadas. No es bloqueante mientras no se desactive
+ninguna, pero debe sumarlo cuando toque N1 o N2.
+
+
+----------------------------------------------------------------------
+4. SERVICIO DE CUENTAS - MÉTODOS NUEVOS
+----------------------------------------------------------------------
+  cambiarRol(User, string $nuevoRol): void
+      - Admite estandar|familiar|administrador.
+      - Si se quita admin a alguien, verifica que no sea el último admin activo.
+      - Si baja de familiar a estandar, no debe tener metas compartidas activas.
+      - Mismo rol: no hace nada.
+
+  suspender(User): void
+      - activo = false.
+      - Si es el último admin activo, bloquea.
+
+  reactivar(User): void
+      - activo = true.
+
+  Reutiliza verificarUltimoAdministrador() (existente desde J8a).
+
+Mensajes de ValidationException:
+  - "No puedes eliminar tu cuenta porque eres el único administrador activo
+     del sistema." (mismo mensaje que ya usaba eliminarCuenta)
+  - "Debes finalizar o cancelar las metas compartidas activas antes de bajar
+     a estándar."
+
+
+----------------------------------------------------------------------
+5. CONTROLADORES
+----------------------------------------------------------------------
+Admin\UsuarioController
+  index(Request): View
+      - Filtros: rol, estado (activos|suspendidos), buscar (nombre o correo).
+      - Paginado 20 con withQueryString.
+      - SOLO campos: nombre, email, rol, activo. Nunca montos.
+  cambiarRol(ActualizarRolRequest, User): RedirectResponse
+      - Delega en ServicioCuentas::cambiarRol. Toast: "Rol actualizado".
+  cambiarEstado(ActualizarEstadoRequest, User): RedirectResponse
+      - Suspende o reactiva. Toast: "Cuenta suspendida" / "Cuenta activada".
+  destroy(Request, User): RedirectResponse
+      - No permite eliminarse a sí mismo desde el panel.
+      - Delega en ServicioCuentas::eliminarCuenta. Toast: "Usuario eliminado".
+
+Admin\CategoriaSistemaController
+  index(Request): View
+      - Categorías con user_id null, con withCount(['gastos','gastosFijos']).
+      - Pasa $resumen (total, activas, inactivas) y $bloques (metadatos 50/30/20).
+  store(StoreCategoriaSistemaRequest): RedirectResponse
+      - Crea con user_id null, activa true. Toast: "Categoría creada".
+  update(UpdateCategoriaSistemaRequest, Categoria): RedirectResponse
+      - abort_unless(user_id === null, 403). Toast: "Categoría actualizada".
+  desactivar(Request, Categoria): RedirectResponse
+      - abort_unless(user_id === null, 403).
+      - Toggle activa. Toast: "Categoría activada" / "Categoría desactivada".
+
+Admin\EstadisticaController
+  index(): View
+      - Conteos: total usuarios, por rol, por estado, total notificaciones,
+        notificaciones por tipo (GROUP BY).
+      - NUNCA consulta montos ni datos financieros.
+
+
+----------------------------------------------------------------------
+6. RUTAS (routes/modulos/admin.php)
+----------------------------------------------------------------------
+  Prefijo /admin y nombre admin.* vienen de web.php. Dentro del archivo los
+  nombres NO repiten "admin.".
+
+  GET    /admin/usuarios                           usuarios
+  PUT    /admin/usuarios/{usuario}/rol             usuarios.rol
+  PUT    /admin/usuarios/{usuario}/estado          usuarios.estado
+  DELETE /admin/usuarios/{usuario}                 usuarios.destroy
+  GET    /admin/categorias                         categorias
+  POST   /admin/categorias                         categorias.store
+  PUT    /admin/categorias/{categoria}             categorias.update
+  PATCH  /admin/categorias/{categoria}/desactivar  categorias.desactivar
+  GET    /admin/estadisticas                       estadisticas
+
+
+----------------------------------------------------------------------
+7. TINTE POR ROL ADMIN
+----------------------------------------------------------------------
+  theme.css bloque 8: tokens --admin-* (Core Blue #2563EB en claro,
+  #93b4ff en oscuro). Se reasignan --primary-* y --accent-* cuando
+  data-account-type="administrador".
+
+  layouts/base.blade.php: el match de rol mapea "administrador" a su
+  propio data-account-type.
+
+  Resultado:
+    - Botones primarios → azul.
+    - Ítems activos del sidebar → azul.
+    - Avatar → azul.
+    - Foco de inputs → anillo azul.
+    - En oscuro: azul claro (#93b4ff) legible.
+
+
+----------------------------------------------------------------------
+8. VISTAS REDISEÑADAS
+----------------------------------------------------------------------
+admin/usuarios
+  - Aviso contextual ("el sistema nunca se queda sin admin").
+  - Formulario de filtros en grid 4 columnas responsive.
+  - Contador de resultados.
+  - Cada usuario: avatar con inicial, correo como link mailto, chips de rol
+    tintados por tipo (verde/morado/azul), chip Tú si es el admin actual.
+  - Acciones: "Rol" abre un details flotante, "Suspender/Activar", "Eliminar"
+    (oculto en tu propia cuenta).
+
+admin/categorias
+  - Aviso contextual ("¿para qué sirven?" y "¿por qué no se borran?").
+  - Resumen: total/activas/inactivas.
+  - Formulario de crear con grid alineado, sufijo % en el peso.
+  - Agrupación visual por bloque (necesidades/discrecionales/ahorro):
+    cabecera con punto de color, porcentaje objetivo y descripción.
+  - Cada categoría: chips, "Usada en X gastos · Y gastos fijos",
+    peso recomendado, fecha de creación, Editar en details.
+
+admin/estadisticas
+  - 4 KPIs con iconos tintados (azul/verde/rojo/morado).
+  - Dos paneles simétricos (usuarios por rol, notificaciones por tipo).
+  - Cada fila: chip, conteo, porcentaje, barra de progreso.
+  - Nota de privacidad al final.
+
+
+----------------------------------------------------------------------
+9. PRUEBAS (20 nuevas + 2 ajustadas)
+----------------------------------------------------------------------
+Admin\UsuariosTest (9)
+  1. admin ve el listado
+  2. estandar no entra → 403
+  3. familiar no entra → 403
+  4. sin sesión redirige al login
+  5. admin puede cambiar el rol
+  6. admin puede suspender y reactivar
+  7. no se puede suspender al último admin
+  8. no se puede cambiar el rol del último admin
+  9. admin puede eliminar a otro usuario
+
+Admin\CategoriasSistemaTest (6)
+  1. admin ve el listado
+  2. no admin recibe 403
+  3. admin crea categoría del sistema
+  4. nombre duplicado da error
+  5. desactivar cambia el estado
+  6. no se puede desactivar una categoría personal → 403
+
+Admin\EstadisticasTest (3)
+  1. admin ve estadísticas
+  2. no admin recibe 403
+  3. sin sesión redirige
+
+
+----------------------------------------------------------------------
+10. CÓMO PROBARLO A MANO
+----------------------------------------------------------------------
+  1. php artisan migrate:fresh --seed   y   php artisan serve
+  2. Login admin@test.com / password → /admin/estadisticas (tinte azul).
+  3. /admin/usuarios → filtros, cambiar rol, suspender, reactivar, eliminar.
+  4. Intenta suspender o cambiar rol del último admin → error.
+  5. /admin/categorias → crear, duplicar (error), editar, desactivar, activar.
+  6. /admin/estadisticas → conteos y barras. Sin montos.
+  7. Cambia tema (botón sol/luna). Todo el admin en azul oscuro y claro.
+  8. Dashboard /panel como estandar → clic en "Pagar" de un gasto fijo.
+  9. php artisan test → 178 passed.
+
+
+----------------------------------------------------------------------
+11. LIMITACIONES Y PENDIENTES
+----------------------------------------------------------------------
+  - Registro de acciones del administrador: era [PROPUESTA]. No implementado.
+    Cuando se decida, se agrega en una PR aparte.
+  - N1/N2 de Nikol deben filtrar por activa cuando toque. Hoy, si el admin
+    desactiva una categoría, se filtra solo en el panel admin; en el módulo
+    del usuario todavía no (mientras no lo agregue).
+  - Página 403 personalizada: sigue siendo la estándar de Laravel.
+  - El tinte del admin no se aplica a las páginas públicas (login, registro)
+    porque no hay usuario autenticado. Correcto.
+
+
+----------------------------------------------------------------------
+12. TEXTO PARA EL PULL REQUEST
+----------------------------------------------------------------------
+Título: [J7] Administración: usuarios, categorías y estadísticas
+
+Qué se hizo
+- Migración #23: categorias.activa + índice (user_id, activa).
+- ServicioCuentas: cambiarRol, suspender, reactivar. Reutiliza el guard de
+  último administrador activo.
+- Controladores, FormRequests y pruebas para usuarios, categorías del sistema
+  y estadísticas agregadas.
+- Vistas rediseñadas (chips de rol, KPIs con iconos, agrupación por bloque).
+- Tinte azul para el rol administrador, coherente con verde y morado.
+- Fix del dashboard: route('gastos-fijos.pagar', $pago->gastoFijo).
+
+Cómo probar
+- php artisan migrate:fresh --seed
+- php artisan test → 178 passed
+- Login admin@test.com / password → /admin/estadisticas
+
+Notas para quien revise
+- El sistema nunca se queda sin admin activo.
+- El admin no puede eliminarse a sí mismo desde el panel.
+- Admin\EstadisticaController nunca consulta montos.
+- Categoria::gastosFijos() es una relación nueva (aviso a Nikol).
+
+Lista de terminado: [x] hace lo que dice la guía  [x] nombres de ruta sin cambios
+[x] pruebas pasan  [x] cabeceras actualizadas  [ ] capturas  [ ] revisada por otra persona
+
+======================================================================
+FIN DEL DOCUMENTO
+======================================================================
