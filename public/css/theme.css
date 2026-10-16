@@ -1146,3 +1146,31 @@ select[multiple] {
   background-color: color-mix(in srgb, var(--admin) 20%, transparent);
   color: var(--admin);
 }
+
+/* ==========================================================================
+   9. PÁGINA 403
+   ========================================================================== */
+.error-icono {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
+}
+.error-icono__simbolo {
+  font-size: 40px;
+}
+.error-codigo {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="oscuro"] .error-icono {
+  background: color-mix(in srgb, var(--error) 20%, transparent);
+}
