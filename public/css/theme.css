@@ -1067,3 +1067,82 @@ select[multiple] {
   border-color: var(--line-strong);
   color-scheme: dark;
 }
+
+/* ==========================================================================
+   8. TINTE POR ROL ADMIN
+   --------------------------------------------------------------------------
+   El admin no tiene finanzas personales, pero sí puede personalizar su UI
+   con un color propio. Se reutiliza Core Blue del sistema 50/30/20
+   (#2563EB) para no introducir colores nuevos.
+   ========================================================================== */
+
+/* --- 8.1 Tokens base (claro) --- */
+:root {
+  --admin:                #2563eb;
+  --admin-hover:          #1d4ed8;
+  --admin-container:      #1e40af;
+  --admin-fixed:          #dbeafe;
+  --admin-on:             #ffffff;
+  --admin-on-container:   #f0f4ff;
+  --admin-on-fixed:       #0d1e4a;
+}
+
+/* --- 8.2 Tokens base (oscuro) --- */
+[data-theme="oscuro"] {
+  --admin:                #93b4ff;
+  --admin-hover:          #a8c2ff;
+  --admin-container:      #1e3a8a;
+  --admin-fixed:          #1e3a8a;
+  --admin-on:             #0d1e4a;
+  --admin-on-container:   #dbe4ff;
+  --admin-on-fixed:       #dbe4ff;
+}
+
+/* --- 8.3 Reasignación cuando el rol es administrador ---
+   Igual que en familiar: se reasignan --primary-* y --accent-* para que
+   TODO lo que use tokens de marca cambie a azul automáticamente. */
+[data-account-type="administrador"] {
+  --primary:                   var(--admin);
+  --primary-container:         var(--admin-container);
+  --primary-fixed:             var(--admin-fixed);
+  --on-primary:                var(--admin-on);
+  --on-primary-container:      var(--admin-on-container);
+  --on-primary-fixed:          var(--admin-on-fixed);
+  --inverse-primary:           var(--admin-fixed);
+
+  --accent:                    var(--admin);
+  --accent-hover:              var(--admin-hover);
+  --accent-container:          var(--admin-container);
+  --accent-fixed:              var(--admin-fixed);
+  --accent-on:                 var(--admin-on);
+  --accent-on-container:       var(--admin-on-container);
+  --accent-on-fixed:           var(--admin-on-fixed);
+}
+
+[data-theme="oscuro"][data-account-type="administrador"] {
+  --primary:                   var(--admin);
+  --primary-container:         var(--admin-container);
+  --primary-fixed:             var(--admin-fixed);
+  --on-primary:                var(--admin-on);
+  --on-primary-container:      var(--admin-on-container);
+  --on-primary-fixed:          var(--admin-on-fixed);
+  --inverse-primary:           var(--admin-fixed);
+
+  --accent:                    var(--admin);
+  --accent-hover:              var(--admin-hover);
+  --accent-container:          var(--admin-container);
+  --accent-fixed:              var(--admin-fixed);
+  --accent-on:                 var(--admin-on);
+  --accent-on-container:       var(--admin-on-container);
+  --accent-on-fixed:           var(--admin-on-fixed);
+}
+
+/* --- 8.4 Chips específicos en dashboard/panel si los usas --- */
+.chip-admin {
+  background-color: color-mix(in srgb, var(--admin) 12%, transparent);
+  color: var(--admin);
+}
+[data-theme="oscuro"] .chip-admin {
+  background-color: color-mix(in srgb, var(--admin) 20%, transparent);
+  color: var(--admin);
+}

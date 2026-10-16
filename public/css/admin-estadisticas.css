@@ -1,12 +1,149 @@
-/*
- * ==============================================================================
- * ARCHIVO : public/css/admin-estadisticas.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Estadísticas. Se carga después de style.css (vía
- *           @push('styles') en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): tarjetas de indicadores.
- * ==============================================================================
- */
+/* ==========================================================
+   ADMIN · ESTADÍSTICAS
+   ========================================================== */
 
+/* ---------- KPI card ---------- */
+.admin-kpi {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface-container-lowest);
+  transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
+}
+.admin-kpi:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 6px 18px -8px rgba(15, 23, 42, .12);
+}
+[data-theme="oscuro"] .admin-kpi:hover {
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, .5);
+}
+
+.admin-kpi__icono {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: .75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-kpi__icono .material-symbols-outlined {
+  font-size: 22px;
+}
+.admin-kpi__icono--azul {
+  background: color-mix(in srgb, var(--admin, #2563eb) 14%, transparent);
+  color: var(--admin, #2563eb);
+}
+.admin-kpi__icono--verde {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+.admin-kpi__icono--rojo {
+  background: color-mix(in srgb, var(--error) 14%, transparent);
+  color: var(--error);
+}
+.admin-kpi__icono--morado {
+  background: color-mix(in srgb, var(--tertiary) 14%, transparent);
+  color: var(--tertiary);
+}
+[data-theme="oscuro"] .admin-kpi__icono--azul {
+  background: color-mix(in srgb, var(--admin, #93b4ff) 22%, transparent);
+}
+
+.admin-kpi__cuerpo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+.admin-kpi__label {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.admin-kpi__valor {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ---------- Panel ---------- */
+.admin-panel__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.admin-panel__icono {
+  color: var(--accent);
+}
+.admin-panel__contador {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+/* ---------- Fila con chip + valores + barra ---------- */
+.admin-fila {
+  margin-bottom: 1.125rem;
+}
+.admin-fila:last-child {
+  margin-bottom: 0;
+}
+
+.admin-fila__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .5rem;
+}
+.admin-fila__valores {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .5rem;
+  font-variant-numeric: tabular-nums;
+}
+.admin-fila__valores strong {
+  color: var(--on-surface);
+  font-size: 15px;
+}
+.admin-fila__valores span {
+  font-size: 12px;
+}
+
+/* ---------- Barra de progreso ---------- */
+.admin-barra {
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--surface-container-high);
+  overflow: hidden;
+}
+.admin-barra__relleno {
+  height: 100%;
+  border-radius: inherit;
+  transition: width .4s var(--ease);
+  min-width: 2px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .admin-kpi {
+    padding: 1rem;
+  }
+  .admin-kpi__valor {
+    font-size: 22px;
+  }
+}

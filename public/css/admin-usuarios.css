@@ -1,12 +1,230 @@
-/*
- * ==============================================================================
- * ARCHIVO : public/css/admin-usuarios.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Administración de usuarios. Se carga después de style.css (vía
- *           @push('styles') en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): chips de rol y estado.
- * ==============================================================================
- */
+/* ==========================================================
+   ADMIN · USUARIOS Y ROLES
+   ========================================================== */
 
+/* Aviso superior (reutilizable también en categorías) */
+.admin-aviso {
+  border-left: 3px solid var(--accent);
+  background: var(--surface-container-low);
+}
+.admin-aviso__icono {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ---------- Filtros ---------- */
+.admin-form-filtros {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 2fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    auto;
+  gap: 1rem;
+  align-items: end;
+}
+.admin-form-filtros__campo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.admin-form-filtros__acciones {
+  display: flex;
+  gap: .5rem;
+  align-items: flex-end;
+}
+
+/* Reutilizamos el label de admin-categorias si no está cargado aquí */
+.admin-form-crear__label {
+  display: block;
+  margin-bottom: .5rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+/* ---------- Listado ---------- */
+.admin-lista__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .75rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.admin-lista__contador {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+}
+
+/* ---------- Usuario ---------- */
+.admin-usuario {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.admin-usuario:last-of-type {
+  border-bottom: 0;
+}
+.admin-usuario__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-usuario__identidad {
+  display: flex;
+  align-items: flex-start;
+  gap: .875rem;
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.admin-usuario__avatar {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-container);
+  color: var(--accent-on-container);
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.admin-usuario__datos {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+}
+
+.admin-usuario__correo {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  word-break: break-word;
+}
+.admin-usuario__correo:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.admin-usuario__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .375rem;
+  margin-top: .125rem;
+}
+
+/* Chips de rol tintados */
+.chip-rol-estandar {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+.chip-rol-familiar {
+  background: color-mix(in srgb, var(--tertiary) 12%, transparent);
+  color: var(--tertiary);
+  border-color: color-mix(in srgb, var(--tertiary) 30%, transparent);
+}
+.chip-rol-admin {
+  background: color-mix(in srgb, var(--admin, #2563eb) 14%, transparent);
+  color: var(--admin, #2563eb);
+  border-color: color-mix(in srgb, var(--admin, #2563eb) 35%, transparent);
+}
+[data-theme="oscuro"] .chip-rol-estandar {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+[data-theme="oscuro"] .chip-rol-familiar {
+  background: color-mix(in srgb, var(--tertiary) 20%, transparent);
+}
+[data-theme="oscuro"] .chip-rol-admin {
+  background: color-mix(in srgb, var(--admin, #93b4ff) 22%, transparent);
+  color: var(--admin, #93b4ff);
+}
+
+/* ---------- Acciones ---------- */
+.admin-usuario__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: .5rem;
+  flex-shrink: 0;
+}
+
+.admin-usuario__accion {
+  position: relative;
+}
+.admin-usuario__accion summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.admin-usuario__accion summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Menú flotante del details */
+.admin-usuario__menu {
+  position: absolute;
+  top: calc(100% + .375rem);
+  right: 0;
+  z-index: 30;
+  width: 15rem;
+  padding: 1rem;
+  border-radius: .75rem;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 28px -10px rgba(15, 23, 42, .25);
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+[data-theme="oscuro"] .admin-usuario__menu {
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, .6);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .admin-form-filtros {
+    grid-template-columns: 1fr 1fr;
+  }
+  .admin-form-filtros__acciones {
+    grid-column: 1 / -1;
+  }
+  .admin-form-filtros__acciones .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-form-filtros {
+    grid-template-columns: 1fr;
+  }
+  .admin-usuario__fila {
+    flex-direction: column;
+  }
+  .admin-usuario__acciones {
+    width: 100%;
+  }
+  .admin-usuario__acciones > form,
+  .admin-usuario__acciones > details,
+  .admin-usuario__acciones .btn {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .admin-usuario__menu {
+    position: static;
+    width: 100%;
+    margin-top: .5rem;
+    box-shadow: none;
+  }
+}

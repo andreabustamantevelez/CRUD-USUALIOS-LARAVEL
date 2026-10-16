@@ -219,7 +219,7 @@
                       <span class="font-numeric-md text-numeric-md text-on-surface font-semibold tracking-tight">
                         ${{ number_format((int) $pago->monto, 0, ',', '.') }}
                       </span>
-                      <form method="POST" action="{{ route('gastos-fijos.pagar', $pago->gastoFijo_id) }}">
+                      <form method="POST" action="{{ route('gastos-fijos.pagar', $pago->gastoFijo) }}">
                         @csrf
                         <button type="submit"
                                 class="px-space-md py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:opacity-95 transition-all active:scale-[0.98] shadow-sm flex items-center gap-1 shrink-0">

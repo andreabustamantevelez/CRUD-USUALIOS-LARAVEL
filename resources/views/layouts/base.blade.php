@@ -14,9 +14,13 @@
 --}}
 
 @php
-  // Tinte por tipo de cuenta (ver theme.css sección 5).
+  // Tinte por tipo de cuenta (ver theme.css secciones 5 y 8).
   $rol = strtolower((string) optional(auth()->user())->rol);
-  $accountType = $rol === 'familiar' ? 'familiar' : 'estandar';
+  $accountType = match ($rol) {
+      'familiar'      => 'familiar',
+      'administrador' => 'administrador',
+      default         => 'estandar',
+  };
 @endphp
 
 <!DOCTYPE html>
