@@ -4,12 +4,13 @@ Documento de contexto para cualquier persona o IA que vaya a trabajar en el cód
 ======================================================================
 Leer completo antes de escribir código. Resume QUÉ es el sistema, QUÉ está hecho,
 QUÉ falta, CÓMO está organizado, TODAS las rutas y las reglas que no se pueden romper.
-Versión: después de J8 (dashboard + servicio de cuentas) + Modo oscuro + Tinte por tipo
-de cuenta + píldora del topbar + transiciones suaves. Fecha: 2026-10-16.
-Cambios respecto al 2026-10-16 (J6): ver secciones 2, 5, 10, 13, 14 y 16
-(marcados NUEVO 2026-10-16 (J8)).
-Rutas: SIN CAMBIOS respecto al 2026-10-14 (60 rutas declaradas; el conteo real es 62
-por dos rutas de informes añadidas por V3, ver sección 7).
+Versión: después de J7 (administración) + J8 (dashboard + servicio de cuentas) +
+J6 (alertas) + Modo oscuro + Tinte por tipo de cuenta y rol + Selects adaptados.
+Fecha: 2026-10-16.
+Cambios respecto al 2026-10-16 (J8): ver secciones 2, 5, 6, 7, 9, 10, 11, 13, 14 y 16
+(marcados NUEVO 2026-10-16 (J7)).
+Rutas: SIN CAMBIOS respecto al 2026-10-14 en cuanto a URL y nombre. Las 9 rutas de
+/admin pasaron de Route::view a controladores (misma URL y nombre).
 
 
 ----------------------------------------------------------------------
@@ -24,16 +25,15 @@ pesos colombianos (COP, siempre enteros, nunca decimales). Permite:
   - Ver un informe mensual contra la regla 50/30/20 (necesidades / discrecionales / ahorro).
   - Metas de ahorro INDIVIDUALES (para usuarios estandar o familiar) o COMPARTIDAS entre DOS
     usuarios de tipo "familiar" (máx. 2 participantes), con privacidad de aportes.
-  - Cambiar el tipo de cuenta (estándar <-> familiar) desde Ajustes, sin necesidad de crear una
-    cuenta nueva.
+  - Cambiar el tipo de cuenta (estándar <-> familiar) desde Ajustes, sin necesidad de crear
+    una cuenta nueva.
   - Administración (usuarios, roles, categorías del sistema, estadísticas agregadas).
   - Modo claro / oscuro con persistencia en localStorage.
-  - Tinte por tipo de cuenta: verde (estándar) o morado (familiar).
-  - Panel principal con métricas del mes, distribución 50/30/20, próximos vencimientos,
-    últimos gastos, notificaciones recientes y metas.
-El diseño visual YA ESTÁ HECHO (vistas Blade + CSS + JS). El trabajo que falta es el "motor":
-base de datos, inicio de sesión, permisos, reglas de negocio y conectar cada pantalla con
-datos reales. EL DISEÑO NO SE CAMBIA: debe quedar igual a los code.html originales.
+  - Tinte por rol: verde (estándar), morado (familiar), azul (administrador) en botones,
+    avatar, ítems activos, banners y chips. Se controla con data-account-type en el <html>
+    y tokens --accent-* y --admin-* en theme.css.
+El diseño visual YA ESTÁ HECHO (vistas Blade + CSS + JS). EL DISEÑO NO SE CAMBIA: debe
+quedar igual a los code.html originales.
 
 Equipo: Juan (base, seguridad, reglas), Nikol (dinero del día a día), Valeria (cálculo y
 análisis). Tareas J1..J9, N1..N5, V1..V5 (ver Reparto_Trabajo_Cuentas_Claras_Detallado.txt).
@@ -94,7 +94,7 @@ HECHO (J6 - Alertas automáticas y servicio de notificaciones, 2026-10-16, Juan)
   [x] La campana del topbar ya cuenta notificaciones reales por usuario.
   [x] Refactor de N3: ServicioGastosFijos::marcarPagado y GastoFijoController delegan en
       ServicioNotificaciones.
-  [x] Bugfix de N3: proximosAVencer incluye el día límite (whereDate en vez de whereBetween).
+  [x] Bugfix de N3: proximosAVencer incluye el día límite (whereDate).
   [x] tests/Feature/AlertasTest.php: 7 pruebas.
 
 HECHO (J8a - Servicio de cuentas: eliminar cuenta, 2026-10-16, Juan):
@@ -106,35 +106,55 @@ HECHO (J8a - Servicio de cuentas: eliminar cuenta, 2026-10-16, Juan):
       de borrar; así la meta sobrevive al ON DELETE CASCADE de la FK.
   [x] tests/Feature/EliminarCuentaTest.php: 6 pruebas.
 
-HECHO (J8 - Dashboard principal, 2026-10-16, Juan):                    [NUEVO 2026-10-16 (J8)]
+HECHO (J8 - Dashboard principal, 2026-10-16, Juan):
   [x] DashboardController@index: métricas del mes (ingreso, gastos, disponible, fijos
       pendientes), distribución 50/30/20 (GeneradorInforme de V3), próximos vencimientos
       (ServicioGastosFijos::proximosAVencer), últimos 5 gastos, últimas 3 notificaciones,
       tarjeta de metas (solo familiar) y tarjeta de bienvenida.
   [x] routes/modulos/panel.php pasa de Route::view a [DashboardController::class, 'index'].
-  [x] resources/views/app/dashboard.blade.php con datos reales; diseño provisional con
-      clases globales hasta que exista el code.html.
+  [x] resources/views/app/dashboard.blade.php con datos reales y diseño del code.html.
   [x] app/Models/Gasto.php: + casts (fecha => date, monto => integer).
   [x] tests/Feature/DashboardTest.php: 8 pruebas.
+  [x] Refinamiento visual: theme.css reescrito completo (modo oscuro, hovers, tinte
+      por tipo de cuenta, selects adaptados); gastos-fijos.css con bloque modo oscuro;
+      fix del botón "Pagar" (route gastos-fijos.pagar recibe el modelo, no el id suelto).
+
+HECHO (J7 - Administración, 2026-10-16, Juan):                          [NUEVO 2026-10-16 (J7)]
+  [x] Migración #23: categorias.activa (boolean, default true) + índice
+      (user_id, activa). Cierra la decisión pendiente del sistema.
+  [x] ServicioCuentas: + cambiarRol, suspender, reactivar. Reutiliza
+      verificarUltimoAdministrador. El sistema nunca queda sin admin activo.
+  [x] Admin\UsuarioController + 2 FormRequests: listado con filtros, cambio de
+      rol, suspender/reactivar, eliminar. No ve datos financieros.
+  [x] Admin\CategoriaSistemaController + 2 FormRequests: CRUD de categorías del
+      sistema. Desactivar en vez de borrar.
+  [x] Admin\EstadisticaController: conteos agregados (usuarios por rol y
+      estado, notificaciones por tipo). Nunca consulta montos.
+  [x] Vistas rediseñadas: usuarios (chips de rol tintados, avatar, filtros en
+      grid), categorías (agrupadas por bloque 50/30/20, aviso contextual,
+      conteo de uso), estadísticas (KPIs con iconos, barras de progreso).
+  [x] Tinte admin: nuevo bloque 8 en theme.css. Core Blue (#2563EB claro /
+      #93b4ff oscuro) para el rol administrador, coherente con verde (estándar)
+      y morado (familiar). layouts/base.blade.php mapea 'administrador' a su
+      propio data-account-type.
+  [x] Fix dashboard: route('gastos-fijos.pagar', $pago->gastoFijo) en vez del
+      id suelto. Antes daba 500 con vencimientos próximos.
+  [x] Pruebas nuevas: Admin\UsuariosTest (9), Admin\CategoriasSistemaTest (6),
+      Admin\EstadisticasTest (3). Total: 178 verdes.
+  [x] docs/juan/J7_Administracion_Documentacion.txt.
 
 NO HECHO (todo lo demás):
   [ ] Página 403 con el diseño de la app (hoy sale la 403 estándar de Laravel).
-  [ ] Controladores, FormRequests y servicios de los demás módulos (ver sección 10);
-      existen los de autenticación, metas, ajustes (parcial), simulaciones, informes,
-      gastos fijos, notificaciones (servicio), cuentas (servicio) y dashboard.
-  [ ] Ajustes > Perfil (PUT) y Ajustes > Eliminar cuenta (DELETE): maqueta hasta que V4 los
-      haga. ServicioCuentas::eliminarCuenta (J8a) ya está listo; falta la pantalla y la ruta.
-  [ ] Pantalla de notificaciones (N4): maqueta. El backend (J6) ya está listo.
-  [ ] Administración (J7).
-  [ ] Refactor pendiente: ServicioMetas::notificar() (J5) todavía escribe directo; cuando se
-      pueda, usa ServicioNotificaciones.
-  [ ] Scope delPeriodo (C1) en el modelo Gasto: pendiente de pedir a Nikol.
-  [ ] Pruebas de comportamiento de cada módulo.
+  [ ] Ajustes > Perfil (PUT) y Ajustes > Eliminar cuenta (DELETE): maqueta hasta que
+      V4 los haga. ServicioCuentas::eliminarCuenta ya está listo.
+  [ ] Pantalla de notificaciones (N4): maqueta. Backend (J6) listo.
+  [ ] Landing final (N5) y páginas legales.
+  [ ] Registro de acciones del administrador [PROPUESTA]: no implementado.
+  [ ] Refactor pendiente: ServicioMetas::notificar() (J5) todavía escribe directo
+      en notificaciones.
+  [ ] N1/N2 (Nikol) deben filtrar por Categoria::activas() cuando toque.
+  [ ] Pruebas de comportamiento de cada módulo nuevo.
   [ ] Imágenes: public/img está vacía; las vistas enlazan imágenes externas temporales.
-
-PUNTO ABIERTO (decisión #23, sección 14): la tabla categorias NO tiene columna "activa",
-pero la sección 11 y la ruta admin.categorias.desactivar hablan de "desactivar" categorías
-del sistema. Hay que decidir antes de J7.
 
 .env DE DESARROLLO: copiar .env.example a .env, php artisan key:generate, APP_ENV=local,
 APP_DEBUG=true, APP_LOCALE=es, DB_CONNECTION=sqlite, SESSION_DRIVER=database,
@@ -155,7 +175,8 @@ CACHE_STORE=database, QUEUE_CONNECTION=database. Primera vez: php artisan migrat
                    la definitiva se decide en J9. Pruebas: SQLite en memoria.
   Idioma/moneda .. español; COP en enteros. Zona horaria America/Bogota.
   Tema ........... claro | oscuro en <html data-theme="...">.
-  Tipo de cuenta . 'estandar' | 'familiar' en <html data-account-type="...">.
+  Tipo de cuenta . 'estandar' | 'familiar' | 'administrador' en
+                   <html data-account-type="...">.
   Entorno local .. php artisan serve  (http://localhost:8000).
 
 
@@ -176,11 +197,12 @@ Estado de cuenta: columna users.activo (booleano).
 Ocultar un enlace del menú NO protege: middleware + Policies.
 Cambio de tipo de cuenta: Ajustes > Tipo de cuenta, vía ServicioCuentas::cambiarTipo.
 No cierra la sesión. Regla: estandar -> familiar siempre; familiar -> estandar se bloquea con
-metas compartidas activas.
+metas compartidas activas. Cambio de rol por admin: ServicioCuentas::cambiarRol.
 
-Efecto visual del tipo de cuenta:
+Efecto visual del rol:
   Estándar → botones/avatar/ítems activos usan primary (verde).
   Familiar → esos mismos elementos usan tertiary (morado).
+  Administrador → esos mismos elementos usan la familia --admin-* (azul Core Blue).
   El cambio se aplica en el siguiente render.
 
 
@@ -195,10 +217,16 @@ Efecto visual del tipo de cuenta:
                                AporteMetaController, InvitacionMetaController,
                                SimulacionCreditoController, AjustesController,
                                GastoFijoController, InformeController,
-                               DashboardController
+                               DashboardController,
+                               Admin/{UsuarioController, CategoriaSistemaController,
+                               EstadisticaController}
                                · (F) un controlador por cada otro módulo
     Http/Middleware/ ......... (R) CuentaActiva, RolRequerido
-    Http/Requests/ ........... (R) Auth/*, Metas/* (los de los demás módulos aún faltan)
+    Http/Requests/ ........... (R) Auth/{RegistroRequest, LoginRequest, SolicitarEnlaceRequest,
+                               RestablecerContrasenaRequest}, Metas/{StoreMetaRequest,
+                               InvitarMetaRequest, StoreAporteMetaRequest},
+                               Admin/{ActualizarRolRequest, ActualizarEstadoRequest,
+                               StoreCategoriaSistemaRequest, UpdateCategoriaSistemaRequest}
     Notifications/ ........... (R) RestablecerContrasena
     Models/ .................. (R) User, Categoria, Gasto, GastoFijo, PagoGastoFijo,
                                SimulacionCredito, Informe, DetalleInforme, Meta,
@@ -207,15 +235,14 @@ Efecto visual del tipo de cuenta:
                                SimulacionCreditoPolicy, NotificacionPolicy, InformePolicy,
                                CategoriaPolicy, MetaPolicy, ParticipacionMetaPolicy,
                                AporteMetaPolicy
-    Models/Concerns/ ......... (R) PerteneceAUsuario
+    Models/Concerns/ ......... (R) PerteneceAUsuario (scope delUsuario)
     Providers/AppServiceProvider.php ... (R) View Composer de $notificacionesPendientes
     Services/ ................ (R) CalculadoraCredito, ServicioMetas, ServicioCuentas,
                                ServicioGastosFijos, ServicioNotificaciones
-                               · (F) GeneradorInforme (ya existe), ServicioGastosFijos,
-                               GeneradorInforme
+                               · (F) GeneradorInforme (ya existe), ServicioGastosFijos
     Console/ ................. (R) Commands/GenerarAlertasGastosFijos.php
   bootstrap/app.php .......... (R) alias 'cuenta.activa' y 'rol' y redirectUsersTo
-  database/migrations|seeders|factories ... (R) hechos en J2
+  database/migrations|seeders|factories ... (R) hechos en J2 + migración #23 de J7
   routes/
     web.php .................. (R) ÍNDICE: solo Juan lo cambia. Grupos A-C y E.
     modulos/ ................. (R) un archivo por módulo (ver sección 7).
@@ -239,6 +266,8 @@ Efecto visual del tipo de cuenta:
                                AislamientoTest, MetasTest, AjustesTest, CalculadoraCreditoTest,
                                GastosFijosTest, InformesTest, AlertasTest, EliminarCuentaTest,
                                GastoFijoControllerTest, DashboardTest}
+                               tests/Feature/Admin/{UsuariosTest, CategoriasSistemaTest,
+                               EstadisticasTest}
                                · (F) pruebas de cada módulo nuevo
   DECISIONES.md .............. (R) raíz del repositorio.
 
@@ -280,7 +309,8 @@ Componentes compartidos:
   header.blade.php ................. header público con botón de tema.
   topbar.blade.php ................. barra superior con .topbar-acciones (botón de tema +
                                      menú de usuario).
-  sidebar.blade.php ................ menú lateral privado.
+  sidebar.blade.php ................ menú lateral privado (estándar/familiar).
+  sidebar-admin.blade.php .......... menú lateral de administración.
   toast.blade.php .................. mensajes flash "exito".
 
 
@@ -360,15 +390,15 @@ NOTA (2026-10-16): V3 (InformeController) añadió dos rutas nuevas no listadas 
 
   GRUPO E  SOLO ADMINISTRADOR .... auth + cuenta.activa + rol:administrador ; prefijo /admin
   ----------------------------------------------------------------------------------------------------------------------
-  GET    /admin/usuarios                                  admin.usuarios                 (MAQUETA)
-  PUT    /admin/usuarios/{usuario}/rol                    admin.usuarios.rol             (MAQUETA)
-  PUT    /admin/usuarios/{usuario}/estado                 admin.usuarios.estado          (MAQUETA)
-  DELETE /admin/usuarios/{usuario}                        admin.usuarios.destroy         (MAQUETA)
-  GET    /admin/categorias                                admin.categorias               (MAQUETA)
-  POST   /admin/categorias                                admin.categorias.store         (MAQUETA)
-  PUT    /admin/categorias/{categoria}                    admin.categorias.update        (MAQUETA)
-  PATCH  /admin/categorias/{categoria}/desactivar         admin.categorias.desactivar    (MAQUETA)
-  GET    /admin/estadisticas                              admin.estadisticas             (MAQUETA)
+  GET    /admin/usuarios                                  admin.usuarios                 (HECHO)
+  PUT    /admin/usuarios/{usuario}/rol                    admin.usuarios.rol             (HECHO)
+  PUT    /admin/usuarios/{usuario}/estado                 admin.usuarios.estado          (HECHO)
+  DELETE /admin/usuarios/{usuario}                        admin.usuarios.destroy         (HECHO)
+  GET    /admin/categorias                                admin.categorias               (HECHO)
+  POST   /admin/categorias                                admin.categorias.store         (HECHO)
+  PUT    /admin/categorias/{categoria}                    admin.categorias.update        (HECHO)
+  PATCH  /admin/categorias/{categoria}/desactivar         admin.categorias.desactivar    (HECHO)
+  GET    /admin/estadisticas                              admin.estadisticas             (HECHO)
 
 
 ----------------------------------------------------------------------
@@ -384,16 +414,19 @@ NOTA (2026-10-16): V3 (InformeController) añadió dos rutas nuevas no listadas 
 
 
 ----------------------------------------------------------------------
-9. MODELO DE DATOS (REAL, YA IMPLEMENTADO EN J2)
+9. MODELO DE DATOS (REAL, YA IMPLEMENTADO EN J2 + migración #23)
 ----------------------------------------------------------------------
 Dinero = enteros en pesos. Única columna decimal: tasa_mensual (5,2) y porcentajes del
 informe. Nombres en español salvo users.
 
-  users ................. id, nombre, cedula (única), email (único), password (hash), rol,
-                          activo, ingreso_mensual (nullable), consentimiento_datos_at,
-                          remember_token, timestamps
-  categorias ............ id, user_id (NULL = del sistema), nombre, bloque, peso_recomendado
-                          · NO tiene columna "activa" (ver decisión #23)
+  users ................. id, nombre, cedula (única), email (único), password (hash), rol
+                          (estandar|familiar|administrador, default estandar),
+                          activo (bool, default true), ingreso_mensual (nullable, entero),
+                          consentimiento_datos_at (nullable), remember_token, timestamps
+  categorias ............ id, user_id (NULL = del sistema), nombre (50), bloque
+                          (necesidades|discrecionales|ahorro), peso_recomendado (nullable),
+                          activa (boolean, default true), timestamps
+                          · índice (user_id, activa)
   gastos ................ id, user_id, categoria_id (restrict), monto, fecha, descripcion
   gastos_fijos .......... id, user_id, categoria_id, nombre, monto, dia_vencimiento,
                           periodicidad, descripcion, activo
@@ -418,14 +451,19 @@ invitacion_meta_requiere_familiar, respuesta_meta, meta_finalizada, meta_abandon
 
 ELIMINADAS del diagrama original: "saldo" (#14) y "cuota_credito" (#4).
 
-Ayudas útiles: Categoria::BLOQUES, Categoria::esDelSistema(), Gasto::delUsuario($id),
-  Meta::totalConjunto(), Meta::aportesDelUsuario($id, $desde, $hasta).
+Ayudas útiles: Categoria::BLOQUES, Categoria::activas(), Categoria::esDelSistema(),
+  Gasto::delUsuario($id), Meta::totalConjunto(), Meta::aportesDelUsuario($id, $desde, $hasta).
+  Categoria::gastosFijos() (relación nueva de J7) para contar uso.
 Alcance "del usuario actual": en listados y totales Modelo::delUsuario(auth()->id());
   para un registro puntual, $this->authorize('view|update|delete', $registro).
 El modelo Gasto tiene casts: 'fecha' => 'date', 'monto' => 'integer' (añadido en J8).
 
+Regla #23: las categorías del sistema se desactivan (activa=false), no se borran. Al
+desactivar una, deja de aparecer al registrar gastos nuevos; los gastos históricos que la
+usan siguen mostrándola.
+
 Semillas:
-  CategoriaSeeder ..... 14 categorías del sistema (siempre).
+  CategoriaSeeder ..... 14 categorías del sistema con activa=true (siempre).
   UsuariosSeeder ...... solo en local: estandar@test.com, familiar@test.com, admin@test.com
                         (password "password").
   DatosDePruebaSeeder . solo en local: 20 gastos por usuario estándar y familiar.
@@ -439,8 +477,7 @@ Caso de referencia del simulador: $10.000.000, 1,5 % mensual, 24 meses
 10. SERVICIOS Y CONTRATOS ENTRE MÓDULOS (C1-C14)
 ----------------------------------------------------------------------
   C1  Consulta de gastos por periodo ... Nikol (N1) -> Valeria (informes) y Juan (dashboard).
-      PENDIENTE: aún no existe scopeDelPeriodo($anio, $mes) en Gasto; el dashboard y los
-      informes usan whereYear/whereMonth directo.
+      PENDIENTE: no existe scopeDelPeriodo($anio, $mes) en Gasto; se usa whereYear/whereMonth.
   C2  Bloque 50/30/20 de cada categoría  Nikol (N2 formulario) + Juan (J2, HECHO) -> Valeria.
   C3  Ingreso mensual del usuario ...... Valeria (V4, Ajustes > Perfil) -> Valeria y Juan.
       HECHO parcialmente (columna); falta que V4 guarde desde la pantalla.
@@ -457,36 +494,46 @@ Caso de referencia del simulador: $10.000.000, 1,5 % mensual, 24 meses
       ServicioMetas::tieneMetasActivas($usuario)
       ServicioMetas::tieneMetasCompartidasActivas($usuario)
       Meta::aportesDelUsuario($id, $desde, $hasta)
-  C7  Cambiar tipo de cuenta y eliminar  Juan (J8a, HECHO) -> Valeria (solo arma la pantalla).
-      ServicioCuentas::cambiarTipo($usuario, 'estandar'|'familiar')  <- HECHO (J5 reabierto)
-      ServicioCuentas::eliminarCuenta($usuario)                       <- HECHO (J8a)
+  C7  Cambiar tipo de cuenta, eliminar  Juan (J8a + J7, HECHO) -> Valeria (solo la pantalla).
+      ServicioCuentas::cambiarTipo($usuario, 'estandar'|'familiar')
+      ServicioCuentas::eliminarCuenta($usuario)
+      ServicioCuentas::cambiarRol($usuario, 'estandar'|'familiar'|'administrador')
+      ServicioCuentas::suspender($usuario)
+      ServicioCuentas::reactivar($usuario)
+      Reglas: no dejar el sistema sin admin activo; bloquear familiar->estandar si tiene
+      metas compartidas activas.
   C8  Variables del armazón ............ Juan: $notificacionesPendientes (J6: cuenta real),
       flash 'exito', usuario autenticado, ruta "logout".
   C9  Nombres de rutas ................. Juan. No se cambian; uno nuevo se agrega a
       docs/backend/00-rutas.php.
   C10 Permisos ......................... Juan (J4, HECHO): middleware + Policies.
   C11 Categorías globales .............. categorias.user_id vacío = del sistema.
-  C12 Tinte visual por tipo de cuenta ... Juan (theme.css).
+  C12 Tinte visual por rol ............. Juan (theme.css). Tokens --accent-* y --admin-*.
+      Cualquier elemento nuevo que necesite color de marca usa los tokens --accent-*.
+      NUNCA var(--primary) directo.
   C13 Transiciones y carga de fuentes ... Juan (transiciones.css/js).
   C14 Comando diario de alertas ......... Juan (J6, HECHO).
       php artisan alertas:gastos-fijos [--fecha=YYYY-MM-DD]. Idempotente.
 
 CONTRATO C7 (detalle)
-  cambiarTipo: estandar <-> familiar. Familiar → estandar bloqueado con metas compartidas
+  cambiarTipo: estandar <-> familiar. Familiar -> estandar bloqueado con metas compartidas
     activas. Mismo tipo: no hace nada.
+  cambiarRol: cualquiera de los 3. Quitar admin se bloquea si es el último admin activo.
+    Bajar de familiar a estandar se bloquea si tiene metas compartidas activas.
+  suspender: activo=false. Bloquea si es el último admin activo.
+  reactivar: activo=true.
   eliminarCuenta: no se puede borrar al último admin activo; cancela metas compartidas
     activas y avisa al otro (decisión #18); si es creador, transfiere creador_id al otro
     antes de borrar; borrado en cascada dentro de una transacción.
 
 CONTRATO C12 (tinte visual)
-  El tipo de cuenta se expone en <html data-account-type="estandar|familiar">.
+  El rol se expone en <html data-account-type="estandar|familiar|administrador">.
   Cualquier elemento nuevo que necesite color de marca usa tokens --accent-*. NUNCA
   var(--primary) directo. Para "peligro": --error o .btn-danger (rojo, no se tinta).
 
 CONTRATO C13 (transiciones y fuentes)
   transiciones.css y transiciones.js se cargan en layouts/base.blade.php. Las pantallas no
-  los cargan por su cuenta. Fade-in y View Transitions son automáticos. No añadir
-  transition: all en CSS de pantalla.
+  los cargan por su cuenta. Fade-in y View Transitions son automáticos.
 
 CONTRATO C14 (comando diario de alertas)
   Firma: php artisan alertas:gastos-fijos [--fecha=YYYY-MM-DD].
@@ -515,10 +562,15 @@ Metas
 Cambio de tipo de cuenta
   - Desde Ajustes > Tipo de cuenta (GET + PUT) vía ServicioCuentas::cambiarTipo.
   - NO cierra la sesión. 'rol' no es fillable.
-Eliminar cuenta
-  - Desde Ajustes > Eliminar cuenta, vía ServicioCuentas::eliminarCuenta.
-  - No se puede eliminar al último admin activo.
-  - Se cancelan las metas compartidas activas y se avisa al otro (decisión #18).
+Cambio de rol (por admin)
+  - Vía ServicioCuentas::cambiarRol. No cierra la sesión del usuario cambiado (midware lo
+    detecta en la siguiente petición).
+  - Bloquear si se quita admin al último admin activo.
+  - Bloquear si baja de familiar a estandar con metas compartidas activas.
+Eliminar cuenta / suspender
+  - Vía ServicioCuentas::eliminarCuenta / suspender. No permitir dejar el sistema sin admin
+    activo.
+  - El admin no puede eliminarse a sí mismo desde el panel de administración.
 Gastos fijos y alertas
   - Solo mensuales (#6). Si el mes no tiene ese día, vence el último día del mes.
   - Una alerta a los 3 días y una de vencido (#16). El comando diario es IDEMPOTENTE (C14).
@@ -535,15 +587,30 @@ Dashboard
   - "Disponible del mes" = ingreso − gastos; no se guarda saldo (#14).
 Administración
   - El administrador nunca ve datos financieros individuales.
-  - Las categorías del sistema se desactivan, no se borran (PENDIENTE: categorias.activa, #23).
+  - Las categorías del sistema se desactivan, no se borran (categorias.activa, decisión #23).
+  - El sistema nunca queda sin administrador activo.
+  - El admin no puede eliminarse a sí mismo desde el panel.
+  - Estadísticas solo con COUNT y agregados; ninguna consulta une usuarios con montos ni
+    datos financieros.
 Categorías
-  - Nombre único entre las del usuario. Eliminar una con gastos: el modal pide mover los gastos.
+  - Nombre único entre las del usuario. Eliminar una con gastos: el modal pide mover los
+    gastos.
+  - Categoria::activas() para filtrar las que aparecen al registrar gastos.
+
+TINTE POR ROL:
+  - El tinte NO es solo decorativo: comunica el rol. Estándar → verde; Familiar → morado;
+    Administrador → azul. Si una pantalla nueva usa var(--primary) directo en vez de
+    var(--accent), el tinte se rompe.
+  - El tinte NO aplica al color de "peligro" (rojo) ni al de "error". Tampoco al 50/30/20
+    (verde/azul/morado propios del gráfico).
 
 Mensajes EXACTOS conocidos: "Gasto guardado" · "Gasto actualizado" · "Gasto eliminado" ·
 "Meta creada" · "Meta abandonada" · "Meta cancelada" · "Meta finalizada" · "Invitación enviada" ·
 "Invitación aceptada" · "Invitación rechazada" · "Aporte registrado" · "Gasto fijo pagado" ·
-"Tipo de cuenta actualizado" · "Esta categoría ya se encuentra registrada" · "Este correo ya
-se encuentra registrado" · "Usuario o contraseña incorrectos" · "No hay gastos registrados en
+"Tipo de cuenta actualizado" · "Rol actualizado" · "Cuenta suspendida" · "Cuenta activada" ·
+"Usuario eliminado" · "Categoría creada" · "Categoría actualizada" · "Categoría activada" ·
+"Categoría desactivada" · "Esta categoría ya se encuentra registrada" · "Este correo ya se
+encuentra registrado" · "Usuario o contraseña incorrectos" · "No hay gastos registrados en
 este periodo" · "No tienes simulaciones guardadas" · "No hay datos suficientes para generar el
 informe" · "No tienes notificaciones pendientes".
 Mensajes nuevos 2026-10-08:
@@ -552,6 +619,10 @@ Mensajes nuevos 2026-10-08:
   · "Para aceptar esta invitación debes cambiar tu tipo de cuenta a familiar en Ajustes."
   · "Debes finalizar o cancelar tus metas compartidas activas antes de cambiar a una cuenta
      estándar."
+Mensajes nuevos 2026-10-16 (J7):
+  · "No puedes eliminar tu cuenta porque eres el único administrador activo del sistema."
+  · "Debes finalizar o cancelar las metas compartidas activas antes de bajar a estándar."
+  · "No puedes eliminar tu propia cuenta desde aquí."
 
 
 ----------------------------------------------------------------------
@@ -562,7 +633,7 @@ Mensajes nuevos 2026-10-08:
   - Formularios: @csrf, @error bajo cada campo, old() para conservar valores.
   - Éxito: redirect()->with('exito', 'texto'); se muestra con <x-toast />.
   - Colores y estilos: SOLO variables y clases del CSS global.
-      · Color de marca que se adapta al tipo de cuenta: tokens --accent-*.
+      · Color de marca que se adapta al rol: tokens --accent-*.
       · "Peligro": --error o .btn-danger.
       · 50/30/20: --need, --want, --save.
       · NUNCA var(--primary) directo en pantallas nuevas.
@@ -583,7 +654,7 @@ Convenciones de refinamiento visual (2026-10-14):
     style="background:#..." inline.
   - Componente nuevo con color de marca: usar var(--accent) / --accent-hover /
     --accent-container.
-  - Cualquier pantalla nueva hereda modo claro/oscuro y tinte por tipo de cuenta.
+  - Cualquier pantalla nueva hereda modo claro/oscuro y tinte por rol.
   - Respetar prefers-reduced-motion en animaciones propias.
   - No cargar <script> o <link> de fuentes dentro de las pantallas: solo en base.blade.php.
 
@@ -596,9 +667,9 @@ Convenciones de notificaciones (2026-10-16):
 
 Convenciones de cuentas (2026-10-16):
   - Para eliminar una cuenta, usar siempre ServicioCuentas::eliminarCuenta($usuario).
-    No llamar $usuario->delete() directamente desde un controlador.
+  - Para cambiar rol, ServicioCuentas::cambiarRol($usuario, $nuevoRol).
+  - Para suspender/reactivar, ServicioCuentas::suspender / reactivar.
   - Capturar ValidationException y mostrar el mensaje al usuario.
-  - Para cambiar tipo de cuenta: ServicioCuentas::cambiarTipo.
 
 Convenciones del dashboard (2026-10-16):
   - El dashboard consulta SIEMPRE con delUsuario(auth()->id()) o relaciones del usuario
@@ -607,22 +678,34 @@ Convenciones del dashboard (2026-10-16):
   - La tarjeta de metas solo se dibuja si el rol es familiar.
   - Cuando exista el scope delPeriodo de C1, sustituir los whereYear/whereMonth directos.
 
+Convenciones de administración (2026-10-16):                        [NUEVO 2026-10-16 (J7)]
+  - El admin gestiona usuarios (rol, estado, eliminar) pero NUNCA consulta montos.
+  - EstadisticaController solo usa COUNT y GROUP BY; ninguna consulta con montos.
+  - Categorías del sistema se desactivan (activa=false), no se borran.
+  - El admin no puede eliminarse a sí mismo desde el panel (evita quedarse fuera).
+  - Si una regla del sistema no se puede aplicar (p.ej. último admin), usar
+    ValidationException con mensaje claro.
+
 
 ----------------------------------------------------------------------
 13. ORDEN DE CONSTRUCCIÓN
 ----------------------------------------------------------------------
-  1. J1 armazón y rutas (HECHO)          2. J2 base de datos (HECHO 2026-10-05)
-  3. J3 autenticación (HECHO 2026-10-06)   4. J4 permisos (HECHO 2026-10-06)
+  1. J1 armazón y rutas (HECHO)
+  2. J2 base de datos (HECHO 2026-10-05)
+  3. J3 autenticación (HECHO 2026-10-06)
+  4. J4 permisos (HECHO 2026-10-06)
   5. N1 -> N2 -> V1 -> V2 -> V4 (perfil e ingreso)   (V1 y V2 ya están en main)
   6. J5 metas (HECHO 2026-10-07; reabierto 2026-10-08), N3 (HECHO), V3 (HECHO)
   7. J6 alertas (HECHO 2026-10-16), J8a servicio de cuentas (HECHO 2026-10-16),
-     J8 dashboard (HECHO 2026-10-16), N4, V4 (resto)
-  8. J7 administración, N5 landing       9. V5 revisión visual y J9 seguridad/despliegue
-  *  Sesión 2026-10-14 (transversal): modo oscuro + tinte + píldora topbar + transiciones.
-  *  Sesión 2026-10-16: J6 (alertas + notificaciones) + J8a (eliminar cuenta) + J8 (dashboard).
-Siguiente de Juan: J7 administración (cuando cierre la decisión #23). Antes: pedirle a
-  Nikol el scope delPeriodo (C1) y a Valeria que V4 guarde el ingreso (C3).
-Antes de J7: cerrar la decisión #23 (columna categorias.activa).
+     J8 dashboard (HECHO 2026-10-16), J7 administración (HECHO 2026-10-16), N4, V4 (resto)
+  8. N5 landing
+  9. V5 revisión visual y J9 seguridad/despliegue
+  *  Sesión 2026-10-14: modo oscuro + tinte + píldora topbar + transiciones.
+  *  Sesión 2026-10-16: J6 (alertas) + J8a (eliminar cuenta) + J8 (dashboard) +
+     J7 (administración) + refinamiento visual (theme.css reescrito, tinte admin azul,
+     selects adaptados, rediseño de las 3 vistas admin).
+Siguiente de Juan: J9 (seguridad, integración y despliegue) cuando Nikol y Valeria
+  cierren sus pendientes (N4, N5, V4, V5).
 Al terminar todo (J9): no debe quedar ningún aviso "MAQUETA", ni Route::view de maqueta, ni
 imágenes externas. Comparar php artisan route:list con docs/backend/00-rutas.php.
 Pendiente de refactor: ServicioMetas::notificar() (J5) todavía escribe directo en notificaciones.
@@ -632,7 +715,10 @@ Pendiente de refactor: ServicioMetas::notificar() (J5) todavía escribe directo 
 14. DECISIONES
 ----------------------------------------------------------------------
   #1..#22 (ver versiones anteriores; sin cambios).
-  #23 ABIERTA: "desactivar" categorías del sistema. Falta decidir antes de J7.
+  #23 CERRADA (2026-10-16): categorias.activa booleana, default true. Las categorías del
+      sistema se desactivan (activa=false), no se borran. Índice (user_id, activa). El admin
+      gestiona solo las del sistema. Nikol filtrará con Categoria::activas() en N1/N2 cuando
+      toque.
 
 DECISIONES DEL 2026-10-08 (reapertura de J5):
   - Metas y rol estándar: metas al GRUPO C.
@@ -645,31 +731,44 @@ DECISIONES DEL 2026-10-08 (reapertura de J5):
   - Grupo D de rutas: eliminado.
 
 DECISIONES DEL 2026-10-14 (refinamiento visual): #24..#30
-  (#24 tinte, #25 píldora topbar, #26 transiciones, #27 Material Symbols display=block,
-   #28 botones de gastos con clases del sistema, #29 pt-16 en el layout app,
-   #30 tinte nunca aplica a peligro ni al 50/30/20)
+  #24 Tinte por tipo de cuenta. El color de marca cambia (verde ↔ morado) según users.rol.
+  #25 Píldora de acciones del topbar (.topbar-acciones).
+  #26 Transiciones (View Transitions API + fade-in + fuente fallback).
+  #27 Material Symbols con display=block y fallback a los 800 ms.
+  #28 Botones de gastos con clases del sistema (btn btn-primary, btn btn-secondary).
+  #29 Contenido debajo del topbar fijo con pt-16 en el layout app.
+  #30 El tinte NUNCA se aplica a estados de error ni al gráfico 50/30/20.
 
 DECISIONES DEL 2026-10-16 (J6): #31..#34
-  (#31 comando a las 07:00 con --fecha, #32 idempotencia por clave_unica,
-   #33 vencido cancela por_vencer, #34 el comando ignora admins y suspendidos)
+  #31 Comando diario a las 07:00 con --fecha para simular.
+  #32 Idempotencia por (user_id, clave_unica). Si estaba cancelada, se reactiva.
+  #33 Vencido cancela por_vencer y crea vencido.
+  #34 El comando ignora admins y suspendidos.
 
-DECISIONES DEL 2026-10-16 (J8a):                                       [NUEVO 2026-10-16 (J8)]
-  #35 Al eliminar una cuenta con metas compartidas activas, las metas se cancelan y el
-      otro participante recibe notificación. Si el que se va es el creador, metas.creador_id
-      se transfiere al otro antes de borrar para que la meta sobreviva al ON DELETE CASCADE.
-      Mismo comportamiento que "abandonar" en J5.
+DECISIONES DEL 2026-10-16 (J8a): #35..#36
+  #35 Al eliminar una cuenta con metas compartidas activas, las metas se cancelan y el otro
+      participante recibe notificación. Si el que se va es el creador, metas.creador_id se
+      transfiere al otro antes de borrar para que la meta sobreviva al ON DELETE CASCADE.
   #36 No se puede eliminar al último administrador activo del sistema.
 
-DECISIONES DEL 2026-10-16 (J8 dashboard):                              [NUEVO 2026-10-16 (J8)]
+DECISIONES DEL 2026-10-16 (J8): #37..#41
   #37 El dashboard refresca los pagos del mes con ServicioGastosFijos antes de calcular
-      métricas. Así siempre muestra datos al día sin depender del cron.
+      métricas.
   #38 El dashboard usa whereYear + whereMonth directo hasta que exista el scope delPeriodo
-      de C1. TODO(J8) marcado en el controlador.
-  #39 La tarjeta de metas se dibuja solo si el rol es familiar. Estándar y admin no la ven.
-  #40 Se añadió cast de fecha y monto a Gasto para evitar errores en Blade
-      ($gasto->fecha->format(...)). Cambio mínimo, no rompe nada.
-  #41 La vista del dashboard sigue con clases globales; cuando exista el code.html, se
-      reemplaza el marcado, no los datos.
+      de C1.
+  #39 La tarjeta de metas se dibuja solo si el rol es familiar.
+  #40 Se añadió cast de fecha y monto a Gasto.
+  #41 La vista del dashboard sigue con clases del code.html; cuando exista el diseño
+      definitivo, se reemplaza el marcado, no los datos.
+
+DECISIONES DEL 2026-10-16 (J7):                                       [NUEVO 2026-10-16 (J7)]
+  #42 El tinte del administrador es Core Blue (#2563EB claro / #93b4ff oscuro). Se reutiliza
+      el color de "Necesidades" del gráfico 50/30/20 para no introducir colores nuevos. No se
+      aplica a las páginas públicas (login, registro).
+  #43 El admin no puede eliminarse a sí mismo desde el panel de administración (evita
+      quedarse fuera por error). Sí puede hacerlo desde Ajustes si hay otro admin activo.
+  #44 El registro de acciones del administrador (auditoría) queda como [PROPUESTA] no
+      implementada. Se agrega en una PR aparte cuando se decida.
 
 Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué y por qué.
 
@@ -700,7 +799,7 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
      datos financieros.
  18. Middleware por alias ('cuenta.activa', 'rol:...'). Las líneas 'use' van arriba.
  19. El rol estándar también entra a Metas.
- 20. ServicioCuentas::cambiarTipo es la ÚNICA vía para cambiar el rol.
+ 20. ServicioCuentas::cambiarTipo es la ÚNICA vía para cambiar el tipo.
  21. ServicioMetas::tieneMetasCompartidasActivas es la única vía para verificar si un usuario
      puede bajar a estándar.
  22. La lógica de "aceptar invitación siendo estándar" vive en ServicioMetas::aceptar().
@@ -713,21 +812,23 @@ Instrucciones de notificaciones (2026-10-16): #29..#33
   (usar siempre ServicioNotificaciones, no escribir directo en la tabla, usar constantes
    TIPO_* y ESTADO_*, clave_unica "{tipo}:{id}", solo el comando genera alertas)
 
-Instrucciones de cuentas (2026-10-16):                                 [NUEVO 2026-10-16 (J8)]
- 34. Para eliminar una cuenta, usa siempre ServicioCuentas::eliminarCuenta($usuario). No
-     llames $usuario->delete() directamente desde un controlador.
- 35. Antes de eliminar, el servicio verifica que no sea el último admin activo. Confía en él:
-     captura ValidationException y muestra el mensaje al usuario.
- 36. Para cambiar el tipo de cuenta, usa ServicioCuentas::cambiarTipo (ya existía).
+Instrucciones de cuentas (2026-10-16): #34..#36
+  (usar ServicioCuentas::eliminarCuenta / cambiarRol / suspender / reactivar;
+   capturar ValidationException)
 
-Instrucciones del dashboard (2026-10-16):                              [NUEVO 2026-10-16 (J8)]
- 37. El dashboard consulta SIEMPRE con delUsuario(auth()->id()) o relaciones del usuario
-     autenticado. Nunca Modelo::all().
- 38. Antes de mostrar métricas, refresca los pagos del mes con
-     ServicioGastosFijos::generarPagosDelPeriodo + marcarVencidos.
- 39. La tarjeta de metas se dibuja solo si el rol es familiar.
- 40. Cuando Nikol agregue el scope delPeriodo de C1, sustituir los whereYear/whereMonth
-     directos y quitar el TODO(J8).
+Instrucciones del dashboard (2026-10-16): #37..#40
+  (delUsuario, refrescar pagos del mes, tarjeta de metas solo si familiar, sustituir
+   whereYear/whereMonth por scopeDelPeriodo cuando exista)
+
+Instrucciones de administración (2026-10-16):                          [NUEVO 2026-10-16 (J7)]
+ 41. El admin NUNCA consulta montos ni datos financieros. EstadísticaController solo COUNT.
+ 42. Categorías del sistema se desactivan (activa=false), no se borran.
+ 43. Si una regla del sistema no se puede aplicar (p.ej. último admin), lanzar
+     ValidationException con mensaje claro.
+ 44. El admin no puede eliminarse a sí mismo desde el panel.
+ 45. Para gestionar usuarios/roles usa ServicioCuentas, no escribas en el modelo directo.
+ 46. El tinte admin es Core Blue; en theme.css ya está definido como tokens --admin-*.
+ 47. Las vistas admin usan el layout layouts.admin y el sidebar components/sidebar-admin.
 
 
 ----------------------------------------------------------------------
@@ -744,8 +845,9 @@ Instrucciones del dashboard (2026-10-16):                              [NUEVO 20
   J5_Metas_Compartidas_Documentacion.txt ............. qué cambió en J5
   J5_Rebrir_Metas_y_Ajustes_Cambios_2026-10-08.txt ... qué cambió en la reapertura de J5
   J6_ServicioNotificaciones_Documentacion.txt ........ qué cambió en J6
+  J7_Administracion_Documentacion.txt ................ qué cambió en J7             [NUEVO 2026-10-16]
   J8_ServicioCuentas_Documentacion.txt ............... qué cambió en J8a (eliminar cuenta)
-  J8_Dashboard_Documentacion.txt ..................... qué cambió en J8 (dashboard)  [NUEVO]
+  J8_Dashboard_Documentacion.txt ..................... qué cambió en J8 (dashboard)
   Refinamiento_Visual_2026-10-14.txt ................. resumen de la sesión visual
   diagrama_tablas.png / .svg ......................... diagrama de las 20 tablas
   docs/backend/*.php ................................. planes técnicos por tema
