@@ -29,6 +29,9 @@
   /** Aplica el tema al <html> y actualiza todos los botones toggle. */
   function aplicar(tema) {
     html.setAttribute('data-theme', tema);
+    if (window.CC && typeof window.CC.refreshIcons === 'function') {
+      window.CC.refreshIcons();
+    }
     html.style.colorScheme = tema === 'oscuro' ? 'dark' : 'light';
 
     document.querySelectorAll('[data-theme-toggle]').forEach(function (boton) {

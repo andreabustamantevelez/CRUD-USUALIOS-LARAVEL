@@ -29,11 +29,7 @@
     <div class="bg-surface-container-lowest shadow-xl rounded-xl p-6 sm:p-10 w-full max-w-md relative overflow-hidden">
       <div class="absolute -top-24 -right-24 w-80 h-80 bg-primary-fixed/30 rounded-full blur-3xl pointer-events-none -z-0"></div>
       <div class="relative z-10 flex flex-col space-y-3 mb-space-lg">
-        <img
-          alt="Cuentas Claras"
-          class="h-10 w-auto object-contain"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDthDtnBs_dHctRok9VmvCXjbV9BPsv8HdZ9E8ncZmEz2ndmE38q5Ub56zSst9zoEJjGn4KGoWfe093ejcoBO8ELcf2SkCQKoNuZ3eFxm5st2RQkuO0Om0wGBb7KV7o6CSBQg65kN7Yj0cygELR839JbncGqb8EC2BYk-DVII5PtW-SHMjoADjfqBa7CvLWGbGHb3PN1-gewO4A6FW9f-waairOTuPY8SV8I_6ngC42VorFjBKPEYrkOdpQggZVX_7B7w"
-        >
+        <x-logo :alto="48" />
         <h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Recuperar contraseña</h1>
         <p class="font-body-md text-body-md text-on-surface-variant">
           Te enviaremos un enlace para restablecerla.

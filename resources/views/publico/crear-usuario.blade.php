@@ -48,11 +48,7 @@
               <div class="absolute -top-24 -right-24 w-80 h-80 bg-primary-fixed/30 rounded-full blur-3xl pointer-events-none -z-0"></div>
               <!-- Form Header -->
               <div class="relative z-10 flex flex-col items-start space-y-3 mb-space-lg">
-                <img
-                  alt="Cuentas Claras"
-                  class="h-10 w-auto object-contain"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDsPXFJFUBfIdCkden6QFlZBL_VoX-pn5QXMhZzksGuqRGH8G9VV3YUK5cJnDkNNI8vhoUygpeW0N2t6fEOIzgq5nbZ-uaSQU4vR1fAzrnKt2X5tg4Mw6_WL_1JCsA7G11Vpe1gmVRroy14aWi6ZREFMVpuaPhVU_zjLf6jXUSClaev2iAJF6UBhGXnQxWqYRRU-PaVjzW7LWimOfTX-SO8wESOk45ZZrqO0XQuU5eZPeK_IuCibtq29xbSDWzew_8Uw"
-                >
+                <x-logo :alto="48" />
                 <div class="pt-2">
                   <h1 class="font-headline-xl text-headline-xl text-on-surface">Únete a Cuentas Claras</h1>
                   <p class="font-body-md text-body-md text-secondary mt-1 max-w-xl">

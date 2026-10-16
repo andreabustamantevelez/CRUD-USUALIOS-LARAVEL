@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\AporteMeta;
 use App\Models\Meta;
-use App\Models\Notificacion;
 use App\Models\ParticipacionMeta;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -243,16 +242,28 @@ class ServicioMetas
             ->each(fn ($id) => $this->notificar($id, $tipo, "{$quien->nombre} {$accion} \"{$meta->nombre}\"", $meta));
     }
 
-    /** Versión mínima del servicio de notificaciones (C4). Cuando exista el de J6, se cambia aquí. */
+    /**
+     * Delega en ServicioNotificaciones (contrato C4). Antes escribía directo en
+     * la tabla notificaciones; ahora respeta el servicio único.
+     *
+     * Los avisos de metas no llevan clave_unica: cada evento (invitación,
+     * aceptación, rechazo, finalización, abandono) puede repetirse legítimamente
+     * (por ejemplo, invitar de nuevo a alguien que ya rechazó antes).
+     */
     private function notificar(int $usuarioId, string $tipo, string $mensaje, Meta $meta): void
     {
-        Notificacion::create([
-            'user_id' => $usuarioId,
-            'tipo'    => $tipo,
-            'mensaje' => mb_substr($mensaje, 0, 255),
-            'estado'  => 'pendiente',
-            'meta_id' => $meta->id,
-        ]);
+        $usuario = User::find($usuarioId);
+
+        if ($usuario === null) {
+            return;
+        }
+
+        app(ServicioNotificaciones::class)->crear(
+            $usuario,
+            $tipo,
+            mb_substr($mensaje, 0, 255),
+            ['meta_id' => $meta->id]
+        );
     }
 
     private function fallar(string $mensaje, string $campo = 'correo'): never

@@ -23,11 +23,7 @@
 <aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between py-space-lg px-space-md">
   <div class="flex flex-col gap-space-lg">
     <div class="flex items-center gap-space-sm px-space-sm">
-      <img
-        alt="Cuentas Claras"
-        class="h-9 w-auto object-contain"
-        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsEzfniAhdwoWhSAFzLdlFMTufuWJ-b55eK4R-hfTYPWzIcz2Qy-cCgmydSwIYZU_mNROqMMuY1WjSfaLcf0gpCEvdHRGL0bvTkBpLzCzAN5o_dIldGGoJXPEeX73HMkhN4SVzurPtkn8gYRj09xbTOrK0-8NHf3xoXXbhnLMctFBOOSC_Tw11bs545YkGsZGOcwnzpOgXRXbWpIYLp21VvBTB9dIBde3V5NbXmCZLq5hIGMw_IF4tF_vRI68zkXBcUQ"
-      >
+    <x-logo :alto="36" />
     </div>
     <div class="px-space-xs">
       <a
