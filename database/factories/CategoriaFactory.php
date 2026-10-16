@@ -17,6 +17,7 @@ class CategoriaFactory extends Factory
             'nombre'           => fake()->unique()->words(2, true),
             'bloque'           => fake()->randomElement(Categoria::BLOQUES),
             'peso_recomendado' => null,
+            'activa' => true
         ];
     }
 

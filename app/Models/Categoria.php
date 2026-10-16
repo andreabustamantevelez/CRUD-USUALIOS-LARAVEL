@@ -11,6 +11,16 @@ class Categoria extends Model
 {
     use HasFactory;
 
+    protected $casts = [
+    'peso_recomendado' => 'integer',
+    'activa' => 'boolean',
+    ];
+
+    public function scopeActivas($query)
+    {
+        return $query->where('activa', true);
+    }
+
     protected $table = 'categorias';
 
     protected $guarded = [];   // Los controladores usan FormRequest + $request->validated(), nunca $request->all().
@@ -20,6 +30,7 @@ class Categoria extends Model
 
     public function usuario(): BelongsTo { return $this->belongsTo(User::class, 'user_id'); }
     public function gastos(): HasMany { return $this->hasMany(Gasto::class); }
+    public function gastosFijos(): HasMany { return $this->hasMany(GastoFijo::class); }
     public function esDelSistema(): bool { return is_null($this->user_id); }
     public function getBloqueAttribute(): string
 {

@@ -22,7 +22,11 @@ class CategoriaSeeder extends Seeder
                 // firstOrCreate: se puede correr el seeder varias veces sin duplicar.
                 Categoria::firstOrCreate(
                     ['user_id' => null, 'nombre' => $nombre],
-                    ['bloque' => $bloque, 'peso_recomendado' => $peso[$bloque]]
+                    [
+                        'bloque' => $bloque,
+                        'peso_recomendado' => $peso[$bloque],
+                        'activa' => true,
+                    ]
                 );
             }
         }

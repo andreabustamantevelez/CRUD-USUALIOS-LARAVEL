@@ -71,6 +71,77 @@ class ServicioCuentas
     }
 
     /**
+     * Cambia el rol del usuario (cualquiera de los 3).
+     * Reglas:
+     *   - No se puede dejar al sistema sin administrador activo.
+     *   - Si se pasa de familiar a estandar, no debe tener metas compartidas activas.
+     *   - Mismo rol: no hace nada.
+     */
+    public function cambiarRol(User $usuario, string $nuevoRol): void
+    {
+        if (! in_array($nuevoRol, ['estandar', 'familiar', 'administrador'], true)) {
+            throw ValidationException::withMessages([
+                'rol' => 'Selecciona un rol válido.',
+            ]);
+        }
+
+        if ($usuario->rol === $nuevoRol) {
+            return;
+        }
+
+        // Si vamos a quitarle el rol de administrador, verificar que no sea el último.
+        if ($usuario->rol === 'administrador' && $nuevoRol !== 'administrador') {
+            $this->verificarUltimoAdministrador($usuario);
+        }
+
+        // Si baja de familiar a estandar, no debe tener metas compartidas activas.
+        if ($usuario->rol === 'familiar' && $nuevoRol === 'estandar'
+            && $this->metas->tieneMetasCompartidasActivas($usuario)) {
+            throw ValidationException::withMessages([
+                'rol' => 'Debes finalizar o cancelar las metas compartidas activas antes de bajar a estándar.',
+            ]);
+        }
+
+        DB::transaction(function () use ($usuario, $nuevoRol) {
+            $usuario->rol = $nuevoRol;
+            $usuario->save();
+        });
+    }
+
+    /**
+     * Suspende la cuenta del usuario (activo = false).
+     * No se puede suspender al último administrador activo.
+     */
+    public function suspender(User $usuario): void
+    {
+        if (! $usuario->activo) {
+            return;
+        }
+
+        $this->verificarUltimoAdministrador($usuario);
+
+        DB::transaction(function () use ($usuario) {
+            $usuario->activo = false;
+            $usuario->save();
+        });
+    }
+
+    /**
+     * Reactiva la cuenta suspendida.
+     */
+    public function reactivar(User $usuario): void
+    {
+        if ($usuario->activo) {
+            return;
+        }
+
+        DB::transaction(function () use ($usuario) {
+            $usuario->activo = true;
+            $usuario->save();
+        });
+    }
+
+    /**
      * Impide que el sistema quede sin ningún administrador activo.
      */
     private function verificarUltimoAdministrador(User $usuario): void
