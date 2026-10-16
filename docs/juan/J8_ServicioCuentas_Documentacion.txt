@@ -9,7 +9,7 @@ Estado: HECHO. php artisan test => 151 pruebas, 630 aserciones, todas pasan
 ----------------------------------------------------------------------
 1. QUÉ SE HIZO (en una frase por pieza)
 ----------------------------------------------------------------------
-  eliminarCuenta ......... borra la cuenta y todo lo suyo (cascade) en una transacción.
+  eliminarCuenta .......... borra la cuenta y todo lo suyo (cascade) en una transacción.
   Último admin ............ impide que el sistema quede sin ningún administrador activo.
   Metas compartidas ....... al eliminar una cuenta con metas compartidas activas, las
                             cancela y avisa al otro participante (decisión #18).

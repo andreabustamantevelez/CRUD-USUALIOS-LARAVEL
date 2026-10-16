@@ -19,6 +19,11 @@ class Gasto extends Model
         'descripcion',
     ];
 
+    protected $casts = [
+        'fecha' => 'date',
+        'monto' => 'integer',
+    ];
+
     public function scopeDelUsuario($query, $userId)
     {
         return $query->where('user_id', $userId);
