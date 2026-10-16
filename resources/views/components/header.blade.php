@@ -19,7 +19,7 @@
         class="flex items-center gap-space-sm"
         data-path="landing-page"
         href="{{ route('inicio') }}"
-      ><img alt="Cuentas Claras" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDthDtnBs_dHctRok9VmvCXjbV9BPsv8HdZ9E8ncZmEz2ndmE38q5Ub56zSst9zoEJjGn4KGoWfe093ejcoBO8ELcf2SkCQKoNuZ3eFxm5st2RQkuO0Om0wGBb7KV7o6CSBQg65kN7Yj0cygELR839JbncGqb8EC2BYk-DVII5PtW-SHMjoADjfqBa7CvLWGbGHb3PN1-gewO4A6FW9f-waairOTuPY8SV8I_6ngC42VorFjBKPEYrkOdpQggZVX_7B7w"></a>
+      ><x-logo :alto="32" /></a>
     </div>
     <nav
       class="hidden lg:flex items-center gap-space-xs"

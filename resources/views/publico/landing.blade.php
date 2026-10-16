@@ -14,8 +14,8 @@
     3. Verificar con el equipo cada cifra y promesa antes de publicar: "+18.000 hogares", "AES-256
        de extremo a extremo", "100% gratuita", "Cero reportes a centrales". Si no son ciertas,
        cambiar el texto.
-    4. Guardar el logo y las imágenes externas (lh3.googleusercontent.com) en public/img y cambiar
-       cada src por asset('img/...').
+    4. El logo ahora es un SVG inline (<x-logo />) que se adapta al tema y tipo de cuenta.
+       Las demás imágenes externas pendientes se bajan a public/img en J9.
     5. Los botones de plan ya envían al registro; para preseleccionar el tipo agregar
        ?tipo=estandar o ?tipo=familiar al enlace (la vista de registro ya lo lee).
     6. Redactar Política de privacidad y Términos (enlaces del footer).
