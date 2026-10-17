@@ -1,12 +1,479 @@
 /*
  * ==============================================================================
  * ARCHIVO : public/css/ajustes.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Ajustes (perfil, tipo de cuenta, eliminar). Se carga después de
- *           style.css (vía @push('styles') en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): zona de peligro con borde rojo suave.
+ * QUÉ ES  : Estilos de Ajustes (perfil, tipo-cuenta, eliminar-cuenta).
+ * NOTA    : background-color (longhand) para que la transición de tema funcione.
  * ==============================================================================
  */
 
+/* ==========================================================================
+   Tabs
+   ========================================================================== */
+.ajustes-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.5rem;
+}
+
+.ajustes-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--on-surface-variant);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  transition:
+    color            var(--t-base) var(--ease-suave),
+    background-color var(--t-base) var(--ease-suave);
+}
+.ajustes-tab:hover {
+  color: var(--on-surface);
+  background-color: var(--surface-container-low);
+}
+.ajustes-tab--activa {
+  color: var(--accent);
+  font-weight: 600;
+}
+.ajustes-tab--activa::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background-color: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+.ajustes-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ==========================================================================
+   Cabecera de sección (dentro de cada card)
+   ========================================================================== */
+.ajustes-seccion-header {
+  margin-bottom: 1.25rem;
+}
+.ajustes-seccion-titulo {
+  font-size: 1.125rem;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--on-surface);
+  margin: 0;
+}
+.ajustes-seccion-desc {
+  margin-top: 0.25rem;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Formularios
+   ========================================================================== */
+.ajustes-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ajustes-form__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 640px) {
+  .ajustes-form__grid--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ajustes-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+.ajustes-campo--full {
+  grid-column: 1 / -1;
+}
+.ajustes-campo__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+.ajustes-campo__hint {
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+  line-height: 1.4;
+}
+.ajustes-campo__error {
+  font-size: 0.75rem;
+  color: var(--error);
+  line-height: 1.4;
+}
+.ajustes-campo__input {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 1rem;
+  background-color: var(--surface-container-lowest);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.5rem;
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.9375rem;
+  transition:
+    background-color var(--t-slow) var(--ease-suave),
+    border-color     var(--t-base) var(--ease-suave),
+    box-shadow       var(--t-base) var(--ease-suave);
+}
+.ajustes-campo__input:focus {
+  outline: 0;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.ajustes-campo__input:disabled {
+  background-color: var(--surface-container);
+  color: var(--on-surface-variant);
+  cursor: not-allowed;
+}
+
+/* Input con sufijo (COP) */
+.ajustes-campo__sufijo {
+  position: relative;
+}
+.ajustes-campo__sufijo .ajustes-campo__input {
+  padding-right: 3.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.ajustes-campo__sufijo-texto {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Separador entre secciones dentro de una card */
+.ajustes-separador {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 1.75rem 0;
+  transition: border-color var(--t-slow) var(--ease-suave);
+}
+
+/* Acciones del formulario */
+.ajustes-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* ==========================================================================
+   Tipo de cuenta — tarjetas-radio
+   ========================================================================== */
+.ajustes-tipo-cuenta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .ajustes-tipo-cuenta {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ajustes-tipo-cuenta__opcion {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background-color: var(--surface-container-lowest);
+  cursor: pointer;
+  transition:
+    background-color var(--t-slow) var(--ease-suave),
+    border-color     var(--t-base) var(--ease-suave),
+    box-shadow       var(--t-base) var(--ease-suave);
+}
+.ajustes-tipo-cuenta__opcion:hover {
+  border-color: var(--line-strong);
+  background-color: var(--surface-container-low);
+}
+.ajustes-tipo-cuenta__opcion:has(input:checked) {
+  border-color: var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 5%, var(--surface-container-lowest));
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.ajustes-tipo-cuenta__opcion:has(input:checked) .ajustes-tipo-cuenta__icono {
+  background-color: var(--accent);
+  color: var(--accent-on);
+}
+.ajustes-tipo-cuenta__opcion:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.ajustes-tipo-cuenta__opcion--bloqueada {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ajustes-tipo-cuenta__opcion--bloqueada:hover {
+  border-color: var(--line);
+  background-color: var(--surface-container-lowest);
+}
+
+.ajustes-tipo-cuenta__radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ajustes-tipo-cuenta__icono {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background-color: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  transition:
+    background-color var(--t-base) var(--ease-suave),
+    color            var(--t-base) var(--ease-suave);
+}
+
+.ajustes-tipo-cuenta__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+.ajustes-tipo-cuenta__titulo {
+  font-weight: 600;
+  color: var(--on-surface);
+  font-size: 0.9375rem;
+}
+.ajustes-tipo-cuenta__desc {
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Aviso informativo (metas compartidas activas)
+   ========================================================================== */
+.ajustes-aviso {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--soon-line);
+  border-left: 3px solid var(--soon);
+  border-radius: 0.5rem;
+  background-color: var(--soon-bg);
+  color: var(--soon);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.ajustes-aviso .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 20px;
+  margin-top: 1px;
+}
+
+/* ==========================================================================
+   Zona de peligro (eliminar cuenta)
+   ========================================================================== */
+.ajustes-peligro {
+  border: 1px solid color-mix(in srgb, var(--error) 30%, var(--line));
+  border-radius: 0.75rem;
+  background-color: color-mix(in srgb, var(--error) 4%, var(--surface-container-lowest));
+  overflow: hidden;
+  transition:
+    background-color var(--t-slow) var(--ease-suave),
+    border-color     var(--t-slow) var(--ease-suave);
+}
+
+.ajustes-peligro__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--error) 20%, var(--line));
+  background-color: color-mix(in srgb, var(--error) 8%, transparent);
+}
+
+.ajustes-peligro__icono {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background-color: var(--error);
+  color: var(--on-error);
+}
+
+.ajustes-peligro__cuerpo {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.ajustes-peligro__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.ajustes-peligro__lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.ajustes-peligro__lista .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 18px;
+  color: var(--error);
+  margin-top: 2px;
+}
+
+.ajustes-peligro__confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.5rem;
+  background-color: var(--surface-container-lowest);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--on-surface);
+  transition:
+    background-color var(--t-slow) var(--ease-suave),
+    border-color     var(--t-base) var(--ease-suave);
+}
+.ajustes-peligro__confirm:hover {
+  border-color: var(--line-strong);
+}
+.ajustes-peligro__confirm input {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.125rem;
+  accent-color: var(--error);
+  flex-shrink: 0;
+}
+
+/* Botón de eliminar: forzar el color rojo aunque el rol sea familiar/azul */
+.ajustes-peligro .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* ==========================================================================
+   Banners de feedback
+   ========================================================================== */
+.ajustes-exito,
+.ajustes-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  transition:
+    background-color var(--t-slow) var(--ease-suave),
+    border-color     var(--t-slow) var(--ease-suave),
+    color            var(--t-slow) var(--ease-suave);
+}
+.ajustes-exito {
+  border: 1px solid var(--ok-line);
+  border-left: 3px solid var(--ok);
+  background-color: var(--ok-bg);
+  color: var(--ok);
+}
+.ajustes-exito .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 20px;
+  margin-top: 1px;
+}
+.ajustes-error {
+  flex-direction: column;
+  gap: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--error) 30%, var(--line));
+  border-left: 3px solid var(--error);
+  background-color: color-mix(in srgb, var(--error) 8%, transparent);
+  color: var(--error);
+}
+.ajustes-error__titulo {
+  font-weight: 600;
+}
+.ajustes-error ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+#titulo-eliminar-cuenta{
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 640px) {
+  .ajustes-tab span:last-child {
+    display: none;
+  }
+  .ajustes-tab {
+    padding: 0.75rem 0.875rem;
+  }
+  .ajustes-acciones {
+    justify-content: stretch;
+  }
+  .ajustes-acciones .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .ajustes-peligro__header,
+  .ajustes-peligro__cuerpo {
+    padding: 1rem;
+  }
+}
+
+/* ==========================================================================
+   Reducción de movimiento
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .ajustes-tab,
+  .ajustes-campo__input,
+  .ajustes-tipo-cuenta__opcion,
+  .ajustes-tipo-cuenta__icono,
+  .ajustes-peligro__confirm,
+  .ajustes-peligro,
+  .ajustes-exito,
+  .ajustes-error,
+  .ajustes-separador {
+    transition: none;
+  }
+}

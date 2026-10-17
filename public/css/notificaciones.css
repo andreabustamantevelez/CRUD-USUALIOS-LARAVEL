@@ -1,41 +1,186 @@
-tests/Feature/*
- * Estilos exclusivos del Centro de notificaciones (N4).
+/*
+ * ==============================================================================
+ * ARCHIVO : public/css/notificaciones.css
+ * QUÉ ES  : Centro de notificaciones (N4).
+ *
+ * COLOR:
+ *   - default (invitaciones, respuestas, genéricas): --accent-fixed / --accent-on-fixed
+ *   - por_vencer: --soon-bg / --soon
+ *   - vencido:    --late-bg / --late
+ *   - finalizada: --ok-bg   / --ok
+ *   - abandonada: --wait-bg / --wait
+ *
+ * TRANSICIONES: usan los tokens --t-* y --ease-* de transiciones.css.
+ * ==============================================================================
  */
 
 .notificacion-item {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    overflow-wrap: anywhere;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.75rem;
+  background-color: var(--surface-container-lowest); /* ← CORREGIDO */
+  overflow-wrap: anywhere;
+  transition:
+    border-color var(--t-base) var(--ease-suave),
+    box-shadow  var(--t-base) var(--ease-suave),
+    background-color var(--t-slow) var(--ease-suave),
+    transform var(--t-base) var(--ease-suave);
 }
 
+[data-theme="oscuro"] .notificacion-item {
+    border-color: transparent;
+}
+
+.notificacion-item:last-child { margin-bottom: 0; }
+
 .notificacion-item:hover {
-    border-color: var(--primary);
-    box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+  transform: translateY(-1px);
+}
+
+.notificacion-icono {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: var(--accent-fixed);
+  color: var(--accent-on-fixed);
+  transition:
+    background-color var(--t-slow) var(--ease-suave),
+    color var(--t-slow) var(--ease-suave);
+  margin: auto;
+}
+
+.notificacion-icono .material-symbols-outlined {
+  font-size: 1.375rem;
+  line-height: 1;
+}
+
+.notificacion-item--por_vencer   .notificacion-icono { background: var(--soon-bg); color: var(--soon); }
+.notificacion-item--vencido      .notificacion-icono { background: var(--late-bg); color: var(--late); }
+.notificacion-item--meta_finalizada .notificacion-icono { background: var(--ok-bg); color: var(--ok); }
+.notificacion-item--meta_abandonada .notificacion-icono { background: var(--wait-bg); color: var(--wait); }
+
+.notificacion-cuerpo { flex: 1; min-width: 0; }
+
+.notificacion-enlace {
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  min-height: 40px;
+  transition: color var(--t-base) var(--ease-suave);
+}
+
+.notificacion-enlace:hover { color: var(--accent-hover, var(--accent)); }
+
+.notificacion-enlace:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .notificacion-punto {
-    flex-shrink: 0;
-    color: var(--primary);
-    font-size: 0.8rem;
-    line-height: 1.5;
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  transition: color var(--t-slow) var(--ease-suave);
 }
 
-.notificacion-item button {
-    min-height: 40px;
-    cursor: pointer;
+.notificacion-estado {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
 }
 
-.notificacion-item button:focus-visible,
-form button:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 3px;
+[data-theme="oscuro"] .notificacion-item {
+  background: var(--surface-container);
+}
+[data-theme="oscuro"] .notificacion-item:hover {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
 }
 
 @media (max-width: 640px) {
-    .notificacion-item {
-        padding: 0.875rem;
-    }
+  .notificacion-item { padding: 0.875rem; gap: 0.75rem; }
+  .notificacion-icono { width: 2.25rem; height: 2.25rem; }
+  .notificacion-icono .material-symbols-outlined { font-size: 1.25rem; }
+}
 
-    .notificacion-item .text-2xl {
-        font-size: 1.25rem;
-    }
+/* ==========================================================================
+   VARIANTE COMPACTA — para el dashboard
+   Sin borde ni fondo propio (el card contenedor ya los aporta), altura menor
+   y tipografía más ajustada para la columna derecha del panel.
+   ========================================================================== */
+.notificacion-item--compacta {
+  padding: 0.5rem 0.625rem;
+  gap: 0.625rem;
+  margin-bottom: 0.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: transparent;
+  box-shadow: none;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    background-color var(--t-base) var(--ease-suave),
+    color            var(--t-base) var(--ease-suave);
+}
+
+.notificacion-item--compacta:last-child {
+  margin-bottom: 0;
+}
+
+.notificacion-item--compacta:hover {
+  background-color: var(--surface-container-low);
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.notificacion-item--compacta .notificacion-icono {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+}
+
+.notificacion-item--compacta .notificacion-icono .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+.notificacion-item--compacta .notificacion-cuerpo p:first-child {
+  font-size: 13px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notificacion-item--compacta .notificacion-cuerpo p:last-of-type {
+  font-size: 11px;
+  margin-top: 0.125rem;
+  line-height: 1.3;
+}
+
+.notificacion-item--compacta .notificacion-punto {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  font-size: 0.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notificacion-item--compacta { transition: none; }
 }

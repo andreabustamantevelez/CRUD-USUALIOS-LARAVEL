@@ -1,6 +1,29 @@
 /* Invitaciones a metas (J5). */
-.invitacion { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: 1rem; margin-bottom: .75rem; border: 1px solid var(--line); border-radius: .75rem; }
+.invitacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  margin-bottom: .75rem;
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  transition:
+    border-color var(--t-base) var(--ease-suave),
+    box-shadow  var(--t-base) var(--ease-suave),
+    transform var(--t-base) var(--ease-suave);
+}
+.invitacion:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 2px 8px rgb(15 23 42 / .04);
+  transform: translateY(-1px);
+}
 .invitacion__datos { min-width: 0; flex: 1 1 16rem; }
 .invitacion__acciones { display: flex; gap: .5rem; }
 .invitacion__error { color: var(--error); font-size: 13px; margin-top: .5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .invitacion { transition: none; }
+  .invitacion:hover { transform: none; box-shadow: none; }
+}

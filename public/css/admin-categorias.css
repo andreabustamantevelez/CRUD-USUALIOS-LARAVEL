@@ -1,6 +1,6 @@
 /* ==========================================================
    ADMIN · CATEGORÍAS DEL SISTEMA
-   Estilos locales. Usa tokens del sistema (var(--...)).
+   Usa tokens del sistema (var(--...)) y de timing (var(--t-*)).
    ========================================================== */
 
 /* --- Aviso contextual --- */
@@ -18,6 +18,9 @@
 .admin-bloque {
   padding: 0;
   overflow: hidden;
+  transition:
+    border-color var(--t-base) var(--ease-suave),
+    box-shadow   var(--t-base) var(--ease-suave);
 }
 .admin-bloque__cabecera {
   padding: 1.25rem 1.5rem;
@@ -45,10 +48,10 @@
 .admin-categoria {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--line);
+  transition: background-color var(--t-slow) var(--ease-suave);
 }
-.admin-categoria:last-child {
-  border-bottom: 0;
-}
+.admin-categoria:hover { background: var(--surface-container-low); }
+.admin-categoria:last-child { border-bottom: 0; }
 
 .admin-categoria__fila {
   display: flex;
@@ -57,7 +60,6 @@
   justify-content: space-between;
   gap: 1rem;
 }
-
 .admin-categoria__info {
   flex: 1 1 18rem;
   min-width: 0;
@@ -65,7 +67,6 @@
   flex-direction: column;
   gap: .375rem;
 }
-
 .admin-categoria__meta {
   display: flex;
   flex-wrap: wrap;
@@ -75,9 +76,7 @@
   font-size: 13px;
   line-height: 1.4;
 }
-.admin-categoria__meta .material-symbols-outlined {
-  color: var(--outline);
-}
+.admin-categoria__meta .material-symbols-outlined { color: var(--outline); }
 
 .admin-categoria__submeta {
   display: flex;
@@ -86,7 +85,6 @@
   color: var(--on-surface-variant);
   font-size: 12px;
 }
-
 .admin-categoria__acciones {
   display: flex;
   flex-wrap: wrap;
@@ -100,10 +98,10 @@
   cursor: pointer;
   list-style: none;
   user-select: none;
+  transition: opacity var(--t-base) var(--ease-suave);
 }
-.admin-categoria__editar summary::-webkit-details-marker {
-  display: none;
-}
+.admin-categoria__editar summary::-webkit-details-marker { display: none; }
+.admin-categoria__editar summary:hover { opacity: .85; }
 
 .admin-categoria__form {
   display: flex;
@@ -115,54 +113,43 @@
   border-radius: .5rem;
   background: var(--surface-container-low);
   border: 1px solid var(--line);
+  transition:
+    opacity   var(--t-base) var(--ease-suave),
+    transform var(--t-base) var(--ease-suave);
+}
+.admin-categoria__editar[open] .admin-categoria__form {
+  animation: admin-categoria-entrar var(--t-base) var(--ease-suave) both;
+}
+@keyframes admin-categoria-entrar {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* --- Responsive --- */
 @media (max-width: 640px) {
-  .admin-categoria__fila {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .admin-categoria__acciones {
-    width: 100%;
-  }
+  .admin-categoria__fila { flex-direction: column; align-items: stretch; }
+  .admin-categoria__acciones { width: 100%; }
   .admin-categoria__acciones > form,
-  .admin-categoria__acciones > details {
-    flex: 1 1 auto;
-  }
-  .admin-categoria__acciones .btn {
-    width: 100%;
-  }
-  .admin-categoria__form {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .admin-categoria__form .btn {
-    width: 100%;
-  }
+  .admin-categoria__acciones > details { flex: 1 1 auto; }
+  .admin-categoria__acciones .btn { width: 100%; }
+  .admin-categoria__form { flex-direction: column; align-items: stretch; }
+  .admin-categoria__form .btn { width: 100%; }
 }
 
 /* ==========================================================
    FORMULARIO CREAR CATEGORÍA — layout en grid
    ========================================================== */
-
 .admin-form-crear {
   display: grid;
-  grid-template-columns:
-    minmax(0, 2.2fr)   /* Nombre */
-    minmax(0, 1.6fr)   /* Bloque */
-    minmax(0, 1fr)     /* Peso */
-    auto;              /* Botón */
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.6fr) minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: end;
 }
-
 .admin-form-crear__campo {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-
 .admin-form-crear__label {
   display: block;
   margin-bottom: .5rem;
@@ -170,13 +157,10 @@
   font-weight: 600;
   color: var(--on-surface);
 }
-
 .admin-form-crear__opcional {
   color: var(--on-surface-variant);
   font-weight: 400;
 }
-
-/* Peso: input + sufijo % dentro del mismo recuadro */
 .admin-form-crear__input-sufijo {
   position: relative;
   display: flex;
@@ -196,11 +180,7 @@
   pointer-events: none;
   user-select: none;
 }
-
-/* Botón alineado a la derecha de su columna */
-.admin-form-crear__accion {
-  justify-content: flex-end;
-}
+.admin-form-crear__accion { justify-content: flex-end; }
 .admin-form-crear__boton {
   display: inline-flex;
   align-items: center;
@@ -209,29 +189,22 @@
 }
 
 /* --- Responsive --- */
-
-/* Tablet: 2 columnas. El botón ocupa el ancho de una columna. */
 @media (max-width: 900px) {
-  .admin-form-crear {
-    grid-template-columns:
-      minmax(0, 1fr)
-      minmax(0, 1fr);
-  }
-  .admin-form-crear__campo--accion {
-    grid-column: 1 / -1;
-  }
-  .admin-form-crear__boton {
-    width: 100%;
-    justify-content: center;
-  }
+  .admin-form-crear { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .admin-form-crear__campo--accion { grid-column: 1 / -1; }
+  .admin-form-crear__boton { width: 100%; justify-content: center; }
+}
+@media (max-width: 560px) {
+  .admin-form-crear { grid-template-columns: 1fr; }
+  .admin-form-crear__campo--accion { grid-column: auto; }
 }
 
-/* Móvil: 1 columna, todo apilado. */
-@media (max-width: 560px) {
-  .admin-form-crear {
-    grid-template-columns: 1fr;
+@media (prefers-reduced-motion: reduce) {
+  .admin-bloque,
+  .admin-categoria,
+  .admin-categoria__editar summary,
+  .admin-categoria__form {
+    transition: none;
   }
-  .admin-form-crear__campo--accion {
-    grid-column: auto;
-  }
+  .admin-categoria__editar[open] .admin-categoria__form { animation: none; }
 }

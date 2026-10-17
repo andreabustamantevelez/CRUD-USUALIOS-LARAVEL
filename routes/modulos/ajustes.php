@@ -21,4 +21,10 @@ Route::prefix('ajustes')->name('ajustes.')->group(function () {
 
     Route::delete('/eliminar-cuenta', [AjustesController::class, 'destruirCuenta'])
         ->name('eliminar-cuenta.destroy');
+
+    Route::get('/confirmar-correo/{token}', [AjustesController::class, 'confirmarCorreo'])
+        ->name('confirmar-correo');
+
+    Route::post('/confirmar-correo/reenviar', [AjustesController::class, 'reenviarConfirmacionCorreo'])
+        ->name('confirmar-correo.reenviar');
 });
