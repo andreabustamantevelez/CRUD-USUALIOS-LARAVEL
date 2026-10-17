@@ -1,13 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Http\Requests\UpdatePerfilRequest;
 use App\Services\ServicioCuentas;
 use App\Services\ServicioMetas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class AjustesController extends Controller
 {
@@ -24,35 +25,28 @@ class AjustesController extends Controller
         ]);
     }
 
-    public function actualizarPerfil(Request $request): RedirectResponse
-    {
-        $usuario = $request->user();
 
-        $datos = $request->validate([
-            'nombre' => ['required', 'string', 'max:100'],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($usuario->id),
-            ],
-            'ingreso_mensual' => [
-                'required',
-                'integer',
-                'min:0',
-                'max:999999999999',
-            ],
-        ]);
+    public function actualizarPerfil(UpdatePerfilRequest $request): RedirectResponse
+{
+    $usuario = $request->user();
 
-        $usuario->nombre = $datos['nombre'];
-        $usuario->email = $datos['email'];
-        $usuario->ingreso_mensual = $datos['ingreso_mensual'];
-        $usuario->save();
+    $datos = $request->validated();
 
-        return redirect()
-            ->route('ajustes.perfil')
-            ->with('exito', 'Tu perfil se actualizo correctamente.');
+    $usuario->nombre = $datos['nombre'];
+    $usuario->email = $datos['email'];
+    $usuario->ingreso_mensual = $datos['ingreso_mensual'] ?? null;
+
+    if (!empty($datos['nueva_contrasena'])) {
+        $usuario->password = Hash::make($datos['nueva_contrasena']);
     }
+
+    $usuario->save();
+
+    return redirect()
+        ->route('ajustes.perfil')
+        ->with('exito', 'Tu perfil se actualizó correctamente.');
+}
+
 
     public function tipoCuenta(Request $request): View
     {
@@ -90,4 +84,32 @@ class AjustesController extends Controller
             'usuario' => $request->user(),
         ]);
     }
+public function destruirCuenta(Request $request): RedirectResponse
+{
+    $request->validate([
+        'contrasena_actual' => ['required', 'current_password'],
+        'confirmar_eliminacion' => ['required', 'accepted'],
+    ], [
+        'contrasena_actual.required' => 'Ingresa tu contraseña actual.',
+        'contrasena_actual.current_password' => 'La contraseña actual no es correcta.',
+        'confirmar_eliminacion.required' => 'Debes confirmar que deseas eliminar tu cuenta.',
+        'confirmar_eliminacion.accepted' => 'Debes confirmar que deseas eliminar tu cuenta.',
+    ]);
+
+    $usuario = $request->user();
+
+    $this->cuentas->validarEliminacionCuenta($usuario);
+
+    Auth::logout();
+
+    $this->cuentas->eliminarCuenta($usuario);
+
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect()
+        ->route('inicio')
+        ->with('exito', 'Tu cuenta se eliminó correctamente.');
+}
+
 }

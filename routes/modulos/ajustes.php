@@ -3,12 +3,7 @@
 use App\Http\Controllers\AjustesController;
 use Illuminate\Support\Facades\Route;
 
-$pendiente = fn () => back()->with(
-    'exito',
-    'Esta accion aun no esta implementada.'
-);
-
-Route::prefix('ajustes')->name('ajustes.')->group(function () use ($pendiente) {
+Route::prefix('ajustes')->name('ajustes.')->group(function () {
     Route::get('/perfil', [AjustesController::class, 'perfil'])
         ->name('perfil');
 
@@ -24,6 +19,6 @@ Route::prefix('ajustes')->name('ajustes.')->group(function () use ($pendiente) {
     Route::get('/eliminar-cuenta', [AjustesController::class, 'eliminarCuenta'])
         ->name('eliminar-cuenta');
 
-    Route::delete('/eliminar-cuenta', $pendiente)
+    Route::delete('/eliminar-cuenta', [AjustesController::class, 'destruirCuenta'])
         ->name('eliminar-cuenta.destroy');
 });
