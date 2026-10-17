@@ -1,12 +1,41 @@
-/*
- * ==============================================================================
- * ARCHIVO : public/css/notificaciones.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Notificaciones. Se carga después de style.css (vía
- *           @push('styles') en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): resaltado de las pendientes.
- * ==============================================================================
+tests/Feature/*
+ * Estilos exclusivos del Centro de notificaciones (N4).
  */
 
+.notificacion-item {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow-wrap: anywhere;
+}
+
+.notificacion-item:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+}
+
+.notificacion-punto {
+    flex-shrink: 0;
+    color: var(--primary);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.notificacion-item button {
+    min-height: 40px;
+    cursor: pointer;
+}
+
+.notificacion-item button:focus-visible,
+form button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+    .notificacion-item {
+        padding: 0.875rem;
+    }
+
+    .notificacion-item .text-2xl {
+        font-size: 1.25rem;
+    }
+}
