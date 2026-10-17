@@ -59,16 +59,23 @@ class ServicioCuentas
      *     participante se le avisa con una notificación (decisión #18).
      *  3. Todo dentro de una transacción.
      */
-    public function eliminarCuenta(User $usuario): void
-    {
-        $this->verificarUltimoAdministrador($usuario);
+   public function validarEliminacionCuenta(User $usuario): void
+{
+    $this->verificarUltimoAdministrador($usuario);
+}
 
-        DB::transaction(function () use ($usuario) {
-            $this->cancelarMetasCompartidasActivas($usuario);
+public function eliminarCuenta(User $usuario): void
+{
+    $this->verificarUltimoAdministrador($usuario);
 
-            $usuario->delete();
-        });
-    }
+    DB::transaction(function () use ($usuario) {
+        $this->cancelarMetasCompartidasActivas($usuario);
+
+        $usuario->delete();
+    });
+}
+
+
 
     /**
      * Cambia el rol del usuario (cualquiera de los 3).

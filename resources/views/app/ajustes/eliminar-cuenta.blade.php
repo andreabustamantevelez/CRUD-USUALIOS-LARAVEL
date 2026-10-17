@@ -1,63 +1,99 @@
-{{--
-  ==============================================================================
-  ARCHIVO : resources/views/app/ajustes/eliminar-cuenta.blade.php
-  QUÉ ES  : Estructura Blade de la pantalla "Ajustes · Eliminar cuenta" (SIN diseño original
-            todavía: el contenido es una plantilla con zonas dinámicas).
-  RUTA    : GET /ajustes/eliminar-cuenta (ajustes.eliminar-cuenta) · DELETE
-            ajustes.eliminar-cuenta.destroy · Controlador: AjustesController@eliminar
-  DATOS QUE LLEGAN DEL CONTROLADOR:
-    - auth()->user()
-  BASE DE DATOS: usuarios y TODAS las tablas con usuario_id (borrado en cascada)
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear la ruta con el NOMBRE indicado en routes/web.php, dentro del grupo con los middleware
-       de la sección RUTA.
-    2. Crear el controlador y devolver esta vista con las variables listadas en DATOS (compact o
-       arreglo).
-    3. Consultar SIEMPRE por el usuario autenticado (auth()->user()->relación()); nunca
-       Modelo::all().
-    4. Reemplazar el bloque "DISEÑO PENDIENTE" por el code.html original de esta pantalla,
-       conservando los @forelse/@empty.
-    5. Formularios: @csrf, @method cuando no sea POST, name= igual al de la validación
-       (FormRequest) y @error bajo cada campo.
-    6. Mensajes de éxito: redirect()->with('exito', 'texto de la especificación') (se muestran en
-       <x-toast />).
-    7. Pedir contraseña + confirmación; cerrar sesión y volver a la landing.
-    8. Definir qué pasa con la meta del otro participante (decisión #18).
-  CÓMO HACERLO / NOTAS:
-    - Los textos de "estado vacío" ya son los de la especificación.
-    - El CSS exclusivo de esta pantalla va en public/css/ajustes.css.
-  CÓMO SE COMPRUEBA:
-    - Entrar con un usuario sin datos: se ve el texto de estado vacío.
-    - Entrar con dos usuarios: ninguno ve datos del otro.
-    - Probar en 1440, 768 y 390 px sin scroll horizontal.
-  ==============================================================================
---}}
 
 @extends('layouts.app')
+
 @section('titulo', 'Ajustes · Eliminar cuenta · Cuentas Claras')
+
 @push('styles')
-  <link rel="stylesheet" href="{{ asset('css/ajustes.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ajustes.css') }}">
 @endpush
+
 @section('content')
-  <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
-    <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
-      {{-- DISEÑO PENDIENTE: reemplazar por el code.html original de esta pantalla --}}
-      <header>
-        <h1 class="font-headline-xl text-headline-xl text-on-surface">Ajustes · Eliminar cuenta</h1>
-        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Acción permanente</p>
-      </header>
-      @include('app.ajustes._tabs')
-      <section class="card p-space-lg" data-dinamico="usuario">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
-          Zona de peligro (pide contraseña y confirmación)
-        </h2>
-        {{-- DINÁMICO: usuario --}}
-        @forelse(($usuario ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
-        @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">Contenido pendiente de conectar</p>
-        @endforelse
-      </section>
-    </div>
-  </main>
+    <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
+        <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
+            <header>
+                <h1 class="font-headline-xl text-headline-xl text-on-surface">
+                    Ajustes · Eliminar cuenta
+                </h1>
+
+                <p class="font-body-md text-body-md text-on-surface-variant mt-1">
+                    Esta acción es permanente.
+                </p>
+            </header>
+
+            @include('app.ajustes._tabs')
+
+            <section class="card p-space-lg">
+                <h2 class="font-headline-md text-headline-md text-on-surface mb-4">
+                    Eliminar mi cuenta
+                </h2>
+
+                <p class="mb-4">
+                    Hola, {{ $usuario->nombre }}. Si continúas, tu cuenta y los datos
+                    asociados se eliminarán. Las metas compartidas activas se
+                    gestionarán según las reglas de la aplicación.
+                </p>
+
+                @if ($errors->any())
+                    <div class="mb-4 p-3 rounded border border-red-500">
+                        <p class="font-semibold">
+                            No se pudo eliminar la cuenta:
+                        </p>
+
+                        <ul class="list-disc pl-5">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <form
+                    method="POST"
+                    action="{{ route('ajustes.eliminar-cuenta.destroy') }}"
+                >
+                    @csrf
+                    @method('DELETE')
+
+                    <div class="flex flex-col gap-2 mb-4">
+                        <label for="contrasena_actual">
+                            Confirma tu contraseña actual
+                        </label>
+
+                        <input
+                            type="password"
+                            id="contrasena_actual"
+                            name="contrasena_actual"
+                            autocomplete="current-password"
+                            required
+                            class="w-full p-3 rounded border"
+                        >
+                    </div>
+
+                    <div class="flex flex-col gap-2 mb-6">
+                        <label class="flex items-start gap-2">
+                            <input
+                                type="checkbox"
+                                name="confirmar_eliminacion"
+                                value="1"
+                                required
+                                class="mt-1"
+                            >
+
+                            <span>
+                                Entiendo que esta acción es permanente y confirmo
+                                que deseo eliminar mi cuenta.
+                            </span>
+                        </label>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="px-5 py-3 rounded bg-red-600 text-white"
+                    >
+                        Eliminar mi cuenta permanentemente
+                    </button>
+                </form>
+            </section>
+        </div>
+    </main>
 @endsection
