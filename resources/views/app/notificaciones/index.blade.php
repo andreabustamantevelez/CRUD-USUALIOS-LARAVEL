@@ -1,71 +1,185 @@
-{{--
-  ==============================================================================
-  ARCHIVO : resources/views/app/notificaciones/index.blade.php
-  QUÉ ES  : Estructura Blade de la pantalla "Notificaciones" (SIN diseño original todavía: el
-            contenido es una plantilla con zonas dinámicas).
-  RUTA    : GET /notificaciones (notificaciones.index) · POST notificaciones.leer · Controlador:
-            NotificacionController
-  DATOS QUE LLEGAN DEL CONTROLADOR:
-    - $pendientes
-    - $anteriores
-  BASE DE DATOS: notificaciones
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear la ruta con el NOMBRE indicado en routes/web.php, dentro del grupo con los middleware
-       de la sección RUTA.
-    2. Crear el controlador y devolver esta vista con las variables listadas en DATOS (compact o
-       arreglo).
-    3. Consultar SIEMPRE por el usuario autenticado (auth()->user()->relación()); nunca
-       Modelo::all().
-    4. Reemplazar el bloque "DISEÑO PENDIENTE" por el code.html original de esta pantalla,
-       conservando los @forelse/@empty.
-    5. Formularios: @csrf, @method cuando no sea POST, name= igual al de la validación
-       (FormRequest) y @error bajo cada campo.
-    6. Mensajes de éxito: redirect()->with('exito', 'texto de la especificación') (se muestran en
-       <x-toast />).
-    7. Las crea la tarea diaria (app/Console), NO esta pantalla.
-    8. Compartir $notificacionesPendientes con un View Composer para la campana de la barra
-       superior.
-  CÓMO HACERLO / NOTAS:
-    - Los textos de "estado vacío" ya son los de la especificación.
-    - El CSS exclusivo de esta pantalla va en public/css/notificaciones.css.
-  CÓMO SE COMPRUEBA:
-    - Entrar con un usuario sin datos: se ve el texto de estado vacío.
-    - Entrar con dos usuarios: ninguno ve datos del otro.
-    - Probar en 1440, 768 y 390 px sin scroll horizontal.
-  ==============================================================================
---}}
-
 @extends('layouts.app')
+
 @section('titulo', 'Notificaciones · Cuentas Claras')
+
 @push('styles')
-  <link rel="stylesheet" href="{{ asset('css/notificaciones.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/notificaciones.css') }}">
 @endpush
+
 @section('content')
-  <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
+<main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
     <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
-      {{-- DISEÑO PENDIENTE: reemplazar por el code.html original de esta pantalla --}}
-      <header>
-        <h1 class="font-headline-xl text-headline-xl text-on-surface">Notificaciones</h1>
-        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Alertas pendientes y anteriores</p>
-      </header>
-      <section class="card p-space-lg" data-dinamico="pendientes">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Pendientes</h2>
-        {{-- DINÁMICO: pendientes --}}
-        @forelse(($pendientes ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
-        @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">No tienes notificaciones pendientes</p>
-        @endforelse
-      </section>
-      <section class="card p-space-lg" data-dinamico="anteriores">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Anteriores</h2>
-        {{-- DINÁMICO: anteriores --}}
-        @forelse(($anteriores ?? []) as $item)
-          {{-- Aquí va el diseño de un elemento --}}
-        @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">Sin notificaciones anteriores</p>
-        @endforelse
-      </section>
+
+        <header class="flex flex-col gap-2">
+            <h1 class="font-headline-xl text-headline-xl text-on-surface">
+                Notificaciones
+            </h1>
+
+            <p class="font-body-md text-body-md text-on-surface-variant">
+                Consulta tus alertas y mantente al día con tus gastos y metas.
+            </p>
+
+            @if ($pendientes->total() > 0)
+                <form action="{{ route('notificaciones.leerTodas') }}" method="POST">
+                    @csrf
+
+                    <button
+                        type="submit"
+                        class="inline-flex items-center justify-center rounded-lg px-4 py-2 mt-3"
+                        style="background: var(--primary); color: white;"
+                    >
+                        Marcar todas como leídas
+                    </button>
+                </form>
+            @endif
+        </header>
+
+        {{-- NOTIFICACIONES PENDIENTES --}}
+        <section class="card p-space-lg" aria-labelledby="titulo-pendientes">
+            <h2
+                id="titulo-pendientes"
+                class="font-headline-md text-headline-md text-on-surface mb-space-md"
+            >
+                Pendientes
+                <span>({{ $pendientes->total() }})</span>
+            </h2>
+
+            @forelse ($pendientes as $item)
+                @php
+                    $icono = match ($item->tipo) {
+                        'por_vencer' => '⏰',
+                        'vencido' => '⚠️',
+                        'invitacion_meta',
+                        'invitacion_meta_requiere_familiar' => '✉️',
+                        'respuesta_meta' => '💬',
+                        'meta_finalizada' => '🎉',
+                        'meta_abandonada' => '📌',
+                        default => '🔔',
+                    };
+                @endphp
+
+                <article
+                    class="notificacion-item mb-4 rounded-xl border p-4"
+                    style="background: var(--surface-container-lowest); border-color: var(--outline-variant);"
+                >
+                    <div class="flex items-start gap-3">
+                        <span aria-hidden="true" class="text-2xl">
+                            {{ $icono }}
+                        </span>
+
+                        <div class="flex-1 min-w-0">
+                            <p class="font-body-md text-on-surface">
+                                {{ $item->mensaje }}
+                            </p>
+
+                            <p class="font-body-sm text-on-surface-variant mt-2">
+                                {{ $item->created_at->locale('es')->diffForHumans() }}
+                            </p>
+
+                            <form
+                                action="{{ route('notificaciones.leer') }}"
+                                method="POST"
+                                class="mt-3"
+                            >
+                                @csrf
+
+                                <input
+                                    type="hidden"
+                                    name="notificacion_id"
+                                    value="{{ $item->id }}"
+                                >
+
+                                <button
+                                    type="submit"
+                                    class="font-body-md underline"
+                                    style="color: var(--primary);"
+                                >
+                                    Ver notificación
+                                </button>
+                            </form>
+                        </div>
+
+                        <span
+                            class="notificacion-punto"
+                            aria-label="No leída"
+                            title="No leída"
+                        >●</span>
+                    </div>
+                </article>
+            @empty
+                <p class="font-body-md text-on-surface-variant py-4">
+                    No tienes notificaciones pendientes.
+                </p>
+            @endforelse
+
+            @if ($pendientes->hasPages())
+                <div class="mt-4">
+                    {{ $pendientes->links() }}
+                </div>
+            @endif
+        </section>
+
+        {{-- NOTIFICACIONES ANTERIORES --}}
+        <section class="card p-space-lg" aria-labelledby="titulo-anteriores">
+            <h2
+                id="titulo-anteriores"
+                class="font-headline-md text-headline-md text-on-surface mb-space-md"
+            >
+                Anteriores
+                <span>({{ $anteriores->total() }})</span>
+            </h2>
+
+            @forelse ($anteriores as $item)
+                @php
+                    $icono = match ($item->tipo) {
+                        'por_vencer' => '⏰',
+                        'vencido' => '⚠️',
+                        'invitacion_meta',
+                        'invitacion_meta_requiere_familiar' => '✉️',
+                        'respuesta_meta' => '💬',
+                        'meta_finalizada' => '🎉',
+                        'meta_abandonada' => '📌',
+                        default => '🔔',
+                    };
+                @endphp
+
+                <article
+                    class="notificacion-item mb-4 rounded-xl border p-4"
+                    style="background: var(--surface-container-lowest); border-color: var(--outline-variant);"
+                >
+                    <div class="flex items-start gap-3">
+                        <span aria-hidden="true" class="text-2xl">
+                            {{ $icono }}
+                        </span>
+
+                        <div class="flex-1 min-w-0">
+                            <p class="font-body-md text-on-surface">
+                                {{ $item->mensaje }}
+                            </p>
+
+                            <p class="font-body-sm text-on-surface-variant mt-2">
+                                {{ $item->created_at->locale('es')->diffForHumans() }}
+                            </p>
+
+                            <span class="inline-block mt-2 font-body-sm text-on-surface-variant">
+                                {{ $item->estado === 'leida' ? 'Leída' : 'Cancelada' }}
+                            </span>
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <p class="font-body-md text-on-surface-variant py-4">
+                    Sin notificaciones anteriores.
+                </p>
+            @endforelse
+
+            @if ($anteriores->hasPages())
+                <div class="mt-4">
+                    {{ $anteriores->links() }}
+                </div>
+            @endif
+        </section>
+
     </div>
-  </main>
+</main>
 @endsection
