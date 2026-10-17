@@ -1,14 +1,16 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Http\Requests\UpdatePerfilRequest;
 use App\Services\ServicioCuentas;
 use App\Services\ServicioMetas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class AjustesController extends Controller
 {
@@ -18,6 +20,10 @@ class AjustesController extends Controller
     ) {
     }
 
+    // =========================================================================
+    // PERFIL
+    // =========================================================================
+
     public function perfil(Request $request): View
     {
         return view('app.ajustes.perfil', [
@@ -25,28 +31,84 @@ class AjustesController extends Controller
         ]);
     }
 
-
     public function actualizarPerfil(UpdatePerfilRequest $request): RedirectResponse
-{
-    $usuario = $request->user();
+    {
+        $usuario = $request->user();
+        $datos   = $request->validated();
+        $mensaje = 'Tu perfil se actualizó correctamente.';
 
-    $datos = $request->validated();
+        // 1. Datos básicos
+        $usuario->nombre          = $datos['nombre'];
+        $usuario->ingreso_mensual = $datos['ingreso_mensual'] ?? null;
 
-    $usuario->nombre = $datos['nombre'];
-    $usuario->email = $datos['email'];
-    $usuario->ingreso_mensual = $datos['ingreso_mensual'] ?? null;
+        // 2. Contraseña (si aplica)
+        if (!empty($datos['nueva_contrasena'])) {
+            $usuario->password = Hash::make($datos['nueva_contrasena']);
+        }
 
-    if (!empty($datos['nueva_contrasena'])) {
-        $usuario->password = Hash::make($datos['nueva_contrasena']);
+        $usuario->save();
+
+        // 3. Cambio de correo (delegado al servicio, con su propia transacción)
+        $emailNuevo = strtolower(trim($datos['email']));
+        if ($emailNuevo !== $usuario->email) {
+            try {
+                $this->cuentas->solicitarCambioCorreo($usuario, $emailNuevo);
+                $mensaje = 'Perfil actualizado. Revisa tu nuevo correo para confirmar el cambio.';
+            } catch (ValidationException $e) {
+                return back()->withErrors($e->errors())->withInput();
+            }
+        }
+
+        return redirect()
+            ->route('ajustes.perfil')
+            ->with('exito', $mensaje);
     }
 
-    $usuario->save();
+    public function reenviarConfirmacionCorreo(Request $request): RedirectResponse
+    {
+        try {
+            $this->cuentas->reenviarConfirmacionCorreo($request->user());
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
-    return redirect()
-        ->route('ajustes.perfil')
-        ->with('exito', 'Tu perfil se actualizó correctamente.');
-}
+        return redirect()
+            ->route('ajustes.perfil')
+            ->with('exito', 'Te enviamos un nuevo enlace de confirmación.');
+    }
 
+    // =========================================================================
+    // CONFIRMAR CORREO
+    // =========================================================================
+
+    public function confirmarCorreo(Request $request, string $token): RedirectResponse
+    {
+        try {
+            $this->cuentas->confirmarCambioCorreo($request->user(), $token);
+        } catch (ValidationException $e) {
+            return redirect()
+                ->route('ajustes.perfil')
+                ->withErrors($e->errors());
+        }
+
+        // Cerramos la sesión: se autenticó con el correo viejo.
+        // Vaciamos remember_token en memoria para que Auth::logout() no haga
+        // $user->save() de un modelo ya eliminado (no aplica aquí porque no
+        // eliminamos al usuario, pero es defensivo).
+        $request->user()->setRememberToken(null);
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()
+            ->route('login')
+            ->with('exito', 'Tu correo se actualizó. Inicia sesión con el nuevo.');
+    }
+
+    // =========================================================================
+    // TIPO DE CUENTA
+    // =========================================================================
 
     public function tipoCuenta(Request $request): View
     {
@@ -65,18 +127,23 @@ class AjustesController extends Controller
             'tipo_cuenta' => ['required', 'in:estandar,familiar'],
         ], [
             'tipo_cuenta.required' => 'Selecciona un tipo de cuenta.',
-            'tipo_cuenta.in' => 'Selecciona un tipo de cuenta valido.',
+            'tipo_cuenta.in'       => 'Selecciona un tipo de cuenta válido.',
         ]);
 
-        $this->cuentas->cambiarTipo(
-            $request->user(),
-            $datos['tipo_cuenta']
-        );
+        try {
+            $this->cuentas->cambiarTipo($request->user(), $datos['tipo_cuenta']);
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
         return redirect()
             ->route('ajustes.tipo-cuenta')
             ->with('exito', 'Tipo de cuenta actualizado.');
     }
+
+    // =========================================================================
+    // ELIMINAR CUENTA
+    // =========================================================================
 
     public function eliminarCuenta(Request $request): View
     {
@@ -84,32 +151,38 @@ class AjustesController extends Controller
             'usuario' => $request->user(),
         ]);
     }
-public function destruirCuenta(Request $request): RedirectResponse
-{
-    $request->validate([
-        'contrasena_actual' => ['required', 'current_password'],
-        'confirmar_eliminacion' => ['required', 'accepted'],
-    ], [
-        'contrasena_actual.required' => 'Ingresa tu contraseña actual.',
-        'contrasena_actual.current_password' => 'La contraseña actual no es correcta.',
-        'confirmar_eliminacion.required' => 'Debes confirmar que deseas eliminar tu cuenta.',
-        'confirmar_eliminacion.accepted' => 'Debes confirmar que deseas eliminar tu cuenta.',
-    ]);
 
-    $usuario = $request->user();
+    public function destruirCuenta(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'contrasena_actual'     => ['required', 'current_password'],
+            'confirmar_eliminacion' => ['required', 'accepted'],
+        ], [
+            'contrasena_actual.required'          => 'Ingresa tu contraseña actual.',
+            'contrasena_actual.current_password'  => 'La contraseña actual no es correcta.',
+            'confirmar_eliminacion.required'      => 'Debes confirmar que deseas eliminar tu cuenta.',
+            'confirmar_eliminacion.accepted'      => 'Debes confirmar que deseas eliminar tu cuenta.',
+        ]);
 
-    $this->cuentas->validarEliminacionCuenta($usuario);
+        $usuario = $request->user();
 
-    Auth::logout();
+        try {
+            $this->cuentas->eliminarCuenta($usuario);
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
-    $this->cuentas->eliminarCuenta($usuario);
+        // Vaciamos remember_token ANTES de Auth::logout() para que
+        // cycleRememberToken() no intente $user->save() sobre un modelo
+        // eliminado (eso haría INSERT y re-crearía al usuario).
+        $usuario->setRememberToken(null);
 
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-    return redirect()
-        ->route('inicio')
-        ->with('exito', 'Tu cuenta se eliminó correctamente.');
-}
-
+        return redirect()
+            ->route('inicio')
+            ->with('exito', 'Tu cuenta se eliminó correctamente.');
+    }
 }

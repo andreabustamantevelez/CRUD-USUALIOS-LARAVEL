@@ -39,6 +39,8 @@
  *   PUT    /ajustes/tipo-cuenta                     ajustes.tipo-cuenta.update (ajustes.php, V4)
  *   GET    /ajustes/eliminar-cuenta                 ajustes.eliminar-cuenta  (ajustes.php, V4)
  *   DELETE /ajustes/eliminar-cuenta                 ajustes.eliminar-cuenta.destroy (ajustes.php, V4)
+ *   GET  /ajustes/confirmar-correo/{token}   ajustes.confirmar-correo
+ *   POST /ajustes/confirmar-correo/reenviar  ajustes.confirmar-correo.reenviar
  *
  * GRUPO C - ESTANDAR Y FAMILIAR [auth + cuenta.activa + rol:estandar,familiar]
  * -------------------------------------------------------------------------

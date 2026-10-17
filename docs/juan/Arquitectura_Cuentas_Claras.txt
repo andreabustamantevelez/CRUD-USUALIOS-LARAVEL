@@ -5,14 +5,16 @@ Documento de contexto para cualquier persona o IA que vaya a trabajar en el cód
 Leer completo antes de escribir código. Resume QUÉ es el sistema, QUÉ está hecho,
 QUÉ falta, CÓMO está organizado, TODAS las rutas y las reglas que no se pueden romper.
 Versión: después de J7 (administración), J8 (dashboard + cuentas), J6 (alertas),
-J5 (metas), modo oscuro, tinte por tipo de cuenta/rol, logo adaptativo, favicon
-dinámico, skip link, página 403 personalizada, selects adaptados y limpieza de CSS.
-Fecha: 2026-10-16 (sesión completa de J7 + pulido).
-Cambios respecto al 2026-10-16 (J8): ver secciones 2, 5, 6, 7, 9, 10, 11, 12, 13,
-14, 15 y 16 (marcados NUEVO 2026-10-16).
-Rutas: SIN CAMBIOS respecto al 2026-10-14 en cuanto a URL y nombre. Las 9 rutas de
-/admin pasaron de Route::view a controladores (misma URL y nombre). El archivo
-docs/backend/00-rutas.php se actualizó al conteo real de 62 rutas.
+J5 (metas), V4 (ajustes completo), N4 (notificaciones), verificación de cambio de
+correo y rediseño del correo de restablecer contraseña.
+Fecha: 2026-10-17.
+Cambios respecto al 2026-10-16: se completó V4 (perfil, tipo-cuenta, eliminar
+cuenta), se completó N4 (pantalla de notificaciones), se agregó verificación de
+cambio de correo con token de un solo uso, se rediseñó el correo de restablecer
+contraseña y se bajó su vencimiento de 60 a 30 minutos.
+Rutas: SIN CAMBIOS en URL y nombre respecto al 2026-10-16, salvo dos rutas nuevas
+de confirmación de correo. El archivo docs/backend/00-rutas.php debe actualizarse
+a 64 rutas.
 
 
 ----------------------------------------------------------------------
@@ -29,12 +31,16 @@ pesos colombianos (COP, siempre enteros, nunca decimales). Permite:
     usuarios de tipo "familiar" (máx. 2 participantes), con privacidad de aportes.
   - Cambiar el tipo de cuenta (estándar <-> familiar) desde Ajustes, sin necesidad de crear
     una cuenta nueva.
+  - Cambiar el correo electrónico con verificación por enlace (token de un solo uso, vence
+    en 1 hora, se envía al correo nuevo; el correo actual sigue activo hasta confirmar).
   - Administración (usuarios, roles, categorías del sistema, estadísticas agregadas).
   - Modo claro / oscuro con persistencia en localStorage y favicon dinámico.
   - Tinte por rol: verde (estándar), morado (familiar), azul (administrador) en botones,
     avatar, ítems activos, banners, chips, logo y favicon.
   - Skip link para accesibilidad (saltar al contenido principal con Tab).
   - Página 403 personalizada con el diseño del sistema.
+  - Correos en español con identidad de marca (verificación de correo y restablecer
+    contraseña) que respetan el tema claro/oscuro y el tinte por rol.
 El diseño visual YA ESTÁ HECHO (vistas Blade + CSS + JS). EL DISEÑO NO SE CAMBIA: debe
 quedar igual a los code.html originales.
 
@@ -136,7 +142,7 @@ HECHO (J7 - Administración, 2026-10-16, Juan):
       Admin\EstadisticasTest (3). Total: 178 verdes.
   [x] docs/juan/J7_Administracion_Documentacion.txt.
 
-HECHO (Pulido y mejoras visuales, 2026-10-16, Juan):                    [NUEVO 2026-10-16]
+HECHO (Pulido y mejoras visuales, 2026-10-16, Juan):
   [x] Logo SVG inline en resources/views/components/logo.blade.php. Se adapta al tema
       y al tipo de cuenta. Los colores se controlan con tokens --logo-* en theme.css.
       Reemplazó las 8 imágenes externas de lh3.googleusercontent.com.
@@ -165,11 +171,67 @@ HECHO (Pulido y mejoras visuales, 2026-10-16, Juan):                    [NUEVO 2
   [x] README.md con instrucciones de instalación (creado en la raíz).
   [x] docs/juan/J9_Checklist_Previo.txt con mapa de lo pendiente para J9.
 
+HECHO (V4 - Ajustes completo, 2026-10-17, Valeria):
+  [x] AjustesController: perfil, actualizarPerfil, tipoCuenta, cambiarTipo, eliminarCuenta,
+      destruirCuenta, confirmarCorreo, reenviarConfirmacionCorreo.
+  [x] UpdatePerfilRequest: validación del perfil con ingreso formateado (acepta "3.500.000"
+      y lo convierte a 3500000), email único, contraseña actual obligatoria si se cambia
+      la contraseña O el correo.
+  [x] Vista app/ajustes/perfil.blade.php funcional: nombre, correo, ingreso mensual, cambio
+      de contraseña.
+  [x] Vista app/ajustes/tipo-cuenta.blade.php funcional (J5).
+  [x] Vista app/ajustes/eliminar-cuenta.blade.php funcional: confirma con contraseña actual
+      y checkbox, llama a ServicioCuentas::eliminarCuenta.
+  [x] Aviso "Tienes un cambio de correo pendiente" con botón "Reenviar correo de
+      confirmación".
+  [x] Eliminar cuenta cierra sesión DESPUÉS de borrar (fix del remember_token).
+  [x] tests/Feature/AjustesTest.php: 21 pruebas.
+
+HECHO (N4 - Pantalla de notificaciones, 2026-10-17, Nikol):
+  [x] NotificacionController: index (paginado, filtro por estado), leer (marcar una),
+      leerTodas (marcar todas). Delega en ServicioNotificaciones.
+  [x] Vista app/notificaciones/index.blade.php con estado vacío, iconos por tipo, badges
+      de estado.
+  [x] Vista app/notificaciones/_icono.blade.php con icono por tipo (incluye
+      invitacion_meta_requiere_familiar y meta_abandonada).
+  [x] CSS notificaciones.css con tokens del sistema.
+  [x] tests/Feature/NotificacionesTest.php: 6 pruebas.
+
+HECHO (Verificación de cambio de correo, 2026-10-17, Juan):
+  [x] Migración 2026_10_17_100000_add_pending_email_to_users_table: columnas
+      users.pending_email y users.email_token.
+  [x] Migración 2026_10_17_120000_add_pending_email_expires_to_users_table:
+      columna users.pending_email_expires_at + índice (email_token).
+  [x] ServicioCuentas::solicitarCambioCorreo($usuario, $nuevoCorreo): valida duplicado,
+      genera token (Str::random(64)), guarda SHA-256 del token, expira en 1 hora, envía
+      notificación ConfirmarCambioCorreo al NUEVO correo.
+  [x] ServicioCuentas::reenviarConfirmacionCorreo($usuario): regenera token y vencimiento.
+  [x] ServicioCuentas::confirmarCambioCorreo($usuario, $token): valida hash + expiración +
+      que el correo no esté ocupado por otro usuario, actualiza email, limpia pending_*.
+  [x] Notificación App\Notifications\ConfirmarCambioCorreo.
+  [x] Vista de correo emails/confirmar-cambio-correo.blade.php con diseño alineado al
+      sistema (logo adaptativo, color por rol, dark mode).
+  [x] Rutas nuevas: ajustes.confirmar-correo, ajustes.confirmar-correo.reenviar.
+  [x] Logout forzado tras confirmar el correo (se autenticó con el correo viejo).
+  [x] User: $fillable sin pending_email/email_token (asignación manual desde el servicio),
+      $hidden incluye pending_email, email_token, pending_email_expires_at, cast de
+      pending_email_expires_at a datetime.
+  [x] 7 pruebas nuevas en AjustesTest (total 21).
+
+HECHO (Rediseño del correo de restablecer contraseña, 2026-10-17, Juan):
+  [x] Vista emails/restablecer-contrasena.blade.php con el mismo diseño que
+      confirmar-cambio-correo (icono candado + check, caja "Cuenta", nota de seguridad,
+      dark mode y tinte por rol).
+  [x] Notificación RestablecerContrasena reescrita: usa la vista nueva, lee el vencimiento
+      de config/auth.php (passwords.users.expire) y lo pasa como texto a la vista.
+  [x] config/auth.php: expire de 60 a 30 minutos (configurable vía
+      AUTH_PASSWORD_RESET_EXPIRE en .env).
+  [x] .env.example: AUTH_PASSWORD_RESET_EXPIRE=30.
+
 NO HECHO (todo lo demás):
-  [ ] Página 403 personalizada: HECHA (ver bloque de pulido).
-  [ ] Ajustes > Perfil (PUT) y Ajustes > Eliminar cuenta (DELETE): maqueta hasta que V4
-      los haga. ServicioCuentas::eliminarCuenta ya está listo.
-  [ ] Pantalla de notificaciones (N4): maqueta. Backend (J6) listo.
+  [ ] Ajustes > Perfil (PUT): HECHO en V4.
+  [ ] Ajustes > Eliminar cuenta (DELETE): HECHO en V4.
+  [ ] Pantalla de notificaciones (N4): HECHA en N4.
   [ ] Landing final (N5) y páginas legales: los Route::view funcionan bien (son estáticas).
   [ ] N1 (gastos) y N2 (categorías): siguen con $pendiente MAQUETA.
   [ ] V2 (historial de simulaciones): sigue con $pendiente MAQUETA.
@@ -178,10 +240,13 @@ NO HECHO (todo lo demás):
       delPeriodo de C1 cuando Nikol lo agregue.
   [ ] N1/N2 (Nikol) deben filtrar por Categoria::activas() cuando toque.
   [ ] Imágenes de landing (no logo): public/img sigue vacía.
+  [ ] docs/backend/00-rutas.php: agregar las 2 rutas nuevas de confirmación de correo
+      (hoy el archivo sigue con 62; debe llegar a 64).
 
 .env DE DESARROLLO: copiar .env.example a .env, php artisan key:generate, APP_ENV=local,
 APP_DEBUG=true, APP_LOCALE=es, DB_CONNECTION=sqlite, SESSION_DRIVER=database,
-CACHE_STORE=database, QUEUE_CONNECTION=database. Primera vez: php artisan migrate:fresh --seed.
+CACHE_STORE=database, QUEUE_CONNECTION=database, MAIL_MAILER=log,
+AUTH_PASSWORD_RESET_EXPIRE=30. Primera vez: php artisan migrate:fresh --seed.
 
 
 ----------------------------------------------------------------------
@@ -200,6 +265,10 @@ CACHE_STORE=database, QUEUE_CONNECTION=database. Primera vez: php artisan migrat
   Tema ........... claro | oscuro en <html data-theme="...">.
   Tipo de cuenta . 'estandar' | 'familiar' | 'administrador' en
                    <html data-account-type="...">.
+  Correos ........ MAIL_MAILER=log en desarrollo (los correos quedan en
+                   storage/logs/laravel.log). En J9 se configura SMTP real.
+  Vencimientos ... AUTH_PASSWORD_RESET_EXPIRE=30 (minutos, configurable).
+                   users.pending_email_expires_at = 1 hora (fijo, para cambio de correo).
   Entorno local .. php artisan serve  (http://localhost:8000).
 
 
@@ -207,10 +276,10 @@ CACHE_STORE=database, QUEUE_CONNECTION=database. Primera vez: php artisan migrat
 4. ROLES (3) Y QUÉ PUEDE HACER CADA UNO
 ----------------------------------------------------------------------
   estandar ........ gastos, categorías, gastos fijos, notificaciones, simulador, informes,
-                    panel, ajustes (incluido el cambio de tipo de cuenta) y
-                    METAS INDIVIDUALES. Ve las INVITACIONES a metas compartidas, pero para
-                    aceptarlas necesita cambiar su tipo de cuenta a familiar desde Ajustes.
-                    NO entra a administración.
+                    panel, ajustes (incluido el cambio de tipo de cuenta y el cambio de
+                    correo) y METAS INDIVIDUALES. Ve las INVITACIONES a metas compartidas,
+                    pero para aceptarlas necesita cambiar su tipo de cuenta a familiar
+                    desde Ajustes. NO entra a administración.
   familiar ........ todo lo del estándar + metas COMPARTIDAS (máx. 2 participantes por meta)
                     y puede ACEPTAR invitaciones a metas compartidas.
   administrador ... SOLO administración y ajustes. NUNCA ve montos ni datos financieros de
@@ -221,12 +290,16 @@ Ocultar un enlace del menú NO protege: middleware + Policies.
 Cambio de tipo de cuenta: Ajustes > Tipo de cuenta, vía ServicioCuentas::cambiarTipo.
 No cierra la sesión. Regla: estandar -> familiar siempre; familiar -> estandar se bloquea con
 metas compartidas activas. Cambio de rol por admin: ServicioCuentas::cambiarRol.
+Cambio de correo: Ajustes > Perfil, requiere contraseña actual y verificación por enlace al
+NUEVO correo. Cierra la sesión al confirmar.
 
 Efecto visual del rol:
   Estándar → botones/avatar/ítems activos/logo/favicon en primary (verde).
   Familiar → esos mismos elementos en tertiary (morado).
   Administrador → esos mismos elementos en la familia --admin-* (azul Core Blue).
   El cambio se aplica en el siguiente render. El favicon se regenera vía JS.
+  Los correos (verificación de correo y restablecer contraseña) también respetan el tinte
+  del rol vía variables PHP en la vista, no vía CSS.
 
 
 ----------------------------------------------------------------------
@@ -240,15 +313,12 @@ Efecto visual del rol:
                                AporteMetaController, InvitacionMetaController,
                                SimulacionCreditoController, AjustesController,
                                GastoFijoController, InformeController,
-                               DashboardController,
+                               NotificacionController, DashboardController,
                                Admin/{UsuarioController, CategoriaSistemaController,
                                EstadisticaController}
-                               · (F) un controlador por cada otro módulo
     Http/Middleware/ ......... (R) CuentaActiva, RolRequerido
-    Http/Requests/ ........... (R) Auth/*, Metas/*, Admin/{ActualizarRolRequest,
-                               ActualizarEstadoRequest, StoreCategoriaSistemaRequest,
-                               UpdateCategoriaSistemaRequest}
-    Notifications/ ........... (R) RestablecerContrasena
+    Http/Requests/ ........... (R) Auth/*, Metas/*, Admin/*, UpdatePerfilRequest
+    Notifications/ ........... (R) RestablecerContrasena, ConfirmarCambioCorreo
     Models/ .................. (R) User, Categoria, Gasto, GastoFijo, PagoGastoFijo,
                                SimulacionCredito, Informe, DetalleInforme, Meta,
                                ParticipacionMeta, AporteMeta, Notificacion
@@ -262,7 +332,9 @@ Efecto visual del rol:
                                ServicioGastosFijos, ServicioNotificaciones, GeneradorInforme
     Console/ ................. (R) Commands/GenerarAlertasGastosFijos.php
   bootstrap/app.php .......... (R) alias 'cuenta.activa' y 'rol' y redirectUsersTo
-  database/migrations|seeders|factories ... (R) hechos en J2 + migración #23 de J7
+  database/migrations|seeders|factories ... (R) hechos en J2 + migración #23 de J7 +
+                               migraciones 2026_10_17_100000 (pending_email, email_token)
+                               y 2026_10_17_120000 (pending_email_expires_at)
   routes/
     web.php .................. (R) ÍNDICE: solo Juan lo cambia. Grupos A-C y E.
     modulos/ ................. (R) un archivo por módulo (ver sección 7).
@@ -272,6 +344,8 @@ Efecto visual del rol:
     layouts/ ................. (R) base, publico, app, admin
     components/ .............. (R) header, footer, sidebar, sidebar-admin, topbar, toast,
                                logo
+    emails/ .................. (R) confirmar-cambio-correo.blade.php,
+                               restablecer-contrasena.blade.php
     publico/ ................. (R) landing, crear-usuario, iniciar-sesion, recuperar-contrasena,
                                restablecer-contrasena, politica-de-privacidad,
                                terminos-y-condiciones
@@ -287,7 +361,7 @@ Efecto visual del rol:
   tests/ ..................... (R) tests/Feature/{BaseDeDatosTest, AuthTest, PermisosTest,
                                AislamientoTest, MetasTest, AjustesTest, CalculadoraCreditoTest,
                                GastosFijosTest, InformesTest, AlertasTest, EliminarCuentaTest,
-                               GastoFijoControllerTest, DashboardTest}
+                               GastoFijoControllerTest, DashboardTest, NotificacionesTest}
                                tests/Feature/Admin/{UsuariosTest, CategoriasSistemaTest,
                                EstadisticasTest}
   README.md .................. (R) raíz: instrucciones de instalación.
@@ -296,7 +370,8 @@ Efecto visual del rol:
 ARCHIVOS COMPARTIDOS (solo Juan; los demás piden cambios con tarjeta "Pedido a Juan"):
   public/css/{style,theme,transiciones,menu-usuario}.css · public/js/{shell,theme,transiciones}.js ·
   resources/views/layouts/* · resources/views/components/* · resources/views/errors/* ·
-  routes/web.php · routes/console.php · database/migrations/*
+  resources/views/emails/* · routes/web.php · routes/console.php · database/migrations/* ·
+  config/auth.php
 
 
 ----------------------------------------------------------------------
@@ -304,6 +379,8 @@ ARCHIVOS COMPARTIDOS (solo Juan; los demás piden cambios con tarjeta "Pedido a 
 ----------------------------------------------------------------------
   Vista (resources/views/...)             CSS (public/css/...)                 Dueño
   errors/403                              — (theme.css bloque 9)               Juan (J7)
+  emails/confirmar-cambio-correo          —                                    Juan (V4)
+  emails/restablecer-contrasena           —                                    Juan (J3)
   publico/landing                         landing-page                         Nikol N5
   publico/politica-de-privacidad          politica-de-privacidad               Nikol N5
   publico/terminos-y-condiciones          terminos-y-condiciones               Nikol N5
@@ -315,7 +392,7 @@ ARCHIVOS COMPARTIDOS (solo Juan; los demás piden cambios con tarjeta "Pedido a 
   app/gastos/index                        gastos                               Nikol N1
   app/categorias/index                    categorias                           Nikol N2
   app/gastos-fijos/index                  gastos-fijos                         Nikol N3
-  app/notificaciones/index                notificaciones                       Nikol N4
+  app/notificaciones/index (+_icono)      notificaciones                       Nikol N4
   app/creditos/simulador (+js)            simulador-de-creditos                Valeria V1
   app/creditos/historial                  historial-simulaciones               Valeria V2
   app/informes/actual                     informes-50-30-20                    Valeria V3
@@ -341,8 +418,8 @@ Componentes compartidos:
 ----------------------------------------------------------------------
 7. RUTAS: URL Y NOMBRES DEFINITIVOS, NO SE CAMBIAN
 ----------------------------------------------------------------------
-Fuente de verdad: docs/backend/00-rutas.php (62 rutas verificadas).
-Conteo real: 11 (A) + 7 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 62.
+Fuente de verdad: docs/backend/00-rutas.php.
+Conteo real (2026-10-17): 11 (A) + 9 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 64 rutas.
 
   GRUPO A  PUBLICAS .............. sin sesion (login/registro/recuperar con middleware 'guest')
   ----------------------------------------------------------------------------------------------------------------------
@@ -361,12 +438,14 @@ Conteo real: 11 (A) + 7 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 62.
   GRUPO B  CON SESION ............ auth + cuenta.activa (cualquier rol)
   ----------------------------------------------------------------------------------------------------------------------
   POST   /cerrar-sesion                                   logout
-  GET    /ajustes/perfil                                  ajustes.perfil
-  PUT    /ajustes/perfil                                  ajustes.perfil.update          (MAQUETA)
-  GET    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta            (HECHO)
-  PUT    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta.update     (HECHO)
-  GET    /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta
-  DELETE /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta.destroy (MAQUETA)
+  GET    /ajustes/perfil                                  ajustes.perfil                 (HECHO - V4)
+  PUT    /ajustes/perfil                                  ajustes.perfil.update          (HECHO - V4)
+  GET    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta            (HECHO - V4)
+  PUT    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta.update     (HECHO - V4)
+  GET    /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta        (HECHO - V4)
+  DELETE /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta.destroy (HECHO - V4)
+  GET    /ajustes/confirmar-correo/{token}                ajustes.confirmar-correo       (NUEVO 2026-10-17)
+  POST   /ajustes/confirmar-correo/reenviar               ajustes.confirmar-correo.reenviar (NUEVO 2026-10-17)
 
   GRUPO C  ESTANDAR Y FAMILIAR ... auth + cuenta.activa + rol:estandar,familiar
   ----------------------------------------------------------------------------------------------------------------------
@@ -385,8 +464,8 @@ Conteo real: 11 (A) + 7 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 62.
   PUT    /gastos-fijos/{gastoFijo}                        gastos-fijos.update            (HECHO)
   DELETE /gastos-fijos/{gastoFijo}                        gastos-fijos.destroy           (HECHO)
   POST   /gastos-fijos/{gastoFijo}/pagar                  gastos-fijos.pagar             (HECHO)
-  GET    /notificaciones                                  notificaciones.index           (MAQUETA)
-  POST   /notificaciones/leer                             notificaciones.leer            (MAQUETA)
+  GET    /notificaciones                                  notificaciones.index           (HECHO - N4)
+  POST   /notificaciones/leer                             notificaciones.leer            (HECHO - N4)
   GET    /creditos/simulador                              creditos.simulador             (HECHO)
   POST   /creditos                                        creditos.guardar               (HECHO)
   GET    /creditos/historial                              creditos.historial             (MAQUETA)
@@ -435,7 +514,7 @@ Conteo real: 11 (A) + 7 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 62.
 
 
 ----------------------------------------------------------------------
-9. MODELO DE DATOS (REAL, YA IMPLEMENTADO EN J2 + migración #23)
+9. MODELO DE DATOS (REAL, J2 + migración #23 + migraciones de correo 2026-10-17)
 ----------------------------------------------------------------------
 Dinero = enteros en pesos. Única columna decimal: tasa_mensual (5,2) y porcentajes del
 informe. Nombres en español salvo users.
@@ -443,7 +522,12 @@ informe. Nombres en español salvo users.
   users ................. id, nombre, cedula (única), email (único), password (hash), rol
                           (estandar|familiar|administrador, default estandar),
                           activo (bool, default true), ingreso_mensual (nullable, entero),
-                          consentimiento_datos_at (nullable), remember_token, timestamps
+                          consentimiento_datos_at (nullable),
+                          pending_email (nullable), email_token (nullable, índice),
+                          pending_email_expires_at (nullable, timestamp),
+                          remember_token, timestamps
+                          · email_token guarda SHA-256 del token, no el token plano.
+                          · pending_email_expires_at = 1 hora desde la solicitud.
   categorias ............ id, user_id (NULL = del sistema), nombre (50), bloque
                           (necesidades|discrecionales|ahorro), peso_recomendado (nullable),
                           activa (boolean, default true), timestamps
@@ -478,6 +562,8 @@ Ayudas útiles: Categoria::BLOQUES, Categoria::activas(), Categoria::esDelSistem
 Alcance "del usuario actual": en listados y totales Modelo::delUsuario(auth()->id());
   para un registro puntual, $this->authorize('view|update|delete', $registro).
 El modelo Gasto tiene casts: 'fecha' => 'date', 'monto' => 'integer' (añadido en J8).
+El modelo User tiene cast: 'pending_email_expires_at' => 'datetime'. pending_email,
+  email_token y pending_email_expires_at están en $hidden y NO en $fillable.
 
 Regla #23: las categorías del sistema se desactivan (activa=false), no se borran. Al
 desactivar una, deja de aparecer al registrar gastos nuevos; los gastos históricos que la
@@ -495,13 +581,13 @@ Caso de referencia del simulador: $10.000.000, 1,5 % mensual, 24 meses
 
 
 ----------------------------------------------------------------------
-10. SERVICIOS Y CONTRATOS ENTRE MÓDULOS (C1-C14)
+10. SERVICIOS Y CONTRATOS ENTRE MÓDULOS (C1-C16)
 ----------------------------------------------------------------------
   C1  Consulta de gastos por periodo ... Nikol (N1) -> Valeria (informes) y Juan (dashboard).
       PENDIENTE: no existe scopeDelPeriodo($anio, $mes) en Gasto; se usa whereYear/whereMonth.
   C2  Bloque 50/30/20 de cada categoría  Nikol (N2 formulario) + Juan (J2, HECHO) -> Valeria.
-  C3  Ingreso mensual del usuario ...... Valeria (V4, Ajustes > Perfil) -> Valeria y Juan.
-      HECHO parcialmente (columna); falta que V4 guarde desde la pantalla.
+  C3  Ingreso mensual del usuario ...... Valeria (V4, HECHO) -> Valeria y Juan.
+      Servicio: guardado directo en AjustesController@actualizarPerfil (columna users.ingreso_mensual).
   C4  Servicio de notificaciones ....... Juan (J6, HECHO) -> Nikol (N3, N4) y la campana.
       App\Services\ServicioNotificaciones.
       Métodos: crear, contarPendientes, cancelarPorPago, cancelarPorGastoFijo, marcarLeida,
@@ -516,12 +602,15 @@ Caso de referencia del simulador: $10.000.000, 1,5 % mensual, 24 meses
       ServicioMetas::tieneMetasActivas($usuario)
       ServicioMetas::tieneMetasCompartidasActivas($usuario)
       Meta::aportesDelUsuario($id, $desde, $hasta)
-  C7  Cambiar tipo de cuenta, eliminar  Juan (J8a + J7, HECHO) -> Valeria (solo la pantalla).
+  C7  Cambiar tipo de cuenta, eliminar  Juan (J8a + J7 + V4, HECHO) -> Valeria (solo la pantalla).
       ServicioCuentas::cambiarTipo($usuario, 'estandar'|'familiar')
       ServicioCuentas::eliminarCuenta($usuario)
       ServicioCuentas::cambiarRol($usuario, 'estandar'|'familiar'|'administrador')
       ServicioCuentas::suspender($usuario)
       ServicioCuentas::reactivar($usuario)
+      ServicioCuentas::solicitarCambioCorreo($usuario, $nuevoCorreo)   [NUEVO 2026-10-17]
+      ServicioCuentas::reenviarConfirmacionCorreo($usuario)            [NUEVO 2026-10-17]
+      ServicioCuentas::confirmarCambioCorreo($usuario, $token)         [NUEVO 2026-10-17]
       Reglas: no dejar el sistema sin admin activo; bloquear familiar->estandar si tiene
       metas compartidas activas.
   C8  Variables del armazón ............ Juan: $notificacionesPendientes (J6: cuenta real),
@@ -538,7 +627,12 @@ Caso de referencia del simulador: $10.000.000, 1,5 % mensual, 24 meses
       php artisan alertas:gastos-fijos [--fecha=YYYY-MM-DD]. Idempotente.
   C15 Logo adaptativo y favicon ......... Juan (logo.blade.php + base.blade.php). Los tokens
       --logo-* cambian según tema y rol. El favicon se regenera por JS con
-      window.CC.refreshIcons().                                    [NUEVO 2026-10-16]
+      window.CC.refreshIcons().
+  C16 Correos de marca ................... Juan. App\Notifications\ConfirmarCambioCorreo y
+      App\Notifications\RestablecerContrasena usan vistas en resources/views/emails/*. Ambas
+      vistas comparten estructura visual: logo adaptativo por Content-ID, tinte por rol,
+      dark mode vía prefers-color-scheme, preheader, fallback de enlace, nota de seguridad.
+                                                                    [NUEVO 2026-10-17]
 
 CONTRATO C7 (detalle)
   cambiarTipo: estandar <-> familiar. Familiar -> estandar bloqueado con metas compartidas
@@ -549,7 +643,17 @@ CONTRATO C7 (detalle)
   reactivar: activo=true.
   eliminarCuenta: no se puede borrar al último admin activo; cancela metas compartidas
     activas y avisa al otro (decisión #18); si es creador, transfiere creador_id al otro
-    antes de borrar; borrado en cascada dentro de una transacción.
+    antes de borrar; borrado en cascada dentro de una transacción. Cierra sesión después
+    de borrar, pero vacía remember_token en memoria antes de Auth::logout para evitar que
+    cycleRememberToken haga INSERT de un usuario ya eliminado.
+  solicitarCambioCorreo: valida que el correo no esté en uso, no esté pendiente en otra
+    cuenta, genera token (Str::random(64)), guarda SHA-256 del token, expira en 1 hora,
+    envía ConfirmarCambioCorreo al NUEVO correo con Notification::route('mail', ...).
+  reenviarConfirmacionCorreo: regenera token + vencimiento (1 hora), reenvía al pending_email.
+  confirmarCambioCorreo: valida hash_equals(email_token, sha256(token)), verifica que no
+    haya expirado, verifica que el correo no esté ocupado por otro usuario, actualiza email,
+    limpia pending_*, todo dentro de una transacción. Lanza ValidationException con mensaje
+    neutro si algo falla.
 
 CONTRATO C12 (tinte visual)
   El rol se expone en <html data-account-type="estandar|familiar|administrador">.
@@ -566,7 +670,7 @@ CONTRATO C14 (comando diario de alertas)
   Recorre usuarios con activo = true y rol en (estandar, familiar) en lotes de 100.
   Programado a las 07:00 en routes/console.php.
 
-CONTRATO C15 (logo y favicon)                                          [NUEVO 2026-10-16]
+CONTRATO C15 (logo y favicon)
   - Componente <x-logo :alto="N" :texto="true|false" /> renderiza el SVG del logo.
   - Los colores se controlan con tokens --logo-icon-bg, --logo-icon-bg-soft, --logo-icon-fg,
     --logo-text, --logo-text-accent, --logo-muted (definidos en theme.css bloque 10).
@@ -574,6 +678,22 @@ CONTRATO C15 (logo y favicon)                                          [NUEVO 20
     inline del <head> de base.blade.php). theme.js lo llama al cambiar de tema.
   - Los 4 archivos que usan logo (header, sidebar, sidebar-admin, footer) usan <x-logo />,
     no <img> externas.
+
+CONTRATO C16 (correos de marca)                                       [NUEVO 2026-10-17]
+  - Ambos correos viven en resources/views/emails/.
+  - Logo como SVG inline vía $message->embedData(...) por Content-ID (dos variantes: clara
+    y oscura), con clases .logo-claro y .logo-oscuro controladas por @media (prefers-color-scheme).
+  - El color de marca se decide por $usuario->rol en PHP (no vía CSS), y se aplica a:
+    barra superior, título, botón CTA, enlace de fallback y hero SVG.
+  - Toda notificación nueva que se envíe por correo debe:
+      · usar una vista de resources/views/emails/,
+      · aceptar 'usuario' => $notifiable,
+      · respetar el tinte por rol,
+      · incluir preheader oculto,
+      · incluir fallback con el enlace copiable,
+      · declarar <meta name="color-scheme" content="light dark">.
+  - Nunca envíes correos con el MailMessage::line()/action() por defecto de Laravel: se verían
+    como una plantilla genérica en inglés y rompen la identidad de marca.
 
 
 ----------------------------------------------------------------------
@@ -600,10 +720,22 @@ Cambio de rol (por admin)
   - Vía ServicioCuentas::cambiarRol. No cierra la sesión del usuario cambiado.
   - Bloquear si se quita admin al último admin activo.
   - Bloquear si baja de familiar a estandar con metas compartidas activas.
+Cambio de correo
+  - Desde Ajustes > Perfil (PUT). Requiere contraseña actual si se va a cambiar el correo
+    O la contraseña. El token se guarda hasheado (SHA-256), vence en 1 hora, se envía al
+    NUEVO correo (no al actual). El correo actual sigue activo hasta confirmar. Al confirmar
+    se cierra la sesión. El correo actual y el pendiente deben ser únicos.
 Eliminar cuenta / suspender
   - Vía ServicioCuentas::eliminarCuenta / suspender. No permitir dejar el sistema sin admin
     activo.
   - El admin no puede eliminarse a sí mismo desde el panel de administración.
+  - Al eliminar, vaciar remember_token en memoria ANTES de Auth::logout() para evitar el
+    INSERT fantasma del cycleRememberToken.
+Restablecer contraseña
+  - Enlace de un solo uso, vence en 30 minutos (configurable con AUTH_PASSWORD_RESET_EXPIRE).
+  - Mensaje neutro: no revela si el correo existe.
+  - Correo con identidad de marca (emails/restablecer-contrasena.blade.php).
+  - Tras restablecer, el remember_token se regenera.
 Gastos fijos y alertas
   - Solo mensuales (#6). Si el mes no tiene ese día, vence el último día del mes.
   - Una alerta a los 3 días y una de vencido (#16). El comando diario es IDEMPOTENTE (C14).
@@ -636,6 +768,7 @@ TINTE POR ROL:
     var(--accent), el tinte se rompe.
   - El tinte NO aplica al color de "peligro" (rojo) ni al de "error". Tampoco al 50/30/20
     (verde/azul/morado propios del gráfico).
+  - Los correos también respetan el tinte del rol (vía PHP, no vía CSS).
 
 Mensajes EXACTOS conocidos: "Gasto guardado" · "Gasto actualizado" · "Gasto eliminado" ·
 "Meta creada" · "Meta abandonada" · "Meta cancelada" · "Meta finalizada" · "Invitación enviada" ·
@@ -656,6 +789,18 @@ Mensajes nuevos 2026-10-16 (J7):
   · "No puedes eliminar tu cuenta porque eres el único administrador activo del sistema."
   · "Debes finalizar o cancelar las metas compartidas activas antes de bajar a estándar."
   · "No puedes eliminar tu propia cuenta desde aquí."
+Mensajes nuevos 2026-10-17 (V4):
+  · "Tu perfil se actualizó correctamente."
+  · "Perfil actualizado. Revisa tu nuevo correo para confirmar el cambio."
+  · "Te enviamos un nuevo enlace de confirmación."
+  · "Tu correo se actualizó. Inicia sesión con el nuevo."
+  · "El enlace de confirmación no es válido o ya expiró."
+  · "El enlace de confirmación expiró. Solicita uno nuevo."
+  · "Ese correo ya fue confirmado por otra cuenta."
+  · "Otra cuenta está pendiente de confirmar este correo. Intenta con otro."
+  · "Ingresa tu contraseña actual para cambiar el correo o la contraseña."
+  · "Tu cuenta se eliminó correctamente."
+  · "La contraseña actual no es correcta."
 
 
 ----------------------------------------------------------------------
@@ -703,6 +848,9 @@ Convenciones de cuentas (2026-10-16):
   - Para cambiar rol, ServicioCuentas::cambiarRol($usuario, $nuevoRol).
   - Para suspender/reactivar, ServicioCuentas::suspender / reactivar.
   - Capturar ValidationException y mostrar el mensaje al usuario.
+  - Si Auth::logout() va después de $usuario->delete(), vaciar remember_token
+    ($usuario->setRememberToken(null)) antes del logout para evitar que
+    cycleRememberToken haga INSERT.
 
 Convenciones del dashboard (2026-10-16):
   - El dashboard consulta SIEMPRE con delUsuario(auth()->id()) o relaciones del usuario
@@ -719,7 +867,7 @@ Convenciones de administración (2026-10-16):
   - Si una regla del sistema no se puede aplicar (p.ej. último admin), usar
     ValidationException con mensaje claro.
 
-Convenciones de logo, favicon y accesibilidad (2026-10-16):                   [NUEVO]
+Convenciones de logo, favicon y accesibilidad (2026-10-16):
   - Para poner el logo en una vista usa <x-logo :alto="36" /> (o el alto que aplique).
     Nunca uses <img src="..."> con logos externos.
   - Los colores del logo vienen de tokens --logo-* en theme.css bloque 10.
@@ -731,6 +879,31 @@ Convenciones de logo, favicon y accesibilidad (2026-10-16):                   [N
   - Página 403 personalizada en resources/views/errors/403.blade.php. Usa el layout
     layouts.publico (no requiere sesión).
 
+Convenciones de correo (2026-10-17):                                    [NUEVO]
+  - Todos los correos viven en resources/views/emails/.
+  - Nunca uses MailMessage::line()/action() en producción: usa ->view() con una blade propia.
+  - El logo va inline como SVG con $message->embedData(...) y dos variantes (clara/oscura)
+    por Content-ID.
+  - El tinte por rol se decide en PHP en la cabecera de la vista, no en CSS.
+  - Toda vista de correo debe incluir:
+      · preheader oculto,
+      · <meta name="color-scheme" content="light dark">,
+      · @media (prefers-color-scheme: dark) para los colores,
+      · fallback con el enlace copiable,
+      · nota de seguridad,
+      · nota legal fuera de la tarjeta.
+  - Las notificaciones se envían siempre con Notification::route('mail', ...) cuando el
+    destinatario NO es el usuario autenticado (verificación de correo al nuevo).
+
+Convenciones de verificación de correo (2026-10-17):                     [NUEVO]
+  - El token se guarda hasheado (SHA-256) en users.email_token.
+  - El vencimiento vive en users.pending_email_expires_at (1 hora).
+  - El correo se envía al NUEVO correo (pending_email), no al actual.
+  - La ruta de confirmación está en el Grupo B (auth); el usuario debe estar logueado.
+  - Al confirmar: se actualiza email, se limpian pending_*, se cierra la sesión.
+  - El correo actual sigue activo hasta la confirmación.
+  - El cambio de correo requiere contraseña actual (protección ante sesión robada).
+
 
 ----------------------------------------------------------------------
 13. ORDEN DE CONSTRUCCIÓN
@@ -739,11 +912,13 @@ Convenciones de logo, favicon y accesibilidad (2026-10-16):                   [N
   2. J2 base de datos (HECHO 2026-10-05)
   3. J3 autenticación (HECHO 2026-10-06)
   4. J4 permisos (HECHO 2026-10-06)
-  5. N1 -> N2 -> V1 -> V2 -> V4 (perfil e ingreso)   (V1 y V2 ya están en main)
+  5. N1 -> N2 -> V1 -> V2 -> V4 (HECHO 2026-10-17)
   6. J5 metas (HECHO 2026-10-07; reabierto 2026-10-08), N3 (HECHO), V3 (HECHO)
   7. J6 alertas (HECHO 2026-10-16), J8a cuentas (HECHO 2026-10-16),
      J8 dashboard (HECHO 2026-10-16), J7 administración (HECHO 2026-10-16),
-     N4 (pendiente), V4 (resto pendiente)
+     V4 ajustes (HECHO 2026-10-17), N4 notificaciones (HECHO 2026-10-17),
+     Verificación de cambio de correo (HECHO 2026-10-17),
+     Rediseño del correo de restablecer contraseña (HECHO 2026-10-17).
   8. N5 landing (los Route::view funcionan; solo se cambian si se requiere contenido
      dinámico)
   9. V5 revisión visual y J9 seguridad/despliegue
@@ -751,12 +926,16 @@ Convenciones de logo, favicon y accesibilidad (2026-10-16):                   [N
   *  Sesión 2026-10-16: J6 + J8a + J8 + J7 + pulido (logo adaptativo, favicon dinámico,
      skip link, página 403, selects adaptados, gastos-fijos.css limpio, refactor de
      ServicioMetas::notificar, docs/backend/00-rutas.php al conteo real).
+  *  Sesión 2026-10-17: V4 + N4 + verificación de cambio de correo + rediseño del correo
+     de restablecer contraseña (vencimiento a 30 minutos).
 Siguiente de Juan: J9 (seguridad, integración y despliegue) cuando Nikol y Valeria
-  cierren sus pendientes (N1, N2, N4, N5, V2, V4, V5).
+  cierren sus pendientes (N1, N2, N5, V2, V5).
 Al terminar todo (J9): no debe quedar ningún aviso "MAQUETA" en módulos reales. Los
 Route::view de público.php (landing, política, términos) son correctos y se quedan.
-Comparar php artisan route:list --except-vendor con docs/backend/00-rutas.php (62 rutas).
+Comparar php artisan route:list --except-vendor con docs/backend/00-rutas.php (64 rutas).
 Pendiente de mejora: TODO(J8) en DashboardController para usar scope delPeriodo de C1.
+Pendiente: docs/backend/00-rutas.php debe actualizarse a 64 rutas (agregar las 2 nuevas
+  de confirmar correo).
 
 
 ----------------------------------------------------------------------
@@ -817,7 +996,7 @@ DECISIONES DEL 2026-10-16 (J7): #42..#44
   #44 El registro de acciones del administrador (auditoría) queda como [PROPUESTA] no
       implementada.
 
-DECISIONES DEL 2026-10-16 (pulido): #45..#48                              [NUEVO 2026-10-16]
+DECISIONES DEL 2026-10-16 (pulido): #45..#48
   #45 Logo como SVG inline con tokens --logo-*. Reemplaza todas las imágenes externas de
       logo (lh3.googleusercontent.com). Se adapta al tema y al tipo de cuenta. El favicon
       se genera por JS con la misma paleta.
@@ -827,6 +1006,29 @@ DECISIONES DEL 2026-10-16 (pulido): #45..#48                              [NUEVO
       requiere sesión). Estilos en theme.css bloque 9.
   #48 Los selects nativos usan appearance:none con flecha SVG propia y color-scheme:dark.
       Respeta el tema; el popup nativo lo dibuja el SO (limitación aceptada).
+
+DECISIONES DEL 2026-10-17 (V4 + verificación + reset): #49..#52        [NUEVO 2026-10-17]
+  #49 Verificación de cambio de correo con token de un solo uso:
+      · Token plano generado con Str::random(64), guardado como hash SHA-256 en
+        users.email_token.
+      · Vencimiento en users.pending_email_expires_at = now()->addHour() (1 hora).
+      · El correo de verificación se envía al NUEVO correo (pending_email), nunca al actual.
+      · El correo actual sigue activo hasta que el usuario confirma.
+      · Al confirmar se cierra la sesión (se autenticó con el correo viejo).
+      · El cambio de correo requiere contraseña actual como protección extra.
+      · El enlace se puede reenviar (regenerando token y vencimiento) si se pierde.
+  #50 Rediseño del correo de restablecer contraseña:
+      · Mismo layout visual que confirmar-cambio-correo.
+      · Vencimiento reducido de 60 a 30 minutos (configurable vía
+        AUTH_PASSWORD_RESET_EXPIRE).
+      · 30 minutos es el estándar de la industria (GitHub, GitLab, Stripe, Auth0).
+  #51 Los correos del sistema usan Notification::route('mail', $destinatario) cuando el
+      destinatario NO es el usuario autenticado. Específicamente, ConfirmarCambioCorreo
+      se envía al pending_email, no al email actual. Para el resto de notificaciones
+      internas (alertas de gastos, invitaciones, etc.) sigue aplicando $usuario->notify(...).
+  #52 El borrado de cuenta vacía remember_token en memoria antes de Auth::logout() para
+      evitar que cycleRememberToken() haga INSERT de un usuario ya eliminado (bug detectado
+      durante las pruebas de V4).
 
 Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué y por qué.
 
@@ -851,7 +1053,7 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
  12. En las pruebas crea datos con fábricas y usa RefreshDatabase.
  13. Nunca asignes rol ni activo desde un formulario. No subas .env ni database.sqlite.
  14. El usuario autenticado es auth()->user(); nunca vuelvas a simular un usuario.
- 15. Para enviar correos usa notificaciones en español.
+ 15. Para enviar correos usa notificaciones en español con vista propia (resources/views/emails/).
  16. Permisos: cada controlador llama $this->authorize() antes de leer/editar/borrar.
  17. Pruebas de cada módulo: dueño puede, ajeno recibe 403, administrador recibe 403 en
      datos financieros.
@@ -861,6 +1063,10 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
  21. ServicioMetas::tieneMetasCompartidasActivas es la única vía para verificar si un usuario
      puede bajar a estándar.
  22. La lógica de "aceptar invitación siendo estándar" vive en ServicioMetas::aceptar().
+ 23. ServicioCuentas::solicitarCambioCorreo / confirmarCambioCorreo / reenviarConfirmacionCorreo
+     son las ÚNICAS vías para gestionar el cambio de correo.
+ 24. Nunca escribas el token de correo plano en la BD. Solo SHA-256.
+ 25. El correo de verificación se envía al pending_email (destinatario), nunca al actual.
 
 Instrucciones de refinamiento visual (2026-10-14): #23..#28
   (botones con clases, tokens --accent-*, peligro siempre rojo, no cargar fuentes en pantallas,
@@ -872,7 +1078,7 @@ Instrucciones de notificaciones (2026-10-16): #29..#33
 
 Instrucciones de cuentas (2026-10-16): #34..#36
   (usar ServicioCuentas::eliminarCuenta / cambiarRol / suspender / reactivar;
-   capturar ValidationException)
+   capturar ValidationException; vaciar remember_token antes de Auth::logout si delete fue antes)
 
 Instrucciones del dashboard (2026-10-16): #37..#40
   (delUsuario, refrescar pagos del mes, tarjeta de metas solo si familiar, sustituir
@@ -884,7 +1090,7 @@ Instrucciones de administración (2026-10-16): #41..#47
    ServicioCuentas para gestionar, el tinte admin es Core Blue, las vistas admin usan
    layouts.admin y sidebar-admin)
 
-Instrucciones de logo, favicon y accesibilidad (2026-10-16): #48..#52  [NUEVO 2026-10-16]
+Instrucciones de logo, favicon y accesibilidad (2026-10-16): #48..#52
  48. Para poner el logo usa <x-logo :alto="36" />. Nunca <img> con logo externo.
  49. Los colores del logo vienen de tokens --logo-* (theme.css bloque 10).
  50. El favicon se regenera con window.CC.refreshIcons(). Si añades un rol nuevo, actualiza
@@ -893,6 +1099,25 @@ Instrucciones de logo, favicon y accesibilidad (2026-10-16): #48..#52  [NUEVO 20
      <main>. No toques los layouts para esto.
  52. La página 403 vive en resources/views/errors/403.blade.php con estilos en theme.css
      bloque 9.
+
+Instrucciones de correo y verificación (2026-10-17): #53..#60        [NUEVO 2026-10-17]
+ 53. Toda notificación de correo debe usar una vista de resources/views/emails/.
+     Nunca MailMessage::line()/action() en producción.
+ 54. Toda vista de correo debe tener: preheader oculto, <meta color-scheme>, dark mode
+     (@media prefers-color-scheme), logo adaptativo por Content-ID, fallback de enlace,
+     nota de seguridad, nota legal fuera de la tarjeta.
+ 55. El tinte por rol en correos se decide en PHP en la cabecera de la vista, no en CSS.
+ 56. El cambio de correo se dispara SOLO vía ServicioCuentas::solicitarCambioCorreo.
+ 57. El token de correo se guarda hasheado (SHA-256) en users.email_token. NUNCA en claro.
+ 58. El vencimiento del token de correo va en users.pending_email_expires_at = 1 hora.
+ 59. El correo de verificación se envía con Notification::route('mail', $pending_email),
+     no con $usuario->notify(...).
+ 60. Al confirmar el correo, cerrar sesión siempre: se autenticó con el correo viejo.
+ 61. El restablecer contraseña usa emails/restablecer-contrasena.blade.php con vencimiento
+     de 30 minutos configurable vía AUTH_PASSWORD_RESET_EXPIRE.
+ 62. Si agregas una nueva notificación de correo, sigue el patrón de
+     ConfirmarCambioCorreo (notificación + vista + envío con Notification::route si el
+     destinatario no es el usuario autenticado).
 
 
 ----------------------------------------------------------------------
@@ -915,6 +1140,9 @@ Instrucciones de logo, favicon y accesibilidad (2026-10-16): #48..#52  [NUEVO 20
   J8_Dashboard_Documentacion.txt ..................... qué cambió en J8 (dashboard)
   J9_Checklist_Previo.txt ............................ mapa de lo que falta para J9
   Refinamiento_Visual_2026-10-14.txt ................. resumen de la sesión visual
+  V4_N4_Verificacion_Correo_2026-10-17.txt ........... qué cambió en V4, N4, verificación
+                                                       de correo y rediseño de reset (crear
+                                                       si aún no existe)
   diagrama_tablas.png / .svg ......................... diagrama de las 20 tablas
   docs/backend/*.php ................................. planes técnicos por tema
   Plan_Jira_Cuentas_Claras.txt / .csv ................ plan de tareas por sprint

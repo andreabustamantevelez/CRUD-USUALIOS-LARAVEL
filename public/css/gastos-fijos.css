@@ -154,23 +154,14 @@
   font-size: 12px;
 }
 
-.gf-summary-pagado {
-  border-top: 4px solid var(--gf-success);
-}
 .gf-summary-pagado .gf-summary-number {
   color: var(--gf-success);
 }
 
-.gf-summary-pendiente {
-  border-top: 4px solid var(--gf-warning);
-}
 .gf-summary-pendiente .gf-summary-number {
   color: var(--gf-warning);
 }
 
-.gf-summary-vencido {
-  border-top: 4px solid var(--gf-danger);
-}
 .gf-summary-vencido .gf-summary-number {
   color: var(--gf-danger);
 }
