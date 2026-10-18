@@ -17,33 +17,39 @@
         </div>
 
         <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+<form
+    method="POST"
+    action="{{ route('gastos.store') }}"
+    onsubmit="document.getElementById('monto').value = document.getElementById('monto').value.replace(/\./g, '')"
+>
 
-            <form method="POST" action="{{ route('gastos.store') }}">
                 @csrf
 
                 <div class="space-y-5">
+<div>
+    <label class="block text-xs font-bold text-gray-600 mb-1">
+        Monto ($ COP)
+    </label>
 
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">
-                            Monto ($ COP)
-                        </label>
+    <input
+        type="text"
+        name="monto"
+        id="monto"
+        inputmode="numeric"
+        value="{{ old('monto') }}"
+        placeholder="Ej: 45.000"
+        oninput="this.value = this.value.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.')"
+        required
+        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+    >
 
-                        <input
-                            type="number"
-                            name="monto"
-                            min="1"
-                            value="{{ old('monto') }}"
-                            placeholder="Ej: 45000"
-                            required
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                        >
+    @error('monto')
+        <span class="text-xs text-red-500">
+            {{ $message }}
+        </span>
+    @enderror
+</div>
 
-                        @error('monto')
-                            <span class="text-xs text-red-500">
-                                {{ $message }}
-                            </span>
-                        @enderror
-                    </div>
 
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1">
