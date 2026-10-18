@@ -112,6 +112,11 @@ class AjustesController extends Controller
 
     public function tipoCuenta(Request $request): View
     {
+        abort_unless(
+            in_array($request->user()->rol, ['estandar', 'familiar'], true),
+            403
+        );
+
         $usuario = $request->user();
 
         return view('app.ajustes.tipo-cuenta', [
@@ -123,6 +128,11 @@ class AjustesController extends Controller
 
     public function cambiarTipo(Request $request): RedirectResponse
     {
+        abort_unless(
+            in_array($request->user()->rol, ['estandar', 'familiar'], true),
+            403
+        );
+
         $datos = $request->validate([
             'tipo_cuenta' => ['required', 'in:estandar,familiar'],
         ], [
@@ -147,6 +157,11 @@ class AjustesController extends Controller
 
     public function eliminarCuenta(Request $request): View
     {
+        abort_unless(
+            in_array($request->user()->rol, ['estandar', 'familiar'], true),
+            403
+        );
+
         return view('app.ajustes.eliminar-cuenta', [
             'usuario' => $request->user(),
         ]);
@@ -154,14 +169,19 @@ class AjustesController extends Controller
 
     public function destruirCuenta(Request $request): RedirectResponse
     {
+        abort_unless(
+            in_array($request->user()->rol, ['estandar', 'familiar'], true),
+            403
+        );
+
         $request->validate([
             'contrasena_actual'     => ['required', 'current_password'],
             'confirmar_eliminacion' => ['required', 'accepted'],
         ], [
-            'contrasena_actual.required'          => 'Ingresa tu contraseña actual.',
-            'contrasena_actual.current_password'  => 'La contraseña actual no es correcta.',
-            'confirmar_eliminacion.required'      => 'Debes confirmar que deseas eliminar tu cuenta.',
-            'confirmar_eliminacion.accepted'      => 'Debes confirmar que deseas eliminar tu cuenta.',
+            'contrasena_actual.required'         => 'Ingresa tu contraseña actual.',
+            'contrasena_actual.current_password' => 'La contraseña actual no es correcta.',
+            'confirmar_eliminacion.required'     => 'Debes confirmar que deseas eliminar tu cuenta.',
+            'confirmar_eliminacion.accepted'     => 'Debes confirmar que deseas eliminar tu cuenta.',
         ]);
 
         $usuario = $request->user();
@@ -172,9 +192,6 @@ class AjustesController extends Controller
             return back()->withErrors($e->errors());
         }
 
-        // Vaciamos remember_token ANTES de Auth::logout() para que
-        // cycleRememberToken() no intente $user->save() sobre un modelo
-        // eliminado (eso haría INSERT y re-crearía al usuario).
         $usuario->setRememberToken(null);
 
         Auth::logout();

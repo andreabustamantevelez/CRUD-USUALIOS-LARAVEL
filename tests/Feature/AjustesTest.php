@@ -77,17 +77,54 @@ class AjustesTest extends TestCase
         $this->assertSame('estandar', $u->fresh()->rol);
     }
 
-    public function test_tipo_cuenta_lo_puede_ver_cualquier_rol_con_sesion(): void
+    public function test_tipo_cuenta_lo_ven_estandar_y_familiar_pero_no_admin(): void
     {
-        $usuarios = [
-            User::factory()->create(),
-            User::factory()->familiar()->create(),
-            User::factory()->administrador()->create(),
-        ];
+        $estandar = User::factory()->create();
+        $familiar = User::factory()->familiar()->create();
+        $admin = User::factory()->administrador()->create();
 
-        foreach ($usuarios as $u) {
-            $this->actingAs($u)->get(route('ajustes.tipo-cuenta'))->assertOk();
-        }
+        $this->actingAs($estandar)->get(route('ajustes.tipo-cuenta'))->assertOk();
+        $this->actingAs($familiar)->get(route('ajustes.tipo-cuenta'))->assertOk();
+        $this->actingAs($admin)->get(route('ajustes.tipo-cuenta'))->assertForbidden();
+    }
+
+    public function test_admin_no_puede_cambiar_tipo_de_cuenta(): void
+    {
+        $admin = User::factory()->administrador()->create();
+
+        $this->actingAs($admin)
+            ->put(route('ajustes.tipo-cuenta.update'), ['tipo_cuenta' => 'estandar'])
+            ->assertForbidden();
+
+        $this->assertSame('administrador', $admin->fresh()->rol);
+    }
+
+    public function test_eliminar_cuenta_lo_ven_estandar_y_familiar_pero_no_admin(): void
+    {
+        $estandar = User::factory()->create();
+        $familiar = User::factory()->familiar()->create();
+        $admin = User::factory()->administrador()->create();
+
+        $this->actingAs($estandar)->get(route('ajustes.eliminar-cuenta'))->assertOk();
+        $this->actingAs($familiar)->get(route('ajustes.eliminar-cuenta'))->assertOk();
+        $this->actingAs($admin)->get(route('ajustes.eliminar-cuenta'))->assertForbidden();
+    }
+
+    public function test_admin_no_puede_eliminar_su_cuenta_desde_ajustes(): void
+    {
+        // Aunque haya otro admin activo, Ajustes bloquea al admin por rol.
+        User::factory()->administrador()->create(['activo' => true]);
+        $admin = User::factory()->administrador()->create(['activo' => true]);
+
+        $this->actingAs($admin)
+            ->delete(route('ajustes.eliminar-cuenta.destroy'), [
+                'contrasena_actual' => 'password',
+                'confirmar_eliminacion' => '1',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
+        $this->assertAuthenticatedAs($admin);
     }
 
     // =========================================================================
@@ -256,8 +293,8 @@ class AjustesTest extends TestCase
     public function test_confirmar_correo_con_token_valido_actualiza_email_y_cierra_sesion(): void
     {
         $usuario = User::factory()->create([
-            'pending_email'            => 'nuevo@correo.com',
-            'email_token'              => hash('sha256', 'token-plano-123'),
+            'pending_email' => 'nuevo@correo.com',
+            'email_token' => hash('sha256', 'token-plano-123'),
             'pending_email_expires_at' => now()->addHour(),
         ]);
 
@@ -278,8 +315,8 @@ class AjustesTest extends TestCase
     public function test_confirmar_correo_con_token_invalido_falla(): void
     {
         $usuario = User::factory()->create([
-            'pending_email'            => 'nuevo@correo.com',
-            'email_token'              => hash('sha256', 'token-correcto'),
+            'pending_email' => 'nuevo@correo.com',
+            'email_token' => hash('sha256', 'token-correcto'),
             'pending_email_expires_at' => now()->addHour(),
         ]);
 
@@ -293,8 +330,8 @@ class AjustesTest extends TestCase
     public function test_confirmar_correo_con_token_vencido_falla(): void
     {
         $usuario = User::factory()->create([
-            'pending_email'            => 'nuevo@correo.com',
-            'email_token'              => hash('sha256', 'token-plano-123'),
+            'pending_email' => 'nuevo@correo.com',
+            'email_token' => hash('sha256', 'token-plano-123'),
             'pending_email_expires_at' => now()->subMinutes(5),
         ]);
 
@@ -310,8 +347,8 @@ class AjustesTest extends TestCase
         User::factory()->create(['email' => 'nuevo@correo.com']);
 
         $usuario = User::factory()->create([
-            'pending_email'            => 'nuevo@correo.com',
-            'email_token'              => hash('sha256', 'token-plano-123'),
+            'pending_email' => 'nuevo@correo.com',
+            'email_token' => hash('sha256', 'token-plano-123'),
             'pending_email_expires_at' => now()->addHour(),
         ]);
 
@@ -327,8 +364,8 @@ class AjustesTest extends TestCase
         Notification::fake();
 
         $usuario = User::factory()->create([
-            'pending_email'            => 'nuevo@correo.com',
-            'email_token'              => hash('sha256', 'token-viejo'),
+            'pending_email' => 'nuevo@correo.com',
+            'email_token' => hash('sha256', 'token-viejo'),
             'pending_email_expires_at' => now()->addMinutes(10),
         ]);
 
@@ -378,23 +415,4 @@ class AjustesTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_eliminar_cuenta_protege_al_ultimo_administrador_activo(): void
-    {
-        $administrador = User::factory()->administrador()->create(['activo' => true]);
-
-        $this->actingAs($administrador)
-            ->delete(route('ajustes.eliminar-cuenta.destroy'), [
-                'contrasena_actual' => 'password',
-                'confirmar_eliminacion' => '1',
-            ])
-            ->assertSessionHasErrors('cuenta');
-
-        $this->assertDatabaseHas('users', [
-            'id' => $administrador->id,
-            'rol' => 'administrador',
-            'activo' => true,
-        ]);
-
-        $this->assertAuthenticatedAs($administrador);
-    }
 }

@@ -10,17 +10,26 @@ use Tests\TestCase;
  * Pruebas de J4 (parte 1): qué rol entra a qué grupo de rutas y expulsión de cuentas suspendidas.
  * Para agregar una ruta nueva a la matriz, súmala a la lista de su grupo.
  * Ejecutar: php artisan test --filter=PermisosTest
+ *
+ * GRUPO_B            → ajustes.perfil. Todos los roles con sesión (incluye administrador).
+ * GRUPO_B_FINANCIERO → ajustes.tipo-cuenta y ajustes.eliminar-cuenta. Solo estandar y familiar.
+ *                      El administrador no tiene finanzas personales (decisión #20) ni puede
+ *                      eliminar su cuenta desde Ajustes (decisión #43). Su cuenta se gestiona
+ *                      desde /admin/usuarios.
+ * GRUPO_C            → rutas financieras. Solo estandar y familiar.
+ * GRUPO_E            → /admin. Solo administrador.
+ * El GRUPO_D desapareció: metas pasó al Grupo C.
  */
 class PermisosTest extends TestCase
 {
     use RefreshDatabase;
 
     // Rutas GET sin parámetros, por grupo.
-    private const GRUPO_B = ['ajustes.perfil', 'ajustes.tipo-cuenta', 'ajustes.eliminar-cuenta'];
+    private const GRUPO_B = ['ajustes.perfil'];
+    private const GRUPO_B_FINANCIERO = ['ajustes.tipo-cuenta', 'ajustes.eliminar-cuenta'];
     private const GRUPO_C = ['panel', 'gastos.index', 'categorias.index', 'gastos-fijos.index', 'notificaciones.index',
                              'creditos.simulador', 'creditos.historial', 'informes.actual', 'informes.historial',
                              'metas.index', 'metas.invitaciones'];
-    // El GRUPO_D desapareció: metas pasó al Grupo C.
     private const GRUPO_E = ['admin.usuarios', 'admin.categorias', 'admin.estadisticas'];
 
     private function usuarioDeRol(string $rol): User
@@ -58,6 +67,15 @@ class PermisosTest extends TestCase
         $this->revisarMatriz(self::GRUPO_B, ['estandar' => 200, 'familiar' => 200, 'administrador' => 200]);
     }
 
+    public function test_grupo_b_financiero_solo_estandar_y_familiar(): void
+    {
+        $this->revisarMatriz(self::GRUPO_B_FINANCIERO, [
+            'estandar'      => 200,
+            'familiar'      => 200,
+            'administrador' => 403,
+        ]);
+    }
+
     public function test_grupo_c_estandar_y_familiar_entran_el_administrador_recibe_403(): void
     {
         $this->revisarMatriz(self::GRUPO_C, ['estandar' => 200, 'familiar' => 200, 'administrador' => 403]);
@@ -78,6 +96,17 @@ class PermisosTest extends TestCase
         $this->actingAs($admin)->post(route('creditos.guardar'))->assertForbidden();
         $this->actingAs($admin)->post(route('metas.store'))->assertForbidden();
 
+        // El administrador tampoco cambia su tipo de cuenta ni elimina su cuenta desde Ajustes.
+        $this->actingAs($admin)
+            ->put(route('ajustes.tipo-cuenta.update'), ['tipo_cuenta' => 'estandar'])
+            ->assertForbidden();
+        $this->actingAs($admin)
+            ->delete(route('ajustes.eliminar-cuenta.destroy'), [
+                'contrasena_actual' => 'password',
+                'confirmar_eliminacion' => '1',
+            ])
+            ->assertForbidden();
+
         // El estándar no entra a administración.
         $this->actingAs($estandar)->put(route('admin.usuarios.rol', 1))->assertForbidden();
         $this->actingAs($estandar)->delete(route('admin.usuarios.destroy', 1))->assertForbidden();
@@ -91,7 +120,7 @@ class PermisosTest extends TestCase
 
     public function test_sin_sesion_todo_lo_privado_redirige_al_login(): void
     {
-        foreach (array_merge(self::GRUPO_B, self::GRUPO_C, self::GRUPO_E) as $ruta) {
+        foreach (array_merge(self::GRUPO_B, self::GRUPO_B_FINANCIERO, self::GRUPO_C, self::GRUPO_E) as $ruta) {
             $this->get(route($ruta))->assertRedirect(route('login'));
         }
     }

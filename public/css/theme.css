@@ -863,13 +863,6 @@
   text-align: center;
 }
 
-/* 6.9 Bordes superiores de las tarjetas de resumen */
-[data-theme="oscuro"] .gf-summary-pendiente {
-  border-top-color: var(--gf-warning);
-}
-[data-theme="oscuro"] .gf-summary-pagado   { border-top-color: var(--gf-success); }
-[data-theme="oscuro"] .gf-summary-vencido  { border-top-color: var(--gf-danger); }
-
 /* ==========================================================================
    7. SELECTS (nativos) — adaptados al diseño y al tema
    --------------------------------------------------------------------------
