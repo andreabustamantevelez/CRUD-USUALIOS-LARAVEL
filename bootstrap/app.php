@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Http\Middleware\CuentaActiva;
 use App\Http\Middleware\RolRequerido;
+use App\Http\Middleware\ExpirarSesionPorInactividad;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,8 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
        : route('panel'));
 
         $middleware->alias([
-            'cuenta.activa' => CuentaActiva::class,
-            'rol'           => RolRequerido::class,
+            'cuenta.activa'     => CuentaActiva::class,
+            'rol'               => RolRequerido::class,
+            'sesion.inactividad' => ExpirarSesionPorInactividad::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -18,6 +18,13 @@ use Illuminate\Support\Facades\Route;
  * J5 ACTUALIZADO (2026-10-08): metas pasaron al Grupo C. El estándar puede tener metas individuales
  *     y recibir invitaciones (con aviso de cambiar a familiar para aceptar). El familiar sigue
  *     pudiendo crear metas compartidas.
+ *
+ * 2026-10-17: se agrega 'sesion.inactividad' al bloque privado. Expira la sesión
+ * tras 15 minutos sin actividad y muestra un mensaje en el login. Requiere
+ * SESSION_LIFETIME en .env mayor que 15 (por ejemplo, 480).
+ *
+ * 2026-10-17: Route::fallback() al final del bloque privado para que la vista
+ * errors/404 se renderice con sesión activa (y @auth funcione).
  * ==============================================================================
  */
 
@@ -26,7 +33,7 @@ require __DIR__.'/modulos/publico.php';   // Nikol (N5)
 require __DIR__.'/modulos/auth.php';      // Juan  (J3)
 
 // GRUPOS B a E - PRIVADAS
-Route::middleware(['auth', 'cuenta.activa'])->group(function () {
+Route::middleware(['sesion.inactividad', 'auth', 'cuenta.activa'])->group(function () {
 
     // GRUPO B - todos los roles con sesión
     require __DIR__.'/modulos/ajustes.php';          // Valeria (V4)
@@ -42,14 +49,17 @@ Route::middleware(['auth', 'cuenta.activa'])->group(function () {
         require __DIR__.'/modulos/metas.php';            // Juan    (J5) - individuales para todos
     });
 
-    // GRUPO D - solo familiar
-    // Route::middleware('rol:familiar')->group(function () {
-    //     require __DIR__.'/modulos/metas.php';            // Juan (J5)
-    // });
-
-
     // GRUPO E - solo administrador
     Route::middleware('rol:administrador')->prefix('admin')->name('admin.')->group(function () {
         require __DIR__.'/modulos/admin.php';            // Juan (J7)
+    });
+
+    /*
+    * Fallback: captura cualquier URL que no coincida con una ruta.
+    * Al ser una ruta, corre el middleware 'web' (sesión incluida), así la vista
+    * errors.404 puede usar @auth y mostrar los botones del rol correcto.
+    */
+    Route::fallback(function () {
+        return response()->view('errors.404', [], 404);
     });
 });
