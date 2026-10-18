@@ -241,7 +241,18 @@ class AuthTest extends TestCase
 
     public function test_cerrar_sesion_por_get_no_existe(): void
     {
-        $this->actingAs(User::factory()->create())->get('/cerrar-sesion')->assertStatus(405);
+        // La URL /cerrar-sesion existe solo como POST. Un GET no debe cerrar
+        // la sesión (eso sería una vulnerabilidad CSRF por logout vía GET).
+        // Con Route::fallback() en web.php, un GET cae al 404 personalizado.
+        // Antes del fallback, Laravel devolvía 405 (Method Not Allowed).
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/cerrar-sesion')
+            ->assertStatus(404);
+
+        // Y lo importante: sigue autenticado, no se cerró la sesión.
+        $this->assertAuthenticatedAs($usuario);
     }
 
     public function test_las_rutas_privadas_redirigen_al_login_sin_sesion(): void
