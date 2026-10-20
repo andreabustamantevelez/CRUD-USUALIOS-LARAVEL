@@ -1,7 +1,7 @@
 {{--
   ==============================================================================
   ARCHIVO : resources/views/app/metas/index.blade.php        (J5 HECHO)
-  QUÉ ES  : "Metas compartidas": lista de mis metas (individuales o compartidas) con su avance y formulario para crear una.
+  QUÉ ES  : "Metas": lista de mis metas (individuales o compartidas) con su avance y formulario para crear una.
   RUTA    : GET /metas (metas.index) · POST /metas (metas.store) · rol:familiar · MetaController@index
   DATOS   : $metas (con aportes_sum_monto = total conjunto) · $invitaciones (cantidad pendiente)
   PRIVACIDAD: solo se muestran NOMBRES de participantes y el total conjunto; nunca aportes individuales.
@@ -10,7 +10,7 @@
 --}}
 
 @extends('layouts.app')
-@section('titulo', 'Metas compartidas · Cuentas Claras')
+@section('titulo', 'Metas · Cuentas Claras')
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/metas-compartidas.css') }}">
 @endpush
@@ -27,7 +27,7 @@
           </section>
         @endif
         <div>
-          <h1 class="font-headline-xl text-headline-xl text-on-surface">Metas compartidas</h1>
+          <h1 class="font-headline-xl text-headline-xl text-on-surface">Metas</h1>
           <p class="font-body-md text-body-md text-on-surface-variant mt-1">Ahorra solo o junto a otra persona</p>
         </div>
         <a href="{{ route('metas.invitaciones') }}" class="btn btn-secondary">
@@ -105,7 +105,7 @@
             </p>
           </a>
         @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">Aún no tienes metas compartidas</p>
+          <p class="font-body-md text-body-md text-on-surface-variant">Aún no tienes metas</p>
         @endforelse
       </section>
     </div>
