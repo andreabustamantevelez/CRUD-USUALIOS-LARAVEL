@@ -15,7 +15,11 @@
                     Ajustes · Perfil
                 </h1>
                 <p class="font-body-md text-body-md text-on-surface-variant mt-1">
-                    Actualiza tus datos personales, tu ingreso mensual y tu contraseña.
+                    @if($esAdmin)
+                        Actualiza tus datos personales y tu contraseña.
+                    @else
+                        Actualiza tus datos personales, tu ingreso mensual y tu contraseña.
+                    @endif
                 </p>
             </header>
 
