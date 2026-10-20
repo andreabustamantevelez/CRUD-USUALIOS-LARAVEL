@@ -6,15 +6,18 @@ Leer completo antes de escribir código. Resume QUÉ es el sistema, QUÉ está h
 QUÉ falta, CÓMO está organizado, TODAS las rutas y las reglas que no se pueden romper.
 Versión: después de J7 (administración), J8 (dashboard + cuentas), J6 (alertas),
 J5 (metas), V4 (ajustes completo), N4 (notificaciones), verificación de cambio de
-correo y rediseño del correo de restablecer contraseña.
-Fecha: 2026-10-17.
-Cambios respecto al 2026-10-16: se completó V4 (perfil, tipo-cuenta, eliminar
-cuenta), se completó N4 (pantalla de notificaciones), se agregó verificación de
-cambio de correo con token de un solo uso, se rediseñó el correo de restablecer
-contraseña y se bajó su vencimiento de 60 a 30 minutos.
-Rutas: SIN CAMBIOS en URL y nombre respecto al 2026-10-16, salvo dos rutas nuevas
-de confirmación de correo. El archivo docs/backend/00-rutas.php debe actualizarse
-a 64 rutas.
+correo, rediseño del correo de restablecer contraseña, restricción de Ajustes al
+admin, página 404 personalizada, expiración de sesión por inactividad e iconografía
+por categoría.                                          [ACTUALIZADO 2026-10-19]
+Fecha: 2026-10-19.
+Cambios respecto al 2026-10-17: se restringió Ajustes al administrador (solo Perfil),
+se agregó página 404 personalizada con Route::fallback(), se configuró expiración de
+sesión por inactividad a 15 minutos, se agregó el componente <x-categoria-icono> con
+SVGs propios por categoría y se rediseñaron las tarjetas de gastos fijos para que sean
+más compactas. La vista de Categorías migró a botones del sistema (btn-primary,
+btn-secondary, btn-danger) con SVGs en lugar de hex sueltos.
+Rutas: SIN CAMBIOS en URL y nombre. Se agregó Route::fallback() para el 404 con sesión.
+El archivo docs/backend/00-rutas.php debe actualizarse a 64 rutas.
 
 
 ----------------------------------------------------------------------
@@ -30,15 +33,21 @@ pesos colombianos (COP, siempre enteros, nunca decimales). Permite:
   - Metas de ahorro INDIVIDUALES (para usuarios estandar o familiar) o COMPARTIDAS entre DOS
     usuarios de tipo "familiar" (máx. 2 participantes), con privacidad de aportes.
   - Cambiar el tipo de cuenta (estándar <-> familiar) desde Ajustes, sin necesidad de crear
-    una cuenta nueva.
+    una cuenta nueva. Exclusivo para estandar y familiar; el admin no tiene acceso.
+                                                                  [NUEVO 2026-10-19]
   - Cambiar el correo electrónico con verificación por enlace (token de un solo uso, vence
     en 1 hora, se envía al correo nuevo; el correo actual sigue activo hasta confirmar).
   - Administración (usuarios, roles, categorías del sistema, estadísticas agregadas).
   - Modo claro / oscuro con persistencia en localStorage y favicon dinámico.
   - Tinte por rol: verde (estándar), morado (familiar), azul (administrador) en botones,
     avatar, ítems activos, banners, chips, logo y favicon.
+  - Iconografía por categoría en gastos fijos (SVG propio por categoría, color por bloque
+    50/30/20).                                                [NUEVO 2026-10-19]
   - Skip link para accesibilidad (saltar al contenido principal con Tab).
   - Página 403 personalizada con el diseño del sistema.
+  - Página 404 personalizada con el diseño del sistema y botones contextuales por rol.
+                                                                  [NUEVO 2026-10-19]
+  - Expiración de sesión por inactividad a los 15 minutos.       [NUEVO 2026-10-19]
   - Correos en español con identidad de marca (verificación de correo y restablecer
     contraseña) que respetan el tema claro/oscuro y el tinte por rol.
 El diseño visual YA ESTÁ HECHO (vistas Blade + CSS + JS). EL DISEÑO NO SE CAMBIA: debe
@@ -95,10 +104,8 @@ HECHO (Modo claro/oscuro + tinte + transiciones, 2026-10-14):
   [x] Botones de gastos migrados a clases del sistema.
 
 HECHO (J6 - Alertas y servicio de notificaciones, 2026-10-16, Juan):
-  [x] ServicioNotificaciones (contrato C4): crear, contar, cancelar por pago o gasto fijo,
-      marcar una o todas como leídas, con clave_unica.
-  [x] Comando alertas:gastos-fijos programado a las 07:00 (routes/console.php).
-      Idempotente. Acepta --fecha=YYYY-MM-DD.
+  [x] ServicioNotificaciones (contrato C4).
+  [x] Comando alertas:gastos-fijos programado a las 07:00. Idempotente.
   [x] La campana del topbar cuenta notificaciones reales.
   [x] Refactor de N3: ServicioGastosFijos y GastoFijoController delegan en
       ServicioNotificaciones.
@@ -109,143 +116,193 @@ HECHO (J8a - Servicio de cuentas: eliminar cuenta, 2026-10-16, Juan):
   [x] ServicioCuentas::eliminarCuenta($usuario) (C7 completo).
   [x] No permite eliminar al último administrador activo.
   [x] Cancela metas compartidas activas y avisa al otro participante (decisión #18).
-  [x] Transferencia de creador_id antes de borrar (evita el ON DELETE CASCADE).
+  [x] Transferencia de creador_id antes de borrar.
   [x] tests/Feature/EliminarCuentaTest.php: 6 pruebas.
 
 HECHO (J8 - Dashboard principal, 2026-10-16, Juan):
-  [x] DashboardController@index: métricas del mes, distribución 50/30/20 (GeneradorInforme),
-      próximos vencimientos (ServicioGastosFijos::proximosAVencer), últimos gastos,
-      notificaciones recientes, tarjeta de metas (solo familiar) y bienvenida.
+  [x] DashboardController@index: métricas del mes, distribución 50/30/20, próximos
+      vencimientos, últimos gastos, notificaciones recientes, tarjeta de metas (familiar)
+      y bienvenida.
   [x] routes/modulos/panel.php apunta a [DashboardController::class, 'index'].
-  [x] resources/views/app/dashboard.blade.php con datos reales y diseño del code.html.
+  [x] resources/views/app/dashboard.blade.php con datos reales.
   [x] app/Models/Gasto.php: + casts (fecha => date, monto => integer).
   [x] tests/Feature/DashboardTest.php: 8 pruebas.
-  [x] theme.css reescrito completo (modo oscuro, hovers, tinte, selects).
+  [x] theme.css reescrito completo.
   [x] gastos-fijos.css con bloque modo oscuro.
 
 HECHO (J7 - Administración, 2026-10-16, Juan):
-  [x] Migración #23: categorias.activa (boolean, default true) + índice
-      (user_id, activa). Cierra la decisión pendiente.
-  [x] ServicioCuentas: + cambiarRol, suspender, reactivar. Reutiliza
-      verificarUltimoAdministrador.
-  [x] Admin\UsuarioController + 2 FormRequests: listado con filtros, cambio de rol,
-      suspender/reactivar, eliminar. No ve datos financieros.
-  [x] Admin\CategoriaSistemaController + 2 FormRequests: CRUD de categorías del sistema.
-      Desactivar en vez de borrar.
-  [x] Admin\EstadisticaController: conteos agregados (usuarios por rol y estado,
-      notificaciones por tipo). Nunca consulta montos.
-  [x] Vistas rediseñadas: usuarios, categorías (agrupadas por bloque 50/30/20 con
-      contexto), estadísticas (KPIs, barras de progreso).
-  [x] Tinte admin: bloque 8 en theme.css. Core Blue #2563EB claro / #93b4ff oscuro.
-  [x] Fix dashboard: route('gastos-fijos.pagar', $pago->gastoFijo) en vez del id suelto.
-  [x] Pruebas nuevas: Admin\UsuariosTest (9), Admin\CategoriasSistemaTest (6),
-      Admin\EstadisticasTest (3). Total: 178 verdes.
-  [x] docs/juan/J7_Administracion_Documentacion.txt.
+  [x] Migración #23: categorias.activa + índice (user_id, activa).
+  [x] ServicioCuentas: + cambiarRol, suspender, reactivar.
+  [x] Admin\UsuarioController + 2 FormRequests.
+  [x] Admin\CategoriaSistemaController + 2 FormRequests.
+  [x] Admin\EstadisticaController: conteos agregados. Nunca consulta montos.
+  [x] Vistas rediseñadas: usuarios, categorías, estadísticas.
+  [x] Tinte admin: bloque 8 en theme.css. Core Blue #2563EB / #93b4ff.
+  [x] Fix dashboard: route('gastos-fijos.pagar', $pago->gastoFijo).
+  [x] Pruebas: Admin\UsuariosTest (9), Admin\CategoriasSistemaTest (6),
+      Admin\EstadisticasTest (3).
 
 HECHO (Pulido y mejoras visuales, 2026-10-16, Juan):
-  [x] Logo SVG inline en resources/views/components/logo.blade.php. Se adapta al tema
-      y al tipo de cuenta. Los colores se controlan con tokens --logo-* en theme.css.
-      Reemplazó las 8 imágenes externas de lh3.googleusercontent.com.
-  [x] Favicon dinámico: se genera por JS según tema + tipo de cuenta (verde/morado/azul
-      en claro y oscuro). Implementado en el script inline del <head> de base.blade.php
-      con window.CC.refreshIcons(). theme.js lo llama al cambiar de tema.
-  [x] <meta name="theme-color"> dinámico: la barra del navegador móvil cambia con el tema.
-  [x] Skip link de accesibilidad: "Saltar al contenido principal". El JS de base.blade.php
-      le pone id="contenido" al primer <main> de cada página. Estilos en theme.css bloque 11.
-  [x] Página 403 personalizada en resources/views/errors/403.blade.php con el diseño del
-      sistema. Estilos en theme.css bloque 9.
-  [x] theme.css reescrito con bloques 8 (admin azul), 9 (403), 10 (logo), 11 (accesibilidad)
-      y overrides de hover en modo oscuro (4.1b, 4.1c, 4.4b, 4.5b) que evitan el bug
-      "texto invisible al pasar el mouse".
-  [x] theme.css bloque 7: selects nativos adaptados al tema (appearance:none, flecha SVG
-      propia, color-scheme:dark para el popup nativo).
-  [x] gastos-fijos.css limpiado: todos los hex hardcodeados reemplazados por tokens del
-      sistema (var(--accent), var(--line), var(--surface-container-*), etc.). Ahora el
-      módulo respeta el tinte por rol.
-  [x] Refactor de ServicioMetas::notificar(): ahora delega en ServicioNotificaciones (C4)
-      en vez de escribir directo en la tabla notificaciones.
-  [x] docs/backend/00-rutas.php actualizado al conteo real de 62 rutas. Grupo D eliminado
-      (documentado). Añadidas informes.guardar e informes.ver.
-  [x] sidebar-admin.blade.php: logo <x-logo />, nav-active corregido con routeIs sin punto
-      antes del asterisco. Texto inferior "Panel admin" (más honesto).
-  [x] README.md con instrucciones de instalación (creado en la raíz).
-  [x] docs/juan/J9_Checklist_Previo.txt con mapa de lo pendiente para J9.
+  [x] Logo SVG inline en components/logo.blade.php.
+  [x] Favicon dinámico por JS.
+  [x] <meta name="theme-color"> dinámico.
+  [x] Skip link de accesibilidad.
+  [x] Página 403 personalizada.
+  [x] theme.css reescrito con bloques 8, 9, 10, 11 + overrides de hover en oscuro.
+  [x] theme.css bloque 7: selects nativos adaptados.
+  [x] gastos-fijos.css limpiado a tokens.
+  [x] Refactor de ServicioMetas::notificar() -> ServicioNotificaciones.
+  [x] sidebar-admin.blade.php: logo <x-logo />, nav-active corregido.
+  [x] README.md con instrucciones de instalación.
+  [x] docs/juan/J9_Checklist_Previo.txt.
+
+HECHO (V1 - Simulador de créditos, 2026-10-XX, Valeria):               [NUEVO 2026-10-19]
+  [x] CalculadoraCredito: sistema francés, redondeo final a pesos enteros.
+  [x] CalculadoraCreditoController + vista app/creditos/simulador.
+  [x] Guardar simulación, semáforo de capacidad de endeudamiento (hasta 20% saludable,
+      20-30% moderado, más de 30% riesgo).
+  [x] tests/Unit/CalculadoraCreditoTest.php: 3 pruebas.
+
+HECHO (V2 - Historial de simulaciones, 2026-10-XX, Valeria):           [NUEVO 2026-10-19]
+  [x] SimulacionCreditoController: index, destroy.
+  [x] Vista app/creditos/historial con estado vacío.
+  [x] Rutas creditos.historial y creditos.eliminar (antes MAQUETA).
+  [x] Eliminar simulación propia; un ajeno recibe 403 (Policy).
+
+HECHO (V3 - Informes 50/30/20, 2026-10-17, Valeria):
+  [x] GeneradorInforme: agrupa gastos por bloque y por categoría, calcula porcentajes.
+  [x] InformeController: actual, guardar, historial, ver.
+  [x] Vistas app/informes/actual y app/informes/historial.
+  [x] Regla: el informe guardado NO se recalcula en meses cerrados.
+  [x] tests/Feature/InformesTest.php: 4 pruebas.
 
 HECHO (V4 - Ajustes completo, 2026-10-17, Valeria):
   [x] AjustesController: perfil, actualizarPerfil, tipoCuenta, cambiarTipo, eliminarCuenta,
       destruirCuenta, confirmarCorreo, reenviarConfirmacionCorreo.
-  [x] UpdatePerfilRequest: validación del perfil con ingreso formateado (acepta "3.500.000"
-      y lo convierte a 3500000), email único, contraseña actual obligatoria si se cambia
-      la contraseña O el correo.
-  [x] Vista app/ajustes/perfil.blade.php funcional: nombre, correo, ingreso mensual, cambio
-      de contraseña.
-  [x] Vista app/ajustes/tipo-cuenta.blade.php funcional (J5).
-  [x] Vista app/ajustes/eliminar-cuenta.blade.php funcional: confirma con contraseña actual
-      y checkbox, llama a ServicioCuentas::eliminarCuenta.
-  [x] Aviso "Tienes un cambio de correo pendiente" con botón "Reenviar correo de
-      confirmación".
-  [x] Eliminar cuenta cierra sesión DESPUÉS de borrar (fix del remember_token).
+  [x] UpdatePerfilRequest: ingreso formateado, email único, contraseña actual obligatoria
+      si se cambia la contraseña o el correo.
+  [x] Vistas app/ajustes/{perfil,tipo-cuenta,eliminar-cuenta,_tabs}.
+  [x] Aviso "cambio de correo pendiente" con reenvío.
+  [x] Fix del remember_token al eliminar cuenta.
   [x] tests/Feature/AjustesTest.php: 21 pruebas.
 
+HECHO (V5 - Revisión visual, 2026-10-XX, Valeria):                     [NUEVO 2026-10-19]
+  [x] Checklist de consistencia visual en 1440, 768 y 390 px.
+  [x] Revisión del tinte por rol en pantallas de estándar y familiar.
+  [x] Revisión del modo oscuro en todas las pantallas autenticadas.
+  [x] Correcciones visuales aplicadas (si hubo diferencias respecto al code.html).
+  [x] Lista de hallazgos documentada.
+  (Nota: si el detalle técnico de V5 no existe como archivo, crear
+  docs/valeria/V5_Revision_Visual_2026-10-XX.txt con la lista de hallazgos.)
+
+HECHO (N1 - Gastos, 2026-10-XX, Nikol):                               [NUEVO 2026-10-19]
+  [x] GastoController: index, create, store, update, destroy.
+  [x] GastoRequest (o FormRequest equivalente).
+  [x] Vista app/gastos/index con filtros por categoría y por periodo.
+  [x] Vista app/gastos/create.
+  [x] Filtro por mes y total del mes (contrato C1) implementado.
+  [x] Scope delPeriodo($anio, $mes) creado en Gasto (cierra el pendiente de C1).
+  [x] Rutas gastos.* (antes MAQUETA).
+  [x] Pruebas de gastos con fábricas + aislamiento entre usuarios.
+
+HECHO (N2 - Categorías, 2026-10-XX, Nikol):                           [NUEVO 2026-10-19]
+  [x] CategoriaController: index, store, update, destroy.
+  [x] StoreCategoriaRequest.
+  [x] Vista app/categorias/index (rediseñada el 2026-10-19 con botones del sistema y
+      SVGs; iconos del sistema con candado; modal de traslado de gastos).
+  [x] Nombre único por usuario.
+  [x] Categoria::activas() aplicado al registrar gastos nuevos.
+  [x] Rutas categorias.* (antes MAQUETA).
+  [x] Pruebas de aislamiento (categorías del sistema vs. propias, ajenas 403).
+
+HECHO (N3 - Gastos fijos, 2026-10-XX, Nikol):
+  [x] GastoFijoController: index, store, update, destroy, pagar.
+  [x] ServicioGastosFijos: generarPagosDelPeriodo, marcarVencidos,
+      pendientesDelPeriodo, proximosAVencer, vencidos, estaPagado, marcarPagado.
+  [x] Vista app/gastos-fijos/index (rediseñada el 2026-10-19 con icono por categoría
+      y layout compacto).
+  [x] Comando alertas:gastos-fijos programado (cerrado con J6).
+  [x] tests/Unit/ServicioGastosFijosTest.php: 7 pruebas.
+  [x] tests/Feature/GastoFijoControllerTest.php: 5 pruebas.
+
 HECHO (N4 - Pantalla de notificaciones, 2026-10-17, Nikol):
-  [x] NotificacionController: index (paginado, filtro por estado), leer (marcar una),
-      leerTodas (marcar todas). Delega en ServicioNotificaciones.
-  [x] Vista app/notificaciones/index.blade.php con estado vacío, iconos por tipo, badges
-      de estado.
-  [x] Vista app/notificaciones/_icono.blade.php con icono por tipo (incluye
-      invitacion_meta_requiere_familiar y meta_abandonada).
-  [x] CSS notificaciones.css con tokens del sistema.
+  [x] NotificacionController: index (paginado, filtro por estado), leer, leerTodas.
+  [x] Vistas app/notificaciones/index y _icono.
+  [x] CSS notificaciones.css con tokens + bloque de modo oscuro por tipo.
   [x] tests/Feature/NotificacionesTest.php: 6 pruebas.
 
 HECHO (Verificación de cambio de correo, 2026-10-17, Juan):
-  [x] Migración 2026_10_17_100000_add_pending_email_to_users_table: columnas
-      users.pending_email y users.email_token.
-  [x] Migración 2026_10_17_120000_add_pending_email_expires_to_users_table:
-      columna users.pending_email_expires_at + índice (email_token).
-  [x] ServicioCuentas::solicitarCambioCorreo($usuario, $nuevoCorreo): valida duplicado,
-      genera token (Str::random(64)), guarda SHA-256 del token, expira en 1 hora, envía
-      notificación ConfirmarCambioCorreo al NUEVO correo.
-  [x] ServicioCuentas::reenviarConfirmacionCorreo($usuario): regenera token y vencimiento.
-  [x] ServicioCuentas::confirmarCambioCorreo($usuario, $token): valida hash + expiración +
-      que el correo no esté ocupado por otro usuario, actualiza email, limpia pending_*.
-  [x] Notificación App\Notifications\ConfirmarCambioCorreo.
-  [x] Vista de correo emails/confirmar-cambio-correo.blade.php con diseño alineado al
-      sistema (logo adaptativo, color por rol, dark mode).
+  [x] Migraciones 2026_10_17_100000 y 2026_10_17_120000.
+  [x] ServicioCuentas::solicitarCambioCorreo / reenviarConfirmacionCorreo /
+      confirmarCambioCorreo.
+  [x] Notificación ConfirmarCambioCorreo + vista emails/confirmar-cambio-correo.
   [x] Rutas nuevas: ajustes.confirmar-correo, ajustes.confirmar-correo.reenviar.
-  [x] Logout forzado tras confirmar el correo (se autenticó con el correo viejo).
-  [x] User: $fillable sin pending_email/email_token (asignación manual desde el servicio),
-      $hidden incluye pending_email, email_token, pending_email_expires_at, cast de
-      pending_email_expires_at a datetime.
+  [x] Logout forzado tras confirmar.
   [x] 7 pruebas nuevas en AjustesTest (total 21).
 
 HECHO (Rediseño del correo de restablecer contraseña, 2026-10-17, Juan):
-  [x] Vista emails/restablecer-contrasena.blade.php con el mismo diseño que
-      confirmar-cambio-correo (icono candado + check, caja "Cuenta", nota de seguridad,
-      dark mode y tinte por rol).
-  [x] Notificación RestablecerContrasena reescrita: usa la vista nueva, lee el vencimiento
-      de config/auth.php (passwords.users.expire) y lo pasa como texto a la vista.
-  [x] config/auth.php: expire de 60 a 30 minutos (configurable vía
-      AUTH_PASSWORD_RESET_EXPIRE en .env).
+  [x] Vista emails/restablecer-contrasena.blade.php alineada al diseño del sistema.
+  [x] Notificación RestablecerContrasena reescrita.
+  [x] config/auth.php: expire de 60 a 30 minutos (AUTH_PASSWORD_RESET_EXPIRE).
   [x] .env.example: AUTH_PASSWORD_RESET_EXPIRE=30.
 
+HECHO (Restricción de Ajustes al admin, 2026-10-19, Juan):
+  [x] routes/modulos/ajustes.php: tipo-cuenta y eliminar-cuenta pasan a
+      middleware('rol:estandar,familiar').
+  [x] AjustesController: abort_unless como defensa en profundidad.
+  [x] _tabs.blade.php: el admin solo ve "Perfil".
+  [x] AjustesTest: 4 pruebas nuevas (admin 403).
+  [x] PermisosTest: GRUPO_B se divide en GRUPO_B (perfil, todos) y GRUPO_B_FINANCIERO
+      (tipo-cuenta y eliminar-cuenta, solo estandar/familiar).
+
+HECHO (Página 404 personalizada + Route::fallback(), 2026-10-19, Juan):
+  [x] resources/views/errors/404.blade.php (mismo esqueleto que 403).
+  [x] routes/web.php: Route::fallback() al final del bloque privado.
+  [x] AuthTest: test `cerrar sesion por get no existe` cambia a 404 y verifica que NO
+      cierra sesión.
+
+HECHO (Expiración de sesión por inactividad, 2026-10-19, Juan):
+  [x] app/Http/Middleware/ExpirarSesionPorInactividad.php: LIMITE_MINUTOS = 15.
+      Se aplica antes de 'auth' en routes/web.php (grupo privado completo).
+  [x] bootstrap/app.php: alias 'sesion.inactividad' registrado.
+  [x] .env y .env.example: SESSION_LIFETIME=480. Laravel no expira antes que el
+      middleware; el middleware es el que cierra la sesión a los 15 min y muestra
+      el mensaje "Tu sesión expiró por inactividad. Vuelve a iniciar sesión.".
+  [x] Orden del array de middleware: ['sesion.inactividad', 'auth', 'cuenta.activa'].
+      El orden importa: si 'auth' va primero, redirige al login y el mensaje nunca
+      aparece.
+
+HECHO (Iconografía por categoría y rediseño de tarjetas, 2026-10-19, Nikol):
+  [x] Componente categoria-icono.blade.php: mapea nombre → SVG. Fallback por bloque.
+  [x] Gastos fijos: icono por tarjeta + layout compacto (desktop 1 fila, móvil 2 filas).
+  [x] Categorías: botones migrados a btn-primary / btn-secondary / btn-danger, SVGs
+      en lugar de emojis/hex, iconos en Editar/Eliminar/Crear/Cancelar/Guardar.
+  [x] CSS: clases nuevas con tokens --accent-*, --error, --need-*, --want-*, --save-*.
+
+EN CURSO:                                                             [NUEVO 2026-10-19]
+  N5 (Nikol): landing final y páginas legales.
+    - En progreso. Reemplaza los Route::view de público.php por vistas completas con
+      contenido de marketing y textos legales.
+    - Pendiente: validar cifras y promesas con el equipo (decisión #21).
+    - Sin bloqueo: las rutas actuales funcionan (son estáticas).
+
 NO HECHO (todo lo demás):
-  [ ] Ajustes > Perfil (PUT): HECHO en V4.
-  [ ] Ajustes > Eliminar cuenta (DELETE): HECHO en V4.
-  [ ] Pantalla de notificaciones (N4): HECHA en N4.
-  [ ] Landing final (N5) y páginas legales: los Route::view funcionan bien (son estáticas).
-  [ ] N1 (gastos) y N2 (categorías): siguen con $pendiente MAQUETA.
-  [ ] V2 (historial de simulaciones): sigue con $pendiente MAQUETA.
-  [ ] Registro de acciones del administrador [PROPUESTA]: no implementado.
+  [ ] Registro de acciones del administrador (auditoría): [PROPUESTA] no implementada.
   [ ] TODO(J8) en DashboardController: reemplazar whereYear/whereMonth por el scope
-      delPeriodo de C1 cuando Nikol lo agregue.
-  [ ] N1/N2 (Nikol) deben filtrar por Categoria::activas() cuando toque.
+      delPeriodo de C1 cuando Nikol lo agregue. (C1 ya existe; el TODO está abierto.)
   [ ] Imágenes de landing (no logo): public/img sigue vacía.
   [ ] docs/backend/00-rutas.php: agregar las 2 rutas nuevas de confirmación de correo
-      (hoy el archivo sigue con 62; debe llegar a 64).
+      (debe llegar a 64 rutas).
+  [ ] Borrar app/Http/Middleware/ExpirarSesionPorInactividad.php (código muerto).
 
 .env DE DESARROLLO: copiar .env.example a .env, php artisan key:generate, APP_ENV=local,
 APP_DEBUG=true, APP_LOCALE=es, DB_CONNECTION=sqlite, SESSION_DRIVER=database,
-CACHE_STORE=database, QUEUE_CONNECTION=database, MAIL_MAILER=log,
+SESSION_LIFETIME=15, CACHE_STORE=database, QUEUE_CONNECTION=database, MAIL_MAILER=log,
+AUTH_PASSWORD_RESET_EXPIRE=30. Primera vez: php artisan migrate:fresh --seed.
+
+.env DE DESARROLLO: copiar .env.example a .env, php artisan key:generate, APP_ENV=local,
+APP_DEBUG=true, APP_LOCALE=es, DB_CONNECTION=sqlite, SESSION_DRIVER=database,
+SESSION_LIFETIME=15, CACHE_STORE=database, QUEUE_CONNECTION=database, MAIL_MAILER=log,
 AUTH_PASSWORD_RESET_EXPIRE=30. Primera vez: php artisan migrate:fresh --seed.
 
 
@@ -258,7 +315,8 @@ AUTH_PASSWORD_RESET_EXPIRE=30. Primera vez: php artisan migrate:fresh --seed.
                    un CSS por pantalla.
   Scripts ........ shell.js · theme.js · transiciones.js · simulador-de-creditos.js ·
                    crear-usuario.js.
-  Fuentes/íconos . Plus Jakarta Sans (display=swap) + Material Symbols (display=block).
+  Fuentes/íconos . Plus Jakarta Sans (display=swap) + Material Symbols (display=block) +
+                   SVGs inline (logo, iconos de categoría, botones con icono).
   Base de datos .. SQLite en desarrollo (database/database.sqlite, ignorado por git);
                    la definitiva se decide en J9. Pruebas: SQLite en memoria.
   Idioma/moneda .. español; COP en enteros. Zona horaria America/Bogota.
@@ -267,6 +325,10 @@ AUTH_PASSWORD_RESET_EXPIRE=30. Primera vez: php artisan migrate:fresh --seed.
                    <html data-account-type="...">.
   Correos ........ MAIL_MAILER=log en desarrollo (los correos quedan en
                    storage/logs/laravel.log). En J9 se configura SMTP real.
+  Sesión ......... SESSION_DRIVER=database; SESSION_LIFETIME=480 (Laravel no expira
+                   antes que el middleware). Expiración efectiva: 15 minutos vía
+                   middleware 'sesion.inactividad'. El mensaje "Tu sesión expiró por
+                   inactividad" aparece en el login.           [ACTUALIZADO 2026-10-19]
   Vencimientos ... AUTH_PASSWORD_RESET_EXPIRE=30 (minutos, configurable).
                    users.pending_email_expires_at = 1 hora (fijo, para cambio de correo).
   Entorno local .. php artisan serve  (http://localhost:8000).
@@ -282,8 +344,12 @@ AUTH_PASSWORD_RESET_EXPIRE=30. Primera vez: php artisan migrate:fresh --seed.
                     desde Ajustes. NO entra a administración.
   familiar ........ todo lo del estándar + metas COMPARTIDAS (máx. 2 participantes por meta)
                     y puede ACEPTAR invitaciones a metas compartidas.
-  administrador ... SOLO administración y ajustes. NUNCA ve montos ni datos financieros de
-                    nadie. Recibe 403 en gastos, créditos, metas, informes y panel.
+  administrador ... SOLO administración. En Ajustes, únicamente `perfil` (nombre, correo,
+                    contraseña) y `confirmar-correo`. NO puede cambiar tipo de cuenta ni
+                    eliminar su cuenta desde Ajustes (solo desde /admin/usuarios si hay
+                    otro admin activo). NUNCA ve montos ni datos financieros de nadie.
+                    Recibe 403 en gastos, créditos, metas, informes y panel.
+                                                                    [NUEVO 2026-10-19]
 Estado de cuenta: columna users.activo (booleano).
 "rol" y "activo" NO son asignables en masa.
 Ocultar un enlace del menú NO protege: middleware + Policies.
@@ -300,6 +366,9 @@ Efecto visual del rol:
   El cambio se aplica en el siguiente render. El favicon se regenera vía JS.
   Los correos (verificación de correo y restablecer contraseña) también respetan el tinte
   del rol vía variables PHP en la vista, no vía CSS.
+  Los iconos de categoría en gastos fijos usan colores por BLOQUE 50/30/20, no por rol:
+  necesidades (--need, azul), discrecionales (--want, morado), ahorro (--save, verde).
+                                                                    [NUEVO 2026-10-19]
 
 
 ----------------------------------------------------------------------
@@ -316,7 +385,10 @@ Efecto visual del rol:
                                NotificacionController, DashboardController,
                                Admin/{UsuarioController, CategoriaSistemaController,
                                EstadisticaController}
-    Http/Middleware/ ......... (R) CuentaActiva, RolRequerido
+    Http/Middleware/ ......... (R) CuentaActiva, RolRequerido, ExpirarSesionPorInactividad.
+                               Este último se aplica ANTES de 'auth' en el grupo privado
+                               de web.php. Requiere SESSION_LIFETIME > LIMITE_MINUTOS
+                               (hoy 480 > 15) para que el mensaje aparezca.
     Http/Requests/ ........... (R) Auth/*, Metas/*, Admin/*, UpdatePerfilRequest
     Notifications/ ........... (R) RestablecerContrasena, ConfirmarCambioCorreo
     Models/ .................. (R) User, Categoria, Gasto, GastoFijo, PagoGastoFijo,
@@ -333,17 +405,21 @@ Efecto visual del rol:
     Console/ ................. (R) Commands/GenerarAlertasGastosFijos.php
   bootstrap/app.php .......... (R) alias 'cuenta.activa' y 'rol' y redirectUsersTo
   database/migrations|seeders|factories ... (R) hechos en J2 + migración #23 de J7 +
-                               migraciones 2026_10_17_100000 (pending_email, email_token)
-                               y 2026_10_17_120000 (pending_email_expires_at)
+                               migraciones 2026_10_17_100000 y 2026_10_17_120000
   routes/
     web.php .................. (R) ÍNDICE: solo Juan lo cambia. Grupos A-C y E.
+                               Incluye Route::fallback() al final del bloque privado
+                               para renderizar el 404 con sesión.
+                                                                    [NUEVO 2026-10-19]
     modulos/ ................. (R) un archivo por módulo (ver sección 7).
     console.php .............. (R) Schedule::command('alertas:gastos-fijos')->dailyAt('07:00')
   resources/views/
-    errors/ .................. (R) 403.blade.php (personalizada)
+    errors/ .................. (R) 403.blade.php, 404.blade.php (ambas personalizadas).
+                                                                    [NUEVO 2026-10-19]
     layouts/ ................. (R) base, publico, app, admin
     components/ .............. (R) header, footer, sidebar, sidebar-admin, topbar, toast,
-                               logo
+                               logo, categoria-icono (mapea nombre → SVG; fallback por
+                               bloque 50/30/20).                      [NUEVO 2026-10-19]
     emails/ .................. (R) confirmar-cambio-correo.blade.php,
                                restablecer-contrasena.blade.php
     publico/ ................. (R) landing, crear-usuario, iniciar-sesion, recuperar-contrasena,
@@ -371,7 +447,7 @@ ARCHIVOS COMPARTIDOS (solo Juan; los demás piden cambios con tarjeta "Pedido a 
   public/css/{style,theme,transiciones,menu-usuario}.css · public/js/{shell,theme,transiciones}.js ·
   resources/views/layouts/* · resources/views/components/* · resources/views/errors/* ·
   resources/views/emails/* · routes/web.php · routes/console.php · database/migrations/* ·
-  config/auth.php
+  config/auth.php · .env.example
 
 
 ----------------------------------------------------------------------
@@ -379,6 +455,7 @@ ARCHIVOS COMPARTIDOS (solo Juan; los demás piden cambios con tarjeta "Pedido a 
 ----------------------------------------------------------------------
   Vista (resources/views/...)             CSS (public/css/...)                 Dueño
   errors/403                              — (theme.css bloque 9)               Juan (J7)
+  errors/404                              — (theme.css bloque 9)               Juan (2026-10-19)
   emails/confirmar-cambio-correo          —                                    Juan (V4)
   emails/restablecer-contrasena           —                                    Juan (J3)
   publico/landing                         landing-page                         Nikol N5
@@ -413,13 +490,23 @@ Componentes compartidos:
   sidebar-admin.blade.php .......... menú lateral de administración + <x-logo />.
   toast.blade.php .................. mensajes flash "exito".
   logo.blade.php ................... SVG del logo, adapta a tema y rol (tokens --logo-*).
+  categoria-icono.blade.php ........ SVG por categoría. Recibe :categoria (modelo) o
+                                     :nombre + :bloque. Fallback al bloque 50/30/20.
+                                                                    [NUEVO 2026-10-19]
 
 
 ----------------------------------------------------------------------
 7. RUTAS: URL Y NOMBRES DEFINITIVOS, NO SE CAMBIAN
 ----------------------------------------------------------------------
 Fuente de verdad: docs/backend/00-rutas.php.
-Conteo real (2026-10-17): 11 (A) + 9 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 64 rutas.
+Conteo real (2026-10-19): 11 (A) + 9 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 64 rutas
++ Route::fallback() (sin nombre, no cuenta como ruta normal).
+Middleware del bloque privado: ['sesion.inactividad', 'auth', 'cuenta.activa'].
+Los subgrupos (B financiero, C, E) añaden 'rol:...' encima.
+
+Estado: todas las rutas del Grupo C tienen controlador real. Solo quedan como Route::view
+las de público.php (landing, política, términos) que son estáticas por diseño y no requieren
+controlador.
 
   GRUPO A  PUBLICAS .............. sin sesion (login/registro/recuperar con middleware 'guest')
   ----------------------------------------------------------------------------------------------------------------------
@@ -435,40 +522,45 @@ Conteo real (2026-10-17): 11 (A) + 9 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 64
   GET    /restablecer-contrasena/{token}                  password.reset
   POST   /restablecer-contrasena                          password.update
 
-  GRUPO B  CON SESION ............ auth + cuenta.activa (cualquier rol)
+  GRUPO B  CON SESION ............ sesion.inactividad + auth + cuenta.activa
+                                   (cualquier rol)
   ----------------------------------------------------------------------------------------------------------------------
   POST   /cerrar-sesion                                   logout
   GET    /ajustes/perfil                                  ajustes.perfil                 (HECHO - V4)
   PUT    /ajustes/perfil                                  ajustes.perfil.update          (HECHO - V4)
+  GET    /ajustes/confirmar-correo/{token}                ajustes.confirmar-correo       (HECHO - V4)
+  POST   /ajustes/confirmar-correo/reenviar               ajustes.confirmar-correo.reenviar (HECHO - V4)
+
+  GRUPO B FINANCIERO ............. auth + cuenta.activa + rol:estandar,familiar
+  (Subgrupo del B. Antes estaba en B "todos"; desde 2026-10-19 el admin NO tiene acceso.)
+                                                                    [NUEVO 2026-10-19]
+  ----------------------------------------------------------------------------------------------------------------------
   GET    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta            (HECHO - V4)
   PUT    /ajustes/tipo-cuenta                             ajustes.tipo-cuenta.update     (HECHO - V4)
   GET    /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta        (HECHO - V4)
   DELETE /ajustes/eliminar-cuenta                         ajustes.eliminar-cuenta.destroy (HECHO - V4)
-  GET    /ajustes/confirmar-correo/{token}                ajustes.confirmar-correo       (NUEVO 2026-10-17)
-  POST   /ajustes/confirmar-correo/reenviar               ajustes.confirmar-correo.reenviar (NUEVO 2026-10-17)
 
   GRUPO C  ESTANDAR Y FAMILIAR ... auth + cuenta.activa + rol:estandar,familiar
   ----------------------------------------------------------------------------------------------------------------------
-  GET    /panel                                           panel                          (HECHO - J8)
-  GET    /gastos                                          gastos.index                   (MAQUETA)
-  GET    /gastos/nuevo                                    gastos.create                  (MAQUETA)
-  POST   /gastos                                          gastos.store                   (MAQUETA)
-  PUT    /gastos/{gasto}                                  gastos.update                  (MAQUETA)
-  DELETE /gastos/{gasto}                                  gastos.destroy                 (MAQUETA)
-  GET    /categorias                                      categorias.index               (MAQUETA)
-  POST   /categorias                                      categorias.store               (MAQUETA)
-  PUT    /categorias/{categoria}                          categorias.update              (MAQUETA)
-  DELETE /categorias/{categoria}                          categorias.destroy             (MAQUETA)
-  GET    /gastos-fijos                                    gastos-fijos.index             (HECHO)
+  GET    /panel                                           panel                          (HECHO)
+  GET    /gastos                                          gastos.index                   (HECHO)
+  GET    /gastos/nuevo                                    gastos.create                  (HECHO)
+  POST   /gastos                                          gastos.store                   (HECHO)
+  PUT    /gastos/{gasto}                                  gastos.update                  (HECHO)
+  DELETE /gastos/{gasto}                                  gastos.destroy                 (HECHO)
+  GET    /categorias                                      categorias.index               (HECHO)
+  POST   /categorias                                      categorias.store               (HECHO)
+  PUT    /categorias/{categoria}                          categorias.update              (HECHO)
+  DELETE /categorias/{categoria}                          categorias.destroy             (HECHO)
   POST   /gastos-fijos                                    gastos-fijos.store             (HECHO)
   PUT    /gastos-fijos/{gastoFijo}                        gastos-fijos.update            (HECHO)
   DELETE /gastos-fijos/{gastoFijo}                        gastos-fijos.destroy           (HECHO)
   POST   /gastos-fijos/{gastoFijo}/pagar                  gastos-fijos.pagar             (HECHO)
-  GET    /notificaciones                                  notificaciones.index           (HECHO - N4)
-  POST   /notificaciones/leer                             notificaciones.leer            (HECHO - N4)
-  GET    /creditos/simulador                              creditos.simulador             (HECHO)
+  GET    /notificaciones                                  notificaciones.index           (HECHO)
+  POST   /notificaciones/leer                             notificaciones.leer            (HECHO)
+  DELETE /creditos/{simulacion}                           creditos.eliminar              (HECHO)
   POST   /creditos                                        creditos.guardar               (HECHO)
-  GET    /creditos/historial                              creditos.historial             (MAQUETA)
+  GET    /creditos/historial                              creditos.historial             (HECHO)
   DELETE /creditos/{simulacion}                           creditos.eliminar              (MAQUETA)
   GET    /informes                                        informes.actual                (HECHO)
   POST   /informes/guardar                                informes.guardar               (HECHO)
@@ -499,6 +591,10 @@ Conteo real (2026-10-17): 11 (A) + 9 (B) + 35 (C) + 0 (D eliminado) + 9 (E) = 64
   PUT    /admin/categorias/{categoria}                    admin.categorias.update        (HECHO - J7)
   PATCH  /admin/categorias/{categoria}/desactivar         admin.categorias.desactivar    (HECHO - J7)
   GET    /admin/estadisticas                              admin.estadisticas             (HECHO - J7)
+
+  FALLBACK ....................... sin middleware (web)                         [NUEVO 2026-10-19]
+  ----------------------------------------------------------------------------------------------------------------------
+  *      /{cualquier url}                                 (sin nombre)           -> errors.404
 
 
 ----------------------------------------------------------------------
@@ -587,13 +683,12 @@ Caso de referencia del simulador: $10.000.000, 1,5 % mensual, 24 meses
       PENDIENTE: no existe scopeDelPeriodo($anio, $mes) en Gasto; se usa whereYear/whereMonth.
   C2  Bloque 50/30/20 de cada categoría  Nikol (N2 formulario) + Juan (J2, HECHO) -> Valeria.
   C3  Ingreso mensual del usuario ...... Valeria (V4, HECHO) -> Valeria y Juan.
-      Servicio: guardado directo en AjustesController@actualizarPerfil (columna users.ingreso_mensual).
+      Servicio: guardado directo en AjustesController@actualizarPerfil.
   C4  Servicio de notificaciones ....... Juan (J6, HECHO) -> Nikol (N3, N4) y la campana.
       App\Services\ServicioNotificaciones.
       Métodos: crear, contarPendientes, cancelarPorPago, cancelarPorGastoFijo, marcarLeida,
       marcarTodasLeidas. Constantes TIPO_* y ESTADO_*.
       Comando diario: alertas:gastos-fijos (07:00, programado en routes/console.php).
-      J5 (ServicioMetas::notificar) ahora también usa este servicio (refactor 2026-10-16).
   C5  Pagos del periodo de gastos fijos  Nikol (N3, HECHO) -> Juan (comando diario).
       App\Services\ServicioGastosFijos: generarPagosDelPeriodo, marcarVencidos,
       pendientesDelPeriodo, proximosAVencer (3 días por defecto), vencidos, estaPagado,
@@ -602,17 +697,14 @@ Caso de referencia del simulador: $10.000.000, 1,5 % mensual, 24 meses
       ServicioMetas::tieneMetasActivas($usuario)
       ServicioMetas::tieneMetasCompartidasActivas($usuario)
       Meta::aportesDelUsuario($id, $desde, $hasta)
-  C7  Cambiar tipo de cuenta, eliminar  Juan (J8a + J7 + V4, HECHO) -> Valeria (solo la pantalla).
-      ServicioCuentas::cambiarTipo($usuario, 'estandar'|'familiar')
-      ServicioCuentas::eliminarCuenta($usuario)
-      ServicioCuentas::cambiarRol($usuario, 'estandar'|'familiar'|'administrador')
-      ServicioCuentas::suspender($usuario)
-      ServicioCuentas::reactivar($usuario)
-      ServicioCuentas::solicitarCambioCorreo($usuario, $nuevoCorreo)   [NUEVO 2026-10-17]
-      ServicioCuentas::reenviarConfirmacionCorreo($usuario)            [NUEVO 2026-10-17]
-      ServicioCuentas::confirmarCambioCorreo($usuario, $token)         [NUEVO 2026-10-17]
+  C7  Cambiar tipo de cuenta, eliminar  Juan (J8a + J7 + V4, HECHO) -> Valeria.
+      ServicioCuentas::cambiarTipo / eliminarCuenta / cambiarRol / suspender / reactivar
+      ServicioCuentas::solicitarCambioCorreo / reenviarConfirmacionCorreo /
+      confirmarCambioCorreo.
       Reglas: no dejar el sistema sin admin activo; bloquear familiar->estandar si tiene
-      metas compartidas activas.
+      metas compartidas activas. El admin no puede cambiar tipo de cuenta ni eliminar
+      su cuenta desde Ajustes (solo desde /admin/usuarios).
+                                                                    [NUEVO 2026-10-19]
   C8  Variables del armazón ............ Juan: $notificacionesPendientes (J6: cuenta real),
       flash 'exito', usuario autenticado, ruta "logout".
   C9  Nombres de rutas ................. Juan. No se cambian; uno nuevo se agrega a
@@ -625,20 +717,18 @@ Caso de referencia del simulador: $10.000.000, 1,5 % mensual, 24 meses
   C13 Transiciones y carga de fuentes ... Juan (transiciones.css/js).
   C14 Comando diario de alertas ......... Juan (J6, HECHO).
       php artisan alertas:gastos-fijos [--fecha=YYYY-MM-DD]. Idempotente.
-  C15 Logo adaptativo y favicon ......... Juan (logo.blade.php + base.blade.php). Los tokens
-      --logo-* cambian según tema y rol. El favicon se regenera por JS con
-      window.CC.refreshIcons().
+  C15 Logo adaptativo y favicon ......... Juan (logo.blade.php + base.blade.php).
   C16 Correos de marca ................... Juan. App\Notifications\ConfirmarCambioCorreo y
-      App\Notifications\RestablecerContrasena usan vistas en resources/views/emails/*. Ambas
-      vistas comparten estructura visual: logo adaptativo por Content-ID, tinte por rol,
-      dark mode vía prefers-color-scheme, preheader, fallback de enlace, nota de seguridad.
-                                                                    [NUEVO 2026-10-17]
+      App\Notifications\RestablecerContrasena usan vistas en resources/views/emails/*.
+  C17 Iconografía por categoría ......... Juan/Nikol (2026-10-19). Componente
+      `<x-categoria-icono :categoria="$c" :size="20" />`. Mapea nombre → SVG propio;
+      fallback por bloque. Los colores vienen de --need / --want / --save y sus -bg.
+      Reusable en cualquier pantalla que muestre categorías.  [NUEVO 2026-10-19]
 
 CONTRATO C7 (detalle)
   cambiarTipo: estandar <-> familiar. Familiar -> estandar bloqueado con metas compartidas
-    activas. Mismo tipo: no hace nada.
+    activas. Mismo tipo: no hace nada. Solo accesible para estandar y familiar.
   cambiarRol: cualquiera de los 3. Quitar admin se bloquea si es el último admin activo.
-    Bajar de familiar a estandar se bloquea si tiene metas compartidas activas.
   suspender: activo=false. Bloquea si es el último admin activo.
   reactivar: activo=true.
   eliminarCuenta: no se puede borrar al último admin activo; cancela metas compartidas
@@ -646,54 +736,42 @@ CONTRATO C7 (detalle)
     antes de borrar; borrado en cascada dentro de una transacción. Cierra sesión después
     de borrar, pero vacía remember_token en memoria antes de Auth::logout para evitar que
     cycleRememberToken haga INSERT de un usuario ya eliminado.
-  solicitarCambioCorreo: valida que el correo no esté en uso, no esté pendiente en otra
-    cuenta, genera token (Str::random(64)), guarda SHA-256 del token, expira en 1 hora,
-    envía ConfirmarCambioCorreo al NUEVO correo con Notification::route('mail', ...).
-  reenviarConfirmacionCorreo: regenera token + vencimiento (1 hora), reenvía al pending_email.
-  confirmarCambioCorreo: valida hash_equals(email_token, sha256(token)), verifica que no
-    haya expirado, verifica que el correo no esté ocupado por otro usuario, actualiza email,
-    limpia pending_*, todo dentro de una transacción. Lanza ValidationException con mensaje
-    neutro si algo falla.
+  solicitarCambioCorreo / reenviarConfirmacionCorreo / confirmarCambioCorreo: ver
+    decisión #49.
 
 CONTRATO C12 (tinte visual)
   El rol se expone en <html data-account-type="estandar|familiar|administrador">.
   Cualquier elemento nuevo que necesite color de marca usa tokens --accent-*. NUNCA
   var(--primary) directo. Para "peligro": --error o .btn-danger (rojo, no se tinta).
+  Para los bloques 50/30/20: --need, --want, --save (con sus -bg, -line variantes).
 
 CONTRATO C13 (transiciones y fuentes)
-  transiciones.css y transiciones.js se cargan en layouts/base.blade.php. Las pantallas no
-  los cargan por su cuenta. Fade-in y View Transitions son automáticos.
+  transiciones.css y transiciones.js se cargan en layouts/base.blade.php.
 
 CONTRATO C14 (comando diario de alertas)
   Firma: php artisan alertas:gastos-fijos [--fecha=YYYY-MM-DD].
   Idempotente por (user_id, clave_unica). clave_unica = "{tipo}:{recurso_id}".
-  Recorre usuarios con activo = true y rol en (estandar, familiar) en lotes de 100.
-  Programado a las 07:00 en routes/console.php.
 
 CONTRATO C15 (logo y favicon)
   - Componente <x-logo :alto="N" :texto="true|false" /> renderiza el SVG del logo.
-  - Los colores se controlan con tokens --logo-icon-bg, --logo-icon-bg-soft, --logo-icon-fg,
-    --logo-text, --logo-text-accent, --logo-muted (definidos en theme.css bloque 10).
-  - El favicon se genera en runtime con window.CC.refreshIcons() (definido en el script
-    inline del <head> de base.blade.php). theme.js lo llama al cambiar de tema.
-  - Los 4 archivos que usan logo (header, sidebar, sidebar-admin, footer) usan <x-logo />,
-    no <img> externas.
+  - Los colores se controlan con tokens --logo-* (theme.css bloque 10).
+  - El favicon se genera en runtime con window.CC.refreshIcons().
 
-CONTRATO C16 (correos de marca)                                       [NUEVO 2026-10-17]
+CONTRATO C16 (correos de marca)
   - Ambos correos viven en resources/views/emails/.
-  - Logo como SVG inline vía $message->embedData(...) por Content-ID (dos variantes: clara
-    y oscura), con clases .logo-claro y .logo-oscuro controladas por @media (prefers-color-scheme).
-  - El color de marca se decide por $usuario->rol en PHP (no vía CSS), y se aplica a:
-    barra superior, título, botón CTA, enlace de fallback y hero SVG.
-  - Toda notificación nueva que se envíe por correo debe:
-      · usar una vista de resources/views/emails/,
-      · aceptar 'usuario' => $notifiable,
-      · respetar el tinte por rol,
-      · incluir preheader oculto,
-      · incluir fallback con el enlace copiable,
-      · declarar <meta name="color-scheme" content="light dark">.
-  - Nunca envíes correos con el MailMessage::line()/action() por defecto de Laravel: se verían
-    como una plantilla genérica en inglés y rompen la identidad de marca.
+  - Logo como SVG inline vía $message->embedData(...) por Content-ID.
+  - El color de marca se decide por $usuario->rol en PHP, no vía CSS.
+  - Toda notificación nueva por correo debe seguir este patrón.
+
+CONTRATO C17 (iconografía por categoría)                          [NUEVO 2026-10-19]
+  - Componente `<x-categoria-icono :categoria="$categoria" :size="20" />`.
+  - También acepta `:nombre="..." :bloque="..."` si solo tienes los strings.
+  - Mapea el nombre de la categoría a un SVG propio. Fallback por bloque:
+    necesidades → tag, discrecionales → sparkles, ahorro → piggy.
+  - El color lo aporta el contenedor: `<span class="categoria-icono--{{ $bloque }}">`.
+    Las clases usan var(--need-bg)/--need, var(--want-bg)/--want, var(--save-bg)/--save.
+  - Si agregas una categoría nueva del sistema, agrega su entrada al `$mapa` y un `@case`
+    con su SVG. No hay que tocar la vista ni el CSS.
 
 
 ----------------------------------------------------------------------
@@ -706,6 +784,9 @@ Seguridad y privacidad
   - Mensajes de error genéricos hacia afuera.
   - Límite de intentos en login y recuperación.
   - Consentimiento de datos obligatorio en el registro, con fecha.
+  - Expiración de sesión por inactividad: 15 minutos vía middleware 'sesion.inactividad'.
+    Aplica a cualquier rol. Requiere SESSION_LIFETIME > LIMITE_MINUTOS en .env (hoy
+    480 > 15). El mensaje "Tu sesión expiró por inactividad" aparece en el login.
 Metas
   - Meta INDIVIDUAL: solo participa su creador. Estándar y familiar.
   - Meta COMPARTIDA: solo la crea un familiar. Máximo 2 participantes.
@@ -715,6 +796,8 @@ Metas
   - Cambiar de familiar a estándar se bloquea con metas COMPARTIDAS activas.
 Cambio de tipo de cuenta
   - Desde Ajustes > Tipo de cuenta (GET + PUT) vía ServicioCuentas::cambiarTipo.
+  - Solo estandar y familiar. El admin NO tiene acceso (403).
+                                                                    [NUEVO 2026-10-19]
   - NO cierra la sesión. 'rol' no es fillable.
 Cambio de rol (por admin)
   - Vía ServicioCuentas::cambiarRol. No cierra la sesión del usuario cambiado.
@@ -722,25 +805,28 @@ Cambio de rol (por admin)
   - Bloquear si baja de familiar a estandar con metas compartidas activas.
 Cambio de correo
   - Desde Ajustes > Perfil (PUT). Requiere contraseña actual si se va a cambiar el correo
-    O la contraseña. El token se guarda hasheado (SHA-256), vence en 1 hora, se envía al
-    NUEVO correo (no al actual). El correo actual sigue activo hasta confirmar. Al confirmar
-    se cierra la sesión. El correo actual y el pendiente deben ser únicos.
+    O la contraseña. Token hasheado (SHA-256), vence en 1 hora, se envía al NUEVO correo.
+    El correo actual sigue activo hasta confirmar. Al confirmar se cierra la sesión.
+    El correo actual y el pendiente deben ser únicos.
 Eliminar cuenta / suspender
   - Vía ServicioCuentas::eliminarCuenta / suspender. No permitir dejar el sistema sin admin
     activo.
   - El admin no puede eliminarse a sí mismo desde el panel de administración.
+  - El admin tampoco puede eliminar su cuenta desde Ajustes (solo desde /admin/usuarios si
+    hay otro admin activo).                                      [NUEVO 2026-10-19]
   - Al eliminar, vaciar remember_token en memoria ANTES de Auth::logout() para evitar el
     INSERT fantasma del cycleRememberToken.
 Restablecer contraseña
   - Enlace de un solo uso, vence en 30 minutos (configurable con AUTH_PASSWORD_RESET_EXPIRE).
   - Mensaje neutro: no revela si el correo existe.
   - Correo con identidad de marca (emails/restablecer-contrasena.blade.php).
-  - Tras restablecer, el remember_token se regenera.
 Gastos fijos y alertas
   - Solo mensuales (#6). Si el mes no tiene ese día, vence el último día del mes.
   - Una alerta a los 3 días y una de vencido (#16). El comando diario es IDEMPOTENTE (C14).
   - Un pago vencido cancela la alerta 'por_vencer' pendiente y crea una 'vencido'.
   - Marcar pagado cancela la alerta pendiente de ese pago.
+  - Cada gasto fijo muestra su icono por categoría (--need/--want/--save según bloque).
+                                                                    [NUEVO 2026-10-19]
 Simulador de créditos
   - Tasa mensual vencida, sistema francés, redondeo al final a pesos enteros.
   - Semáforo: hasta 20 % saludable, 20-30 % moderado, más de 30 % riesgo (#3).
@@ -755,20 +841,24 @@ Administración
   - Las categorías del sistema se desactivan, no se borran (categorias.activa, decisión #23).
   - El sistema nunca queda sin administrador activo.
   - El admin no puede eliminarse a sí mismo desde el panel.
-  - Estadísticas solo con COUNT y agregados; ninguna consulta une usuarios con montos ni
-    datos financieros.
+  - Estadísticas solo con COUNT y agregados.
 Categorías
   - Nombre único entre las del usuario. Eliminar una con gastos: el modal pide mover los
     gastos.
   - Categoria::activas() para filtrar las que aparecen al registrar gastos.
+  - Botones de la pantalla usan btn-primary / btn-secondary / btn-danger. No hex sueltos.
+                                                                    [NUEVO 2026-10-19]
 
 TINTE POR ROL:
   - El tinte NO es solo decorativo: comunica el rol. Estándar → verde; Familiar → morado;
-    Administrador → azul. Si una pantalla nueva usa var(--primary) directo en vez de
-    var(--accent), el tinte se rompe.
+    Administrador → azul.
   - El tinte NO aplica al color de "peligro" (rojo) ni al de "error". Tampoco al 50/30/20
-    (verde/azul/morado propios del gráfico).
+    (verde/azul/morado propios del gráfico) ni a los iconos de categoría (usan los colores
+    del bloque, no del rol).                                      [NUEVO 2026-10-19]
   - Los correos también respetan el tinte del rol (vía PHP, no vía CSS).
+  - Los botones de "guardar" o "confirmar" NO se pintan verdes. Se distinguen con más peso
+    visual (icono de check, padding, font-weight) manteniendo el color de marca del rol.
+                                                                    [NUEVO 2026-10-19]
 
 Mensajes EXACTOS conocidos: "Gasto guardado" · "Gasto actualizado" · "Gasto eliminado" ·
 "Meta creada" · "Meta abandonada" · "Meta cancelada" · "Meta finalizada" · "Invitación enviada" ·
@@ -801,6 +891,10 @@ Mensajes nuevos 2026-10-17 (V4):
   · "Ingresa tu contraseña actual para cambiar el correo o la contraseña."
   · "Tu cuenta se eliminó correctamente."
   · "La contraseña actual no es correcta."
+Mensajes nuevos 2026-10-19 (página 404):                       [NUEVO 2026-10-19]
+  · "Página no encontrada"
+  · "La página que buscas no existe o fue movida. Verifica la dirección o vuelve al inicio
+     para seguir navegando."
 
 
 ----------------------------------------------------------------------
@@ -819,7 +913,9 @@ Mensajes nuevos 2026-10-17 (V4):
   - PHP: Laravel Pint antes de cada commit.
   - Cada clase PHP nueva lleva comentario inicial.
   - Dinero: enteros en pesos. Textos de interfaz en español. Sin enlaces "#".
-  - Responsive: 1440, 768 y 390 px, sin scroll horizontal; botones de al menos 40 px.
+  - Responsive: 1440, 768 y 390 px, sin scroll horizontal; botones de al menos 40 px
+    (con excepción de los botones compactos dentro de filas de datos como gastos fijos,
+    que pueden bajar a 32 px si el contexto lo requiere).       [ACTUALIZADO 2026-10-19]
   - Git: nadie sube directo a main; una rama por tarea; commits en español, en presente, cortos.
   - Migraciones: una migración unida a main NO se edita. Solo Juan crea migraciones.
   - Nunca se suben .env ni database/database.sqlite ni APP_KEY.
@@ -842,6 +938,8 @@ Convenciones de notificaciones (2026-10-16):
   - Usar las constantes TIPO_* y ESTADO_*; no strings a mano.
   - Para evitar duplicados: clave_unica con formato "{tipo}:{recurso_id}".
   - Las alertas automáticas solo las genera el comando alertas:gastos-fijos.
+  - En notificaciones.css, el bloque de modo oscuro usa los tokens --soon, --late, --ok,
+    --wait, --accent. No introducir hex sueltos.                [NUEVO 2026-10-19]
 
 Convenciones de cuentas (2026-10-16):
   - Para eliminar una cuenta, usar siempre ServicioCuentas::eliminarCuenta($usuario).
@@ -849,60 +947,85 @@ Convenciones de cuentas (2026-10-16):
   - Para suspender/reactivar, ServicioCuentas::suspender / reactivar.
   - Capturar ValidationException y mostrar el mensaje al usuario.
   - Si Auth::logout() va después de $usuario->delete(), vaciar remember_token
-    ($usuario->setRememberToken(null)) antes del logout para evitar que
-    cycleRememberToken haga INSERT.
+    ($usuario->setRememberToken(null)) antes del logout.
 
 Convenciones del dashboard (2026-10-16):
   - El dashboard consulta SIEMPRE con delUsuario(auth()->id()) o relaciones del usuario
     autenticado.
   - Refresca los pagos del mes con ServicioGastosFijos antes de mostrar métricas.
   - La tarjeta de metas solo se dibuja si el rol es familiar.
-  - Cuando exista el scope delPeriodo de C1, sustituir los whereYear/whereMonth directos.
 
 Convenciones de administración (2026-10-16):
   - El admin gestiona usuarios (rol, estado, eliminar) pero NUNCA consulta montos.
   - EstadisticaController solo usa COUNT y GROUP BY.
   - Categorías del sistema se desactivan (activa=false), no se borran.
   - El admin no puede eliminarse a sí mismo desde el panel.
+  - El admin no accede a ajustes.tipo-cuenta ni ajustes.eliminar-cuenta (403).
+                                                                    [NUEVO 2026-10-19]
   - Si una regla del sistema no se puede aplicar (p.ej. último admin), usar
     ValidationException con mensaje claro.
 
 Convenciones de logo, favicon y accesibilidad (2026-10-16):
-  - Para poner el logo en una vista usa <x-logo :alto="36" /> (o el alto que aplique).
-    Nunca uses <img src="..."> con logos externos.
+  - Para poner el logo en una vista usa <x-logo :alto="36" />. Nunca <img> externo.
   - Los colores del logo vienen de tokens --logo-* en theme.css bloque 10.
-  - El favicon se regenera con window.CC.refreshIcons(); theme.js ya lo llama al cambiar
-    de tema. Si añades un nuevo rol, actualiza la PALETA en el script inline del <head>
-    de base.blade.php.
-  - El skip link va en base.blade.php. El script inline del final le pone id="contenido" al
-    primer <main> de la página. No hace falta tocar cada layout.
-  - Página 403 personalizada en resources/views/errors/403.blade.php. Usa el layout
-    layouts.publico (no requiere sesión).
+  - El favicon se regenera con window.CC.refreshIcons().
+  - El skip link está en base.blade.php.
+  - Página 403 personalizada en resources/views/errors/403.blade.php.
+  - Página 404 personalizada en resources/views/errors/404.blade.php (mismo esqueleto
+    que el 403). Requiere Route::fallback() en web.php para renderizarse con sesión.
+                                                                    [NUEVO 2026-10-19]
 
-Convenciones de correo (2026-10-17):                                    [NUEVO]
+Convenciones de correo (2026-10-17):
   - Todos los correos viven en resources/views/emails/.
   - Nunca uses MailMessage::line()/action() en producción: usa ->view() con una blade propia.
-  - El logo va inline como SVG con $message->embedData(...) y dos variantes (clara/oscura)
-    por Content-ID.
+  - El logo va inline como SVG con $message->embedData(...) por Content-ID.
   - El tinte por rol se decide en PHP en la cabecera de la vista, no en CSS.
-  - Toda vista de correo debe incluir:
-      · preheader oculto,
-      · <meta name="color-scheme" content="light dark">,
-      · @media (prefers-color-scheme: dark) para los colores,
-      · fallback con el enlace copiable,
-      · nota de seguridad,
-      · nota legal fuera de la tarjeta.
-  - Las notificaciones se envían siempre con Notification::route('mail', ...) cuando el
-    destinatario NO es el usuario autenticado (verificación de correo al nuevo).
+  - Toda vista de correo debe incluir: preheader oculto, <meta color-scheme>,
+    @media (prefers-color-scheme: dark), fallback con enlace copiable, nota de seguridad,
+    nota legal fuera de la tarjeta.
 
-Convenciones de verificación de correo (2026-10-17):                     [NUEVO]
+Convenciones de verificación de correo (2026-10-17):
   - El token se guarda hasheado (SHA-256) en users.email_token.
   - El vencimiento vive en users.pending_email_expires_at (1 hora).
   - El correo se envía al NUEVO correo (pending_email), no al actual.
   - La ruta de confirmación está en el Grupo B (auth); el usuario debe estar logueado.
   - Al confirmar: se actualiza email, se limpian pending_*, se cierra la sesión.
-  - El correo actual sigue activo hasta la confirmación.
   - El cambio de correo requiere contraseña actual (protección ante sesión robada).
+
+Convenciones de iconografía por categoría (2026-10-19):          [NUEVO 2026-10-19]
+  - Usa <x-categoria-icono :categoria="$categoria" />, nunca <img> ni emoji.
+  - Los colores del icono los aporta el contenedor: la clase
+    `.categoria-icono--{bloque}` o `.gf-expense-icon--{bloque}` con --need-*, --want-*,
+    --save-*. El componente recibe `currentColor` y hereda.
+  - Si agregas una categoría nueva del sistema, agrega su entrada al `$mapa` del componente
+    y un `@case` con su SVG. Actualiza también `docs/juan/Arquitectura_Cuentas_Claras.txt`
+    (esta sección) o `CategoriaSeeder.php` si aplica.
+  - No uses emojis (🏠, 🛒, 🔒) en vistas de UI: se ven distintos en cada SO/fuente y
+    rompen el diseño. Reemplaza por SVG inline con `stroke="currentColor"`.
+                                                                    [NUEVO 2026-10-19]
+
+Convenciones de botones "guardar" / "confirmar" (2026-10-19):   [NUEVO 2026-10-19]
+  - Usar `btn btn-primary` (con color de marca del rol).
+  - NO pintar verde a la fuerza. Se distinguen por:
+      · ícono check a la izquierda,
+      · font-weight mayor,
+      · padding ligeramente superior,
+      · sombra suave al hover.
+  - El botón de peligro sigue siendo `btn btn-danger` (rojo).
+  - El botón secundario sigue siendo `btn btn-secondary` (neutro con borde).
+  - Regla: "Color de marca = acción primaria (depende del rol). Rojo = destructivo.
+    Neutro = secundario. Nada más."
+
+Convenciones de sesión
+  - La sesión expira a los 15 minutos de inactividad por el middleware
+    'sesion.inactividad', NO por SESSION_LIFETIME. El middleware es la fuente de verdad.
+  - El orden del array de middleware en web.php es:
+    ['sesion.inactividad', 'auth', 'cuenta.activa'].
+    Si mueves 'auth' antes, el mensaje personalizado deja de aparecer.
+  - Si necesitas cambiar el tiempo de expiración, cambia LIMITE_MINUTOS en el middleware.
+    Solo cambia SESSION_LIFETIME si el nuevo LIMITE_MINUTOS supera el actual
+    (SESSION_LIFETIME debe ser siempre > LIMITE_MINUTOS).
+  - No agregues middlewares adicionales de expiración. Este ya cubre el caso.
 
 
 ----------------------------------------------------------------------
@@ -912,40 +1035,40 @@ Convenciones de verificación de correo (2026-10-17):                     [NUEVO
   2. J2 base de datos (HECHO 2026-10-05)
   3. J3 autenticación (HECHO 2026-10-06)
   4. J4 permisos (HECHO 2026-10-06)
-  5. N1 -> N2 -> V1 -> V2 -> V4 (HECHO 2026-10-17)
-  6. J5 metas (HECHO 2026-10-07; reabierto 2026-10-08), N3 (HECHO), V3 (HECHO)
+  5. N1 (HECHO 2026-10-XX), N2 (HECHO 2026-10-XX), V1 (HECHO), V2 (HECHO 2026-10-XX),
+     V4 (HECHO 2026-10-17).
+  6. J5 metas (HECHO 2026-10-07; reabierto 2026-10-08), N3 (HECHO), V3 (HECHO 2026-10-17),
+     V5 revisión visual (HECHO 2026-10-XX).
   7. J6 alertas (HECHO 2026-10-16), J8a cuentas (HECHO 2026-10-16),
      J8 dashboard (HECHO 2026-10-16), J7 administración (HECHO 2026-10-16),
      V4 ajustes (HECHO 2026-10-17), N4 notificaciones (HECHO 2026-10-17),
      Verificación de cambio de correo (HECHO 2026-10-17),
      Rediseño del correo de restablecer contraseña (HECHO 2026-10-17).
-  8. N5 landing (los Route::view funcionan; solo se cambian si se requiere contenido
-     dinámico)
-  9. V5 revisión visual y J9 seguridad/despliegue
+  8. N5 landing (EN CURSO 2026-10-19). Reemplaza los Route::view de público.php por
+     vistas Blade completas. Falta validar cifras y textos legales (#21).
+  9. J9 seguridad, integración y despliegue. PENDIENTE. Se arranca cuando N5 cierre.
   *  Sesión 2026-10-14: modo oscuro + tinte + píldora topbar + transiciones.
-  *  Sesión 2026-10-16: J6 + J8a + J8 + J7 + pulido (logo adaptativo, favicon dinámico,
-     skip link, página 403, selects adaptados, gastos-fijos.css limpio, refactor de
-     ServicioMetas::notificar, docs/backend/00-rutas.php al conteo real).
+  *  Sesión 2026-10-16: J6 + J8a + J8 + J7 + pulido.
   *  Sesión 2026-10-17: V4 + N4 + verificación de cambio de correo + rediseño del correo
      de restablecer contraseña (vencimiento a 30 minutos).
-Siguiente de Juan: J9 (seguridad, integración y despliegue) cuando Nikol y Valeria
-  cierren sus pendientes (N1, N2, N5, V2, V5).
-Al terminar todo (J9): no debe quedar ningún aviso "MAQUETA" en módulos reales. Los
-Route::view de público.php (landing, política, términos) son correctos y se quedan.
+  *  Sesión 2026-10-19: restricción de Ajustes al admin, página 404 personalizada con
+     Route::fallback(), expiración de sesión por inactividad (15 min), iconografía por
+     categoría con <x-categoria-icono>, rediseño de Categorías con botones del sistema,
+     tarjetas de gastos fijos compactas con icono por categoría.
+Siguiente de Juan: J9 (seguridad, integración y despliegue) en cuanto N5 cierre.
+Siguiente de Nikol: cerrar N5 (landing + páginas legales) y validar cifras/promesas
+  con Juan y Valeria.
+Siguiente de Valeria: apoyar N5 en la revisión visual y arrancar la lista de J9.
+Al terminar todo (J9): no debe quedar ningún aviso "MAQUETA" en módulos reales.
 Comparar php artisan route:list --except-vendor con docs/backend/00-rutas.php (64 rutas).
-Pendiente de mejora: TODO(J8) en DashboardController para usar scope delPeriodo de C1.
-Pendiente: docs/backend/00-rutas.php debe actualizarse a 64 rutas (agregar las 2 nuevas
-  de confirmar correo).
+Pendientes: docs/backend/00-rutas.php debe actualizarse a 64 rutas + cerrar TODO(J8) usando C1.
 
 
 ----------------------------------------------------------------------
 14. DECISIONES
 ----------------------------------------------------------------------
   #1..#22 (ver versiones anteriores; sin cambios).
-  #23 CERRADA (2026-10-16): categorias.activa booleana, default true. Las categorías del
-      sistema se desactivan (activa=false), no se borran. Índice (user_id, activa). El admin
-      gestiona solo las del sistema. Nikol filtrará con Categoria::activas() en N1/N2 cuando
-      toque.
+  #23 CERRADA (2026-10-16): categorias.activa booleana, default true.
 
 DECISIONES DEL 2026-10-08 (reapertura de J5):
   - Metas y rol estándar: metas al GRUPO C.
@@ -953,7 +1076,6 @@ DECISIONES DEL 2026-10-08 (reapertura de J5):
   - Aceptar siendo estándar: ValidationException desde ServicioMetas.
   - Ajustes · tipo de cuenta: ServicioCuentas::cambiarTipo (C7 parcial).
   - Familiar -> estándar: bloqueado con metas compartidas activas.
-  - Notificaciones: ServicioMetas::notificar() (versión mínima de C4).
   - Policy de metas: 'before' solo bloquea al administrador.
   - Grupo D de rutas: eliminado.
 
@@ -988,47 +1110,79 @@ DECISIONES DEL 2026-10-16 (J8): #37..#41
   #41 La vista del dashboard sigue con clases del code.html.
 
 DECISIONES DEL 2026-10-16 (J7): #42..#44
-  #42 El tinte del administrador es Core Blue (#2563EB claro / #93b4ff oscuro). Se reutiliza
-      el color de "Necesidades" del gráfico 50/30/20 para no introducir colores nuevos. No se
-      aplica a las páginas públicas (login, registro).
-  #43 El admin no puede eliminarse a sí mismo desde el panel de administración. Sí puede
-      hacerlo desde Ajustes si hay otro admin activo.
+  #42 El tinte del administrador es Core Blue (#2563EB claro / #93b4ff oscuro).
+  #43 El admin no puede eliminarse a sí mismo desde el panel de administración.
   #44 El registro de acciones del administrador (auditoría) queda como [PROPUESTA] no
       implementada.
 
 DECISIONES DEL 2026-10-16 (pulido): #45..#48
-  #45 Logo como SVG inline con tokens --logo-*. Reemplaza todas las imágenes externas de
-      logo (lh3.googleusercontent.com). Se adapta al tema y al tipo de cuenta. El favicon
-      se genera por JS con la misma paleta.
-  #46 Skip link universal desde base.blade.php. El script inline le pone id="contenido" al
-      primer <main> de la página. No hay que tocar cada layout ni cada vista.
-  #47 Página 403 personalizada con el diseño del sistema. Usa el layout publico (no
-      requiere sesión). Estilos en theme.css bloque 9.
+  #45 Logo como SVG inline con tokens --logo-*.
+  #46 Skip link universal desde base.blade.php.
+  #47 Página 403 personalizada con el diseño del sistema.
   #48 Los selects nativos usan appearance:none con flecha SVG propia y color-scheme:dark.
-      Respeta el tema; el popup nativo lo dibuja el SO (limitación aceptada).
 
-DECISIONES DEL 2026-10-17 (V4 + verificación + reset): #49..#52        [NUEVO 2026-10-17]
-  #49 Verificación de cambio de correo con token de un solo uso:
-      · Token plano generado con Str::random(64), guardado como hash SHA-256 en
-        users.email_token.
-      · Vencimiento en users.pending_email_expires_at = now()->addHour() (1 hora).
-      · El correo de verificación se envía al NUEVO correo (pending_email), nunca al actual.
-      · El correo actual sigue activo hasta que el usuario confirma.
-      · Al confirmar se cierra la sesión (se autenticó con el correo viejo).
-      · El cambio de correo requiere contraseña actual como protección extra.
-      · El enlace se puede reenviar (regenerando token y vencimiento) si se pierde.
-  #50 Rediseño del correo de restablecer contraseña:
-      · Mismo layout visual que confirmar-cambio-correo.
-      · Vencimiento reducido de 60 a 30 minutos (configurable vía
-        AUTH_PASSWORD_RESET_EXPIRE).
-      · 30 minutos es el estándar de la industria (GitHub, GitLab, Stripe, Auth0).
-  #51 Los correos del sistema usan Notification::route('mail', $destinatario) cuando el
-      destinatario NO es el usuario autenticado. Específicamente, ConfirmarCambioCorreo
-      se envía al pending_email, no al email actual. Para el resto de notificaciones
-      internas (alertas de gastos, invitaciones, etc.) sigue aplicando $usuario->notify(...).
-  #52 El borrado de cuenta vacía remember_token en memoria antes de Auth::logout() para
-      evitar que cycleRememberToken() haga INSERT de un usuario ya eliminado (bug detectado
-      durante las pruebas de V4).
+DECISIONES DEL 2026-10-17 (V4 + verificación + reset): #49..#52
+  #49 Verificación de cambio de correo con token de un solo uso (SHA-256, 1 hora, correo
+      al NUEVO destino, logout al confirmar, reenvío permitido).
+  #50 Rediseño del correo de restablecer contraseña. Vencimiento de 60 a 30 minutos
+      configurable con AUTH_PASSWORD_RESET_EXPIRE.
+  #51 Los correos usan Notification::route('mail', $destinatario) cuando el destinatario
+      no es el usuario autenticado. Específicamente, ConfirmarCambioCorreo va al
+      pending_email.
+  #52 El borrado de cuenta vacía remember_token antes de Auth::logout() para evitar el
+      INSERT fantasma de cycleRememberToken.
+
+DECISIONES DEL 2026-10-19: #53..#57                            [NUEVO 2026-10-19]
+  #53 Restricción de Ajustes por rol:
+      · El administrador solo accede a `ajustes.perfil` y `ajustes.confirmar-correo`.
+      · `ajustes.tipo-cuenta` y `ajustes.eliminar-cuenta` (GET y POST/PUT/DELETE)
+        requieren rol estandar o familiar. El admin recibe 403.
+      · Refuerza #20 (el admin no tiene finanzas personales) y #43 (no puede eliminarse
+        a sí mismo desde Ajustes). Continuación directa de esas dos decisiones.
+      · Motivación: evitar que un admin "se degrade" a sí mismo sin pasar por el panel
+        de administración (que sí tiene la lógica de último admin activo) y que se
+        auto-elimine sin confirmación de otro admin.
+  #54 Página 404 personalizada con Route::fallback():
+      · Mismo esqueleto que el 403 (icono, código, título, mensaje, botones).
+      · El fallback se declara en routes/web.php al final del bloque privado, para que
+        la vista se renderice con sesión activa y @auth funcione.
+      · Sin fallback, Laravel responde 404 sin sesión y un usuario logueado vería la
+        versión de invitado.
+      · Consecuencia: GET /cerrar-sesion (que solo existe como POST) pasa de 405 a 404.
+        No es un retroceso: el test de AuthTest ahora también verifica que la sesión
+        NO se cierra (regla de seguridad intacta).
+  #55 Expiración de sesión por inactividad:
+      · Middleware 'sesion.inactividad' (ExpirarSesionPorInactividad.php), aplicado
+        ANTES de 'auth' en routes/web.php.
+      · LIMITE_MINUTOS = 15 en el middleware.
+      · SESSION_LIFETIME=480 en .env para que Laravel no expire antes que el middleware.
+      · El mensaje "Tu sesión expiró por inactividad. Vuelve a iniciar sesión." aparece
+        en el login.
+      · Sin expulsión en tiempo real: el servidor no puede empujar un logout al
+        navegador. La sesión se invalida en la SIGUIENTE petición del usuario después
+        de los 15 minutos.
+      · 15 min es el estándar para apps de finanzas.
+  #56 Iconografía por categoría:
+      · Componente reutilizable <x-categoria-icono :categoria="$c" :size="20" />.
+      · Mapea el nombre de la categoría a un SVG propio. Fallback por bloque 50/30/20:
+        tag (necesidades), sparkles (discrecionales), piggy (ahorro).
+      · Los colores del icono NO dependen del rol. Dependen del bloque, usando
+        --need, --want, --save (los mismos del gráfico del informe).
+      · Motivación: cada categoría tenga identidad visual propia sin romper el tinte
+        por rol del resto de la app.
+      · Primera integración: gastos fijos (icono en cada tarjeta) y Categorías (icono
+        en cada fila). Reusable en dashboard, informes, etc.
+  #57 Botones "guardar" / "confirmar":
+      · NO se pintan verdes. Se distinguen por más peso visual (icono check,
+        font-weight 700, padding, sombra al hover) manteniendo el color de marca
+        del rol (--accent-*).
+      · Motivo: pintar verde rompe el tinte por rol (#24) y es daltónico-hostile.
+        Rojo y verde son los dos colores que más se confunden en deuteranopia.
+      · Regla general del proyecto: color de marca = acción primaria (depende del rol);
+        rojo = destructivo; neutro = secundario. Nada más.
+      · Si en el futuro se quiere un verde explícito para acciones de "éxito" (marcar
+        pagado, finalizar meta), debe hacerse como .btn-success NUEVO, no reutilizando
+        .btn-primary verde.
 
 Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué y por qué.
 
@@ -1067,6 +1221,16 @@ Cada decisión se anota en DECISIONES.md (raíz del repositorio) con fecha, qué
      son las ÚNICAS vías para gestionar el cambio de correo.
  24. Nunca escribas el token de correo plano en la BD. Solo SHA-256.
  25. El correo de verificación se envía al pending_email (destinatario), nunca al actual.
+ 26. En Ajustes, los endpoints de tipo-cuenta y eliminar-cuenta son SOLO para estandar y
+     familiar. El admin recibe 403 (decisión #53).
+ 27. Para iconos de categoría usa <x-categoria-icono :categoria="$categoria" />. Nunca
+     emojis. Los colores los aporta el contenedor con las clases --need/--want/--save.
+ 28. Los botones "guardar" NO van verdes. Se distinguen con peso visual e ícono check,
+     manteniendo --accent del rol (decisión #57).
+ 29. La página 404 depende de Route::fallback() en web.php. No lo quites o el 404 pierde
+     la sesión y el usuario logueado verá la versión de invitado.
+ 30. La sesión expira a los 15 minutos por inactividad (SESSION_LIFETIME). No agregues
+     middlewares que dupliquen este comportamiento.
 
 Instrucciones de refinamiento visual (2026-10-14): #23..#28
   (botones con clases, tokens --accent-*, peligro siempre rojo, no cargar fuentes en pantallas,
@@ -1081,8 +1245,7 @@ Instrucciones de cuentas (2026-10-16): #34..#36
    capturar ValidationException; vaciar remember_token antes de Auth::logout si delete fue antes)
 
 Instrucciones del dashboard (2026-10-16): #37..#40
-  (delUsuario, refrescar pagos del mes, tarjeta de metas solo si familiar, sustituir
-   whereYear/whereMonth por scopeDelPeriodo cuando exista)
+  (delUsuario, refrescar pagos del mes, tarjeta de metas solo si familiar)
 
 Instrucciones de administración (2026-10-16): #41..#47
   (el admin nunca consulta montos, categorías del sistema se desactivan, ValidationException
@@ -1093,31 +1256,43 @@ Instrucciones de administración (2026-10-16): #41..#47
 Instrucciones de logo, favicon y accesibilidad (2026-10-16): #48..#52
  48. Para poner el logo usa <x-logo :alto="36" />. Nunca <img> con logo externo.
  49. Los colores del logo vienen de tokens --logo-* (theme.css bloque 10).
- 50. El favicon se regenera con window.CC.refreshIcons(). Si añades un rol nuevo, actualiza
-     la PALETA en el script inline del <head> de base.blade.php.
- 51. El skip link está en base.blade.php; el script inline le pone id="contenido" al primer
-     <main>. No toques los layouts para esto.
- 52. La página 403 vive en resources/views/errors/403.blade.php con estilos en theme.css
-     bloque 9.
+ 50. El favicon se regenera con window.CC.refreshIcons().
+ 51. El skip link está en base.blade.php.
+ 52. La página 403 vive en resources/views/errors/403.blade.php.
 
-Instrucciones de correo y verificación (2026-10-17): #53..#60        [NUEVO 2026-10-17]
+Instrucciones de correo y verificación (2026-10-17): #53..#62
  53. Toda notificación de correo debe usar una vista de resources/views/emails/.
-     Nunca MailMessage::line()/action() en producción.
- 54. Toda vista de correo debe tener: preheader oculto, <meta color-scheme>, dark mode
-     (@media prefers-color-scheme), logo adaptativo por Content-ID, fallback de enlace,
-     nota de seguridad, nota legal fuera de la tarjeta.
+ 54. Toda vista de correo debe tener: preheader oculto, <meta color-scheme>, dark mode,
+     logo adaptativo por Content-ID, fallback de enlace, nota de seguridad, nota legal
+     fuera de la tarjeta.
  55. El tinte por rol en correos se decide en PHP en la cabecera de la vista, no en CSS.
  56. El cambio de correo se dispara SOLO vía ServicioCuentas::solicitarCambioCorreo.
  57. El token de correo se guarda hasheado (SHA-256) en users.email_token. NUNCA en claro.
  58. El vencimiento del token de correo va en users.pending_email_expires_at = 1 hora.
  59. El correo de verificación se envía con Notification::route('mail', $pending_email),
      no con $usuario->notify(...).
- 60. Al confirmar el correo, cerrar sesión siempre: se autenticó con el correo viejo.
+ 60. Al confirmar el correo, cerrar sesión siempre.
  61. El restablecer contraseña usa emails/restablecer-contrasena.blade.php con vencimiento
      de 30 minutos configurable vía AUTH_PASSWORD_RESET_EXPIRE.
- 62. Si agregas una nueva notificación de correo, sigue el patrón de
-     ConfirmarCambioCorreo (notificación + vista + envío con Notification::route si el
-     destinatario no es el usuario autenticado).
+ 62. Si agregas una nueva notificación de correo, sigue el patrón de ConfirmarCambioCorreo.
+
+Instrucciones nuevas (2026-10-19): #63..#68                  [NUEVO 2026-10-19]
+ 63. En Ajustes, los endpoints de tipo-cuenta y eliminar-cuenta son SOLO para estandar y
+     familiar. El admin recibe 403. Aplica en routes/modulos/ajustes.php y en el controlador
+     (defensa en profundidad con abort_unless).
+ 64. La vista _tabs.blade.php de Ajustes debe ocultar las pestañas "Tipo de cuenta" y
+     "Eliminar cuenta" si el rol es administrador.
+ 65. La página 404 vive en resources/views/errors/404.blade.php. Requiere Route::fallback()
+     al final del bloque privado de web.php. Si mueves el fallback antes de los require,
+     las rutas de los módulos no se cargan.
+ 66. La sesión expira a los 15 minutos por inactividad mediante el middleware
+     'sesion.inactividad'. Requiere SESSION_LIFETIME > LIMITE_MINUTOS (hoy 480 > 15).
+     El orden del array en web.php es ['sesion.inactividad', 'auth', 'cuenta.activa'].
+     Si mueves 'auth' antes, el mensaje personalizado no aparece.
+ 67. Para iconos de categoría usa <x-categoria-icono />. Mapea nombre → SVG; fallback por
+     bloque. Si agregas una categoría al sistema, agrega su SVG al componente.
+ 68. Los botones "guardar" NO van verdes. Se distinguen con ícono check + font-weight 700
+     + padding + sombra al hover, manteniendo --accent del rol.
 
 
 ----------------------------------------------------------------------
@@ -1141,8 +1316,11 @@ Instrucciones de correo y verificación (2026-10-17): #53..#60        [NUEVO 202
   J9_Checklist_Previo.txt ............................ mapa de lo que falta para J9
   Refinamiento_Visual_2026-10-14.txt ................. resumen de la sesión visual
   V4_N4_Verificacion_Correo_2026-10-17.txt ........... qué cambió en V4, N4, verificación
-                                                       de correo y rediseño de reset (crear
-                                                       si aún no existe)
+                                                       de correo y rediseño de reset
+  Pulido_2026-10-19.txt .............................. (crear si aún no existe) qué cambió
+                                                       en restricción Ajustes al admin, 404,
+                                                       sesión 15 min, iconografía y
+                                                       rediseño de gastos fijos / categorías
   diagrama_tablas.png / .svg ......................... diagrama de las 20 tablas
   docs/backend/*.php ................................. planes técnicos por tema
   Plan_Jira_Cuentas_Claras.txt / .csv ................ plan de tareas por sprint
