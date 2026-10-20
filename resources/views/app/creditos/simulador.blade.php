@@ -59,7 +59,7 @@
           <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
 
             <div class="flex items-center gap-2 mb-6">
-              <span class="w-2.5 h-6 bg-primary rounded-full"></span>
+              <span class="w-1 h-10 bg-primary rounded-full"></span>
 
               <div>
                 <h2 class="font-headline-md text-headline-md text-on-surface">
