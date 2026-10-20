@@ -105,6 +105,31 @@
           </div>
         </div>
 
+                {{-- SELECTOR DE ICONO (crear) --}}
+        <div class="admin-form-crear__campo" style="grid-column: 1 / -1;">
+          <label class="admin-form-crear__label">
+            Icono
+            <span class="admin-form-crear__opcional">(opcional)</span>
+          </label>
+          <div class="categoria-icono-selector">
+            <label class="categoria-icono-label" title="Icono automático (por nombre/bloque)">
+              <input type="radio" name="icono" value="" class="sr-only"
+                     {{ old('icono') === '' || old('icono') === null ? 'checked' : '' }}>
+              <span class="material-symbols-outlined text-[20px]">magic_button</span>
+            </label>
+            @foreach(\App\Models\Categoria::ICONOS as $key => $label)
+              <label class="categoria-icono-label" title="{{ $label }}">
+                <input type="radio" name="icono" value="{{ $key }}" class="sr-only"
+                       {{ old('icono') === $key ? 'checked' : '' }}>
+                <x-categoria-icono :icono="$key" :size="20" />
+              </label>
+            @endforeach
+          </div>
+          @error('icono')
+            <p class="text-error text-sm mt-1">{{ $message }}</p>
+          @enderror
+        </div>
+
         <div class="admin-form-crear__campo admin-form-crear__campo--accion">
           <button type="submit" class="btn btn-primary admin-form-crear__boton">
             <span class="material-symbols-outlined text-[18px]">add</span>
@@ -146,6 +171,7 @@
             <div class="admin-categoria__fila">
               <div class="admin-categoria__info">
                 <div class="flex flex-wrap items-center gap-2">
+                  <x-categoria-icono :categoria="$cat" :size="20" class="admin-categoria__icono" />
                   <span class="font-headline-sm text-headline-sm text-on-surface">
                     {{ $cat->nombre }}
                   </span>
@@ -198,10 +224,12 @@
                         class="admin-categoria__form">
                     @csrf
                     @method('PUT')
+
                     <div class="flex-1 min-w-[10rem]">
                       <label class="block mb-1 font-label-sm text-label-sm">Nombre</label>
                       <input name="nombre" type="text" class="input" value="{{ $cat->nombre }}" required>
                     </div>
+
                     <div>
                       <label class="block mb-1 font-label-sm text-label-sm">Bloque</label>
                       <select name="bloque" class="input">
@@ -212,11 +240,35 @@
                         @endforeach
                       </select>
                     </div>
+
                     <div>
                       <label class="block mb-1 font-label-sm text-label-sm">Peso %</label>
                       <input name="peso_recomendado" type="number" min="0" max="100" class="input"
                              value="{{ $cat->peso_recomendado }}">
                     </div>
+
+                    {{-- SELECTOR DE ICONO (editar) --}}
+                    <div class="admin-categoria__form-iconos">
+                      <label class="block mb-1 font-label-sm text-label-sm">Icono</label>
+                      <div class="categoria-icono-selector">
+                        <label class="categoria-icono-label" title="Icono automático">
+                          <input type="radio" name="icono" value="" class="sr-only"
+                                 {{ old('icono', $cat->icono) === '' || old('icono', $cat->icono) === null ? 'checked' : '' }}>
+                          <span class="material-symbols-outlined text-[20px]">magic_button</span>
+                        </label>
+                        @foreach(\App\Models\Categoria::ICONOS as $key => $label)
+                          <label class="categoria-icono-label" title="{{ $label }}">
+                            <input type="radio" name="icono" value="{{ $key }}" class="sr-only"
+                                   {{ old('icono', $cat->icono) === $key ? 'checked' : '' }}>
+                            <x-categoria-icono :icono="$key" :size="20" />
+                          </label>
+                        @endforeach
+                      </div>
+                      @error('icono')
+                        <p class="text-error text-sm mt-1">{{ $message }}</p>
+                      @enderror
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Guardar</button>
                   </form>
                 </details>
