@@ -9,6 +9,16 @@ class UpdatePerfilRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        $usuario = $this->user();
+        $esAdmin = $usuario?->rol === 'administrador';
+
+        // El admin no tiene finanzas personales (decisión #20).
+        // Si alguien manipula el HTML y envía ingreso_mensual, lo borramos del
+        // request para que no pase a validated().
+        if ($esAdmin) {
+            $this->request->remove('ingreso_mensual');
+        }
+
         $ingreso = $this->input('ingreso_mensual');
 
         if ($ingreso === null || trim((string) $ingreso) === '') {
@@ -43,11 +53,15 @@ class UpdatePerfilRequest extends FormRequest
                 Rule::unique('users', 'pending_email')->ignore($usuario->id),
             ],
 
-            'ingreso_mensual' => ['nullable', 'integer', 'min:0', 'max:999999999999'],
+            // Solo los no-admin tienen ingreso mensual.
+            'ingreso_mensual' => [
+                Rule::prohibitedIf($usuario->rol === 'administrador'),
+                'nullable',
+                'integer',
+                'min:0',
+                'max:999999999999',
+            ],
 
-            // La contraseña actual es obligatoria si:
-            //   a) se va a cambiar la contraseña, o
-            //   b) se va a cambiar el correo (protege ante sesión robada).
             'contrasena_actual' => [
                 'nullable',
                 Rule::requiredIf(function () use ($usuario) {
@@ -59,11 +73,6 @@ class UpdatePerfilRequest extends FormRequest
                 'current_password',
             ],
 
-            // NOTA: aquí NO va 'required_with:contrasena_actual'. Si el usuario
-            // solo cambia el correo, envía contrasena_actual pero deja
-            // nueva_contrasena vacía a propósito. La simetría al revés (si
-            // viene nueva_contrasena, exigir contrasena_actual) ya la cubre
-            // Rule::requiredIf del bloque anterior.
             'nueva_contrasena' => [
                 'nullable',
                 'string',
@@ -82,8 +91,9 @@ class UpdatePerfilRequest extends FormRequest
             'email.email'    => 'Ingresa un correo electrónico válido.',
             'email.unique'   => 'Este correo electrónico ya está registrado.',
 
-            'ingreso_mensual.integer' => 'El ingreso mensual debe ser un número entero.',
-            'ingreso_mensual.min'     => 'El ingreso mensual no puede ser negativo.',
+            'ingreso_mensual.prohibited' => 'El administrador no tiene ingreso mensual.',
+            'ingreso_mensual.integer'    => 'El ingreso mensual debe ser un número entero.',
+            'ingreso_mensual.min'        => 'El ingreso mensual no puede ser negativo.',
 
             'contrasena_actual.required'         => 'Ingresa tu contraseña actual para cambiar el correo o la contraseña.',
             'contrasena_actual.current_password' => 'La contraseña actual no es correcta.',
