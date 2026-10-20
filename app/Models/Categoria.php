@@ -25,7 +25,8 @@ class Categoria extends Model
 
     // Catálogo de íconos disponibles para las categorías.
     // El valor (string) es la clave del SVG dentro de <x-categoria-icono />.
-    // Si un usuario no elige ninguno, el componente cae al fallback por bloque.
+    // Si un usuario o el admin no eligen ninguno, el componente cae al fallback
+    // por nombre (categorías del sistema) o por bloque.
     public const ICONOS = [
         'home'     => 'Casa / Arriendo',
         'bolt'     => 'Servicios / Luz',
@@ -62,8 +63,8 @@ class Categoria extends Model
     /**
      * Devuelve la clave del ícono que debe usar esta categoría.
      * Orden de prioridad:
-     *   1. Categoría del sistema → su nombre mapeado (arriendo, mercado, etc.)
-     *   2. Categoría del usuario con ícono guardado → ese ícono
+     *   1. Ícono guardado en la BD (elegido por el usuario o por el admin) → ese ícono
+     *   2. Categoría del sistema sin ícono explícito → su nombre mapeado (arriendo, mercado, etc.)
      *   3. Fallback por bloque → tag / sparkles / piggy
      *
      * Útil para casos donde solo tienes el modelo y no puedes llamar al componente.
@@ -71,6 +72,14 @@ class Categoria extends Model
      */
     public function iconoResuelto(): string
     {
+        // 1º: ícono elegido explícitamente (por admin o por usuario).
+        // Esto permite que el admin pueda sobreescribir el ícono por defecto de
+        // una categoría del sistema (ej. cambiar "Mercado" de cart a piggy).
+        if (!empty($this->icono) && array_key_exists($this->icono, self::ICONOS)) {
+            return $this->icono;
+        }
+
+        // 2º: mapa por nombre (categorías del sistema con nombre conocido).
         if ($this->esDelSistema()) {
             $mapa = [
                 'arriendo'             => 'home',
@@ -99,10 +108,7 @@ class Categoria extends Model
             }
         }
 
-        if (!empty($this->icono) && array_key_exists($this->icono, self::ICONOS)) {
-            return $this->icono;
-        }
-
+        // 3º: fallback por bloque 50/30/20.
         return match ($this->bloque) {
             'ahorro'         => 'piggy',
             'discrecionales' => 'sparkles',
