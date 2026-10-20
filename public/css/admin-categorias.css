@@ -5,7 +5,6 @@
 
 /* --- Aviso contextual --- */
 .admin-aviso {
-  border-left: 3px solid var(--accent);
   background: var(--surface-container-low);
 }
 .admin-aviso__icono {
