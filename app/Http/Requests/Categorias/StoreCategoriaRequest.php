@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Categorias;
 
+use App\Models\Categoria;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -16,7 +17,10 @@ class StoreCategoriaRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'nombre' => trim($this->nombre),
+            'nombre' => trim((string) $this->nombre),
+            // Normaliza el string vacío del "icono automático" a null.
+            // Sin esto, '' puede causar líos con Rule::in.
+            'icono' => filled($this->icono) ? $this->icono : null,
         ]);
     }
 
@@ -33,14 +37,13 @@ class StoreCategoriaRequest extends FormRequest
                 function (string $attribute, mixed $value, Closure $fail) use ($categoriaId) {
                     $nombre = mb_strtolower(trim($value));
 
-                    $query = \App\Models\Categoria::where(function ($query) {
-    $query->whereNull('user_id')
-          ->orWhere('user_id', auth()->id());
-})
-->whereRaw(
-    'LOWER(TRIM(nombre)) = ?',
-    [$nombre]
-);
+                    $query = Categoria::where(function ($query) {
+                        $query->whereNull('user_id')
+                              ->orWhere('user_id', auth()->id());
+                    })->whereRaw(
+                        'LOWER(TRIM(nombre)) = ?',
+                        [$nombre]
+                    );
 
                     if ($categoriaId) {
                         $query->where('id', '!=', $categoriaId);
@@ -54,8 +57,16 @@ class StoreCategoriaRequest extends FormRequest
 
             'bloque' => [
                 'required',
-                Rule::in(\App\Models\Categoria::BLOQUES),
+                Rule::in(Categoria::BLOQUES),
+            ],
+
+            // NUEVO: validar que el ícono elegido exista en el catálogo.
+            // Es nullable porque el usuario puede dejar "ícono automático".
+            'icono' => [
+                'nullable',
+                'string',
+                Rule::in(array_keys(Categoria::ICONOS)),
             ],
         ];
     }
-}   
+}

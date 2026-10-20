@@ -1,55 +1,40 @@
-{{--
-  <x-categoria-icono :categoria="$gasto->categoria" />
-  <x-categoria-icono nombre="Streaming" bloque="discrecionales" />
-
-  Mapea el nombre de la categoría a un SVG propio. Si el nombre no está en el
-  mapa (categorías creadas por el usuario), usa un ícono según el bloque 50/30/20.
-
-  Props:
-    - categoria : instancia App\Models\Categoria (preferido; usa ->nombre y ->bloque)
-    - nombre    : string, para casos donde solo se tiene el texto
-    - bloque    : string, fallback si no hay categoría
-    - size      : int, tamaño del SVG (default 20)
---}}
 @props([
     'categoria' => null,
     'nombre'    => null,
     'bloque'    => null,
+    'icono'     => null, // <-- NUEVO parámetro
     'size'      => 20,
 ])
 
 @php
-    $nombreFinal = mb_strtolower(trim(
-        (string) ($categoria->nombre ?? $nombre ?? '')
-    ));
+    $nombreFinal = mb_strtolower(trim((string) ($categoria->nombre ?? $nombre ?? '')));
     $bloqueFinal = $categoria->bloque ?? $bloque ?? 'necesidades';
 
-    // Mapa: nombre normalizado → clave de ícono.
-    // Solo nombres del sistema (los del CategoriaSeeder). Los personalizados caen al fallback.
-    $mapa = [
-        'arriendo'              => 'home',
-        'servicios públicos'    => 'bolt',
-        'servicios publicos'    => 'bolt',
-        'mercado'               => 'cart',
-        'transporte'            => 'car',
-        'salud'                 => 'heart',
-        'educación'             => 'cap',
-        'educacion'             => 'cap',
-        'restaurantes'          => 'utensils',
-        'entretenimiento'       => 'film',
-        'ropa'                  => 'shirt',
-        'suscripciones'         => 'refresh',
-        'viajes'                => 'plane',
-        'ahorro'                => 'piggy',
-        'inversión'             => 'trending',
-        'inversion'             => 'trending',
-        'pago extra de deudas'  => 'card',
-    ];
+    // Prioridad: 1. El prop $icono, 2. El icono de la BD, 3. El mapa de nombres, 4. El bloque
+    $iconoFinal = $icono ?? $categoria->icono ?? null;
 
-    $icono = $mapa[$nombreFinal] ?? null;
+    if (empty($iconoFinal)) {
+        $mapa = [
+            'arriendo'              => 'home',
+            'servicios públicos'    => 'bolt',
+            'servicios publicos'    => 'bolt',
+            'mercado'               => 'cart',
+            'transporte'            => 'car',
+            'salud'                 => 'heart',
+            'educación'             => 'cap',
+            'educacion'             => 'cap',
+            'restaurantes'          => 'utensils',
+            'entretenimiento'       => 'film',
+            'ropa'                  => 'shirt',
+            'suscripciones'         => 'refresh',
+            'viajes'                => 'plane',
+            'ahorro'                => 'piggy',
+            'inversión'             => 'trending',
+            'inversion'             => 'trending',
+            'pago extra de deudas'  => 'card',
+        ];
 
-    if ($icono === null) {
-        $icono = match ($bloqueFinal) {
+        $iconoFinal = $mapa[$nombreFinal] ?? match ($bloqueFinal) {
             'ahorro'         => 'piggy',
             'discrecionales' => 'sparkles',
             default          => 'tag',
@@ -68,7 +53,7 @@
     stroke-linejoin="round"
     aria-hidden="true"
     {{ $attributes }}>
-    @switch($icono)
+    @switch($iconoFinal)
         @case('home')
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
