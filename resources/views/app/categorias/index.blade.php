@@ -232,7 +232,7 @@
 
                                 {{-- Modal de traslado de gastos --}}
                                 <div id="modal-eliminar-{{ $item->id }}"
-                                     class="categoria-modal hidden">
+                                     class="categoria-modal">
                                     <div class="categoria-modal__caja">
 
                                         <h3 class="font-headline-sm text-headline-sm text-on-surface mb-3">
