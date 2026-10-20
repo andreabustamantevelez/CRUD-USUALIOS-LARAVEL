@@ -81,3 +81,21 @@
 #debtRatioBar {
   transition: width .5s var(--ease),background-color .3s;
 }
+
+/* Intereses: modo claro */
+#totalInterestDisplay {
+  color: #C2410C !important;
+}
+
+#interestBarSegment {
+  background-color: #EA580C;
+}
+
+/* Intereses: modo oscuro */
+[data-theme="oscuro"] #totalInterestDisplay {
+  color: #FDBA74 !important;
+}
+
+[data-theme="oscuro"] #interestBarSegment {
+  background-color: #FB923C;
+}

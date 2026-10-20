@@ -1,12 +1,190 @@
-/*
- * ==============================================================================
- * ARCHIVO : public/css/categorias.css
- * QUÉ ES  : Estilos EXCLUSIVOS de: Categorías. Se carga después de style.css (vía @push('styles')
- *           en la vista).
- * QUÉ HAY QUE HACER (en orden):
- *   1. Agregar aquí SOLO lo que no se puede resolver con las clases globales.
- * CÓMO HACERLO / NOTAS:
- *   - Ejemplo (texto, no código): ícono de color por bloque 50/30/20.
- * ==============================================================================
- */
+/* =========================================================================
+   Categorías · refuerzo visual con tokens del sistema
+   Todos los colores salen de theme.css: --accent-* se tinta por rol,
+   --error y --ok son fijos.
+   ========================================================================= */
 
+/* Botón / link con icono SVG al lado del texto */
+.categoria-boton-icono {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.categoria-boton-icono svg {
+  flex-shrink: 0;
+}
+
+/* Mensaje de éxito */
+.categoria-exito {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--ok-bg);
+  color: var(--ok);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* Formulario de crear / editar */
+.categoria-form-crear,
+.categoria-form-editar {
+  background: var(--surface-container-low);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Mensaje de error de campo */
+.categoria-campo-error {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--error);
+}
+
+/* Fila de cada categoría */
+.categoria-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface-container-lowest);
+  margin-bottom: 0.75rem;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.categoria-item:hover {
+  background: var(--surface-container);
+  border-color: var(--line-strong);
+}
+
+@media (min-width: 640px) {
+  .categoria-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.categoria-item__titulo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.categoria-item__icono {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Badge "Sistema" */
+.categoria-badge-sistema {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Acciones (editar / eliminar) */
+.categoria-item__acciones {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  align-self: flex-start;
+}
+
+@media (min-width: 640px) {
+  .categoria-item__acciones {
+    align-self: auto;
+  }
+}
+
+.categoria-accion-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s var(--ease);
+}
+
+.categoria-accion-link svg {
+  flex-shrink: 0;
+}
+
+.categoria-accion-link--editar {
+  color: var(--accent);
+}
+.categoria-accion-link--editar:hover {
+  color: var(--accent-hover);
+}
+
+.categoria-accion-link--eliminar {
+  color: var(--error);
+}
+.categoria-accion-link--eliminar:hover {
+  color: color-mix(in srgb, var(--error) 80%, black);
+}
+
+/* Modal de eliminar */
+.categoria-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.categoria-modal.hidden {
+  display: none;
+}
+
+.categoria-modal__caja {
+  background: var(--surface-container-lowest);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.categoria-modal__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--soon-bg);
+  color: var(--soon);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.categoria-modal__aviso svg {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}

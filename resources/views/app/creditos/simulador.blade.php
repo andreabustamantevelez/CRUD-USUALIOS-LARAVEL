@@ -461,9 +461,9 @@
                 ></div>
 
                 <div
-                  class="h-full bg-tertiary-container transition-all duration-500"
-                  id="interestBarSegment"
-                  style="width: 27%;"
+                class="h-full transition-all duration-500"
+                id="interestBarSegment"
+                style="width: 27%;"
                 ></div>
               </div>
 

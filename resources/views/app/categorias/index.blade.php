@@ -1,4 +1,3 @@
-```blade
 @extends('layouts.app')
 
 @section('titulo', 'Categorías · Cuentas Claras')
@@ -28,30 +27,30 @@
 
             {{-- Mensaje de éxito --}}
             @if(session('exito'))
-                <div class="mb-4 p-3 rounded-lg bg-green-50 text-green-700">
-                    {{ session('exito') }}
+                <div class="categoria-exito" role="status">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    <span>{{ session('exito') }}</span>
                 </div>
             @endif
 
             {{-- Formulario para crear categoría --}}
-            <form
-                method="POST"
-                action="{{ route('categorias.store') }}"
-                class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
-            >
+            <form method="POST" action="{{ route('categorias.store') }}" class="categoria-form-crear">
                 @csrf
 
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <h3 class="font-headline-sm text-headline-sm text-on-surface mb-4">
                     Crear nueva categoría
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
                     <div>
-                        <label for="nombre" class="block text-sm font-semibold text-gray-600 mb-1">
+                        <label for="nombre" class="block font-label-md text-label-md text-on-surface-variant mb-1">
                             Nombre
                         </label>
-
                         <input
                             type="text"
                             id="nombre"
@@ -60,83 +59,55 @@
                             maxlength="50"
                             required
                             placeholder="Ej: Gimnasio"
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                        >
-
+                            class="input">
                         @error('nombre')
-                            <span class="text-xs text-red-500">
-                                {{ $message }}
-                            </span>
+                            <span class="categoria-campo-error">{{ $message }}</span>
                         @enderror
                     </div>
 
                     <div>
-                        <label for="bloque" class="block text-sm font-semibold text-gray-600 mb-1">
+                        <label for="bloque" class="block font-label-md text-label-md text-on-surface-variant mb-1">
                             Bloque
                         </label>
-
-                        <select
-                            id="bloque"
-                            name="bloque"
-                            required
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                        >
+                        <select id="bloque" name="bloque" required class="input">
                             <option value="">Selecciona un bloque</option>
-
-                            <option value="necesidades"
-                                {{ old('bloque') === 'necesidades' ? 'selected' : '' }}>
-                                Necesidades
-                            </option>
-
-                            <option value="discrecionales"
-                                {{ old('bloque') === 'discrecionales' ? 'selected' : '' }}>
-                                Discrecionales
-                            </option>
-
-                            <option value="ahorro"
-                                {{ old('bloque') === 'ahorro' ? 'selected' : '' }}>
-                                Ahorro
-                            </option>
+                            <option value="necesidades" {{ old('bloque') === 'necesidades' ? 'selected' : '' }}>Necesidades</option>
+                            <option value="discrecionales" {{ old('bloque') === 'discrecionales' ? 'selected' : '' }}>Discrecionales</option>
+                            <option value="ahorro" {{ old('bloque') === 'ahorro' ? 'selected' : '' }}>Ahorro</option>
                         </select>
-
                         @error('bloque')
-                            <span class="text-xs text-red-500">
-                                {{ $message }}
-                            </span>
+                            <span class="categoria-campo-error">{{ $message }}</span>
                         @enderror
                     </div>
-
                 </div>
 
                 <div class="mt-4 flex justify-end">
-                    <button
-                        type="submit"
-                        style="background-color: #00855d; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"
-                    >
-                        Crear categoría
+                    <button type="submit" class="btn btn-primary categoria-boton-icono">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                             stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        <span>Crear categoría</span>
                     </button>
                 </div>
             </form>
 
             {{-- Formulario para editar categoría --}}
             @if($categoriaEditar)
-                <div class="mb-6 p-4 border border-gray-200 rounded-xl">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <div class="categoria-form-editar">
+                    <h3 class="font-headline-sm text-headline-sm text-on-surface mb-4">
                         Editar categoría
                     </h3>
 
-                    <form
-                        method="POST"
-                        action="{{ route('categorias.update', $categoriaEditar->id) }}"
-                    >
+                    <form method="POST" action="{{ route('categorias.update', $categoriaEditar->id) }}">
                         @csrf
                         @method('PUT')
 
                         <div class="mb-4">
-                            <label for="editar_nombre" class="block font-semibold mb-1">
+                            <label for="editar_nombre" class="block font-label-md text-label-md text-on-surface-variant mb-1">
                                 Nombre
                             </label>
-
                             <input
                                 type="text"
                                 id="editar_nombre"
@@ -144,59 +115,44 @@
                                 value="{{ old('nombre', $categoriaEditar->nombre) }}"
                                 maxlength="50"
                                 required
-                                class="w-full px-3 py-2 border border-gray-200 rounded-lg"
-                            >
-
+                                class="input">
                             @error('nombre')
-                                <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                                <p class="categoria-campo-error">{{ $message }}</p>
                             @enderror
                         </div>
 
                         <div class="mb-4">
-                            <label for="editar_bloque" class="block font-semibold mb-1">
+                            <label for="editar_bloque" class="block font-label-md text-label-md text-on-surface-variant mb-1">
                                 Bloque
                             </label>
-
-                            <select
-                                id="editar_bloque"
-                                name="bloque"
-                                required
-                                class="w-full px-3 py-2 border border-gray-200 rounded-lg"
-                            >
-                                <option value="necesidades"
-                                    {{ old('bloque', $categoriaEditar->bloque) === 'necesidades' ? 'selected' : '' }}>
-                                    Necesidades
-                                </option>
-
-                                <option value="discrecionales"
-                                    {{ old('bloque', $categoriaEditar->bloque) === 'discrecionales' ? 'selected' : '' }}>
-                                    Discrecionales
-                                </option>
-
-                                <option value="ahorro"
-                                    {{ old('bloque', $categoriaEditar->bloque) === 'ahorro' ? 'selected' : '' }}>
-                                    Ahorro
-                                </option>
+                            <select id="editar_bloque" name="bloque" required class="input">
+                                <option value="necesidades" {{ old('bloque', $categoriaEditar->bloque) === 'necesidades' ? 'selected' : '' }}>Necesidades</option>
+                                <option value="discrecionales" {{ old('bloque', $categoriaEditar->bloque) === 'discrecionales' ? 'selected' : '' }}>Discrecionales</option>
+                                <option value="ahorro" {{ old('bloque', $categoriaEditar->bloque) === 'ahorro' ? 'selected' : '' }}>Ahorro</option>
                             </select>
-
                             @error('bloque')
-                                <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                                <p class="categoria-campo-error">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        <div class="flex gap-3">
-                            <button
-                                type="submit"
-                                style="background-color: #00855d; color: white; padding: 10px 16px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"
-                            >
-                                Guardar cambios
+                        <div class="flex flex-wrap gap-3">
+                            <button type="submit" class="btn btn-primary categoria-boton-icono">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span>Guardar cambios</span>
                             </button>
 
-                            <a
-                                href="{{ route('categorias.index') }}"
-                                class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700"
-                            >
-                                Cancelar
+                            <a href="{{ route('categorias.index') }}" class="btn btn-secondary categoria-boton-icono">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                <span>Cancelar</span>
                             </a>
                         </div>
                     </form>
@@ -205,91 +161,112 @@
 
             {{-- Listado de categorías --}}
             @forelse(($categorias ?? []) as $item)
+                <div class="categoria-item">
 
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-gray-100 rounded-xl mb-3 bg-white">
+                    <div class="categoria-item__info">
+                        <div class="categoria-item__titulo">
 
-                    <div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="font-semibold text-gray-800">
+                            {{-- Icono tag de la categoría --}}
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                 stroke-linejoin="round" width="16" height="16" aria-hidden="true"
+                                 class="categoria-item__icono">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                                <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/>
+                            </svg>
+
+                            <h3 class="font-label-md text-label-md font-semibold text-on-surface">
                                 {{ $item->nombre }}
                             </h3>
 
                             @if($item->esDelSistema())
-                                <span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
-                                    🔒 Sistema
+                                <span class="categoria-badge-sistema">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                         stroke-linejoin="round" width="12" height="12" aria-hidden="true">
+                                        <rect x="4" y="11" width="16" height="10" rx="2"/>
+                                        <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                                    </svg>
+                                    <span>Sistema</span>
                                 </span>
                             @endif
                         </div>
 
-                        <p class="text-sm text-gray-500 mt-1">
+                        <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
                             Bloque: {{ ucfirst($item->bloque) }}
                         </p>
 
-                        <p class="text-sm text-gray-500">
+                        <p class="font-body-sm text-body-sm text-on-surface-variant">
                             {{ $item->gastos_count }} gasto(s)
                         </p>
                     </div>
 
-                    {{-- Las categorías del sistema no se pueden editar ni eliminar --}}
-                   @if(!$item->esDelSistema())
-    <div class="flex items-center gap-3 self-center" style="align-items: baseline;">
+                    @if(!$item->esDelSistema())
+                        <div class="categoria-item__acciones">
 
-        <a
-    href="{{ route('categorias.index', ['editar' => $item->id]) }}"
-    class="inline-flex items-center leading-5 text-indigo-600 hover:text-indigo-800 text-sm font-semibold"
-   >
-    Editar
-</a>
+                            <a href="{{ route('categorias.index', ['editar' => $item->id]) }}"
+                               class="categoria-accion-link categoria-accion-link--editar">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                                    <path d="M12 20h9"/>
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                                </svg>
+                                <span>Editar</span>
+                            </a>
 
-                            {{-- Si tiene gastos, solicitar una categoría de destino --}}
                             @if($item->gastos_count > 0)
-
-                              <button
-    type="button"
-    onclick="document.getElementById('modal-eliminar-{{ $item->id }}').classList.remove('hidden')"
-    class="inline-flex items-center text-red-600 hover:text-red-800 text-sm font-semibold"
-    >
-    Eliminar
-</button>
+                                <button type="button"
+                                        onclick="document.getElementById('modal-eliminar-{{ $item->id }}').classList.remove('hidden')"
+                                        class="categoria-accion-link categoria-accion-link--eliminar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                         stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                        <path d="M10 11v6M14 11v6"/>
+                                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                                    </svg>
+                                    <span>Eliminar</span>
+                                </button>
 
                                 {{-- Modal de traslado de gastos --}}
-                                <div
-                                    id="modal-eliminar-{{ $item->id }}"
-                                    class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-                                >
-                                    <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                                <div id="modal-eliminar-{{ $item->id }}"
+                                     class="categoria-modal hidden">
+                                    <div class="categoria-modal__caja">
 
-                                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                                        <h3 class="font-headline-sm text-headline-sm text-on-surface mb-3">
                                             Eliminar categoría
                                         </h3>
 
-                                        <p class="text-sm text-gray-600 mb-4">
-                                            Esta categoría tiene {{ $item->gastos_count }} gasto(s).
-                                            Selecciona dónde quieres trasladarlos antes de eliminarla.
-                                        </p>
+                                        <div class="categoria-modal__aviso">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                 stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                            </svg>
+                                            <span>
+                                                Esta categoría tiene {{ $item->gastos_count }} gasto(s).
+                                                Selecciona dónde quieres trasladarlos antes de eliminarla.
+                                            </span>
+                                        </div>
 
-                                        <form
-                                            method="POST"
-                                            action="{{ route('categorias.destroy', $item->id) }}"
-                                        >
+                                        <form method="POST" action="{{ route('categorias.destroy', $item->id) }}">
                                             @csrf
                                             @method('DELETE')
 
-                                            <label
-                                                for="destino-{{ $item->id }}"
-                                                class="block text-sm font-semibold text-gray-700 mb-2"
-                                            >
+                                            <label for="destino-{{ $item->id }}"
+                                                   class="block font-label-md text-label-md text-on-surface-variant mb-2">
                                                 Categoría de destino
                                             </label>
 
-                                            <select
-                                                id="destino-{{ $item->id }}"
-                                                name="categoria_destino_id"
-                                                required
-                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-5"
-                                            >
+                                            <select id="destino-{{ $item->id }}"
+                                                    name="categoria_destino_id"
+                                                    required
+                                                    class="input mb-5">
                                                 <option value="">Selecciona una categoría</option>
-
                                                 @foreach($categorias as $destino)
                                                     @if($destino->id !== $item->id)
                                                         <option value="{{ $destino->id }}">
@@ -301,45 +278,51 @@
                                             </select>
 
                                             @error('categoria_destino_id')
-                                                <p class="text-red-600 text-sm mb-3">
-                                                    {{ $message }}
-                                                </p>
+                                                <p class="categoria-campo-error mb-3">{{ $message }}</p>
                                             @enderror
 
-                                            <div class="flex justify-end gap-3">
-                                                <button
-                                                    type="button"
-                                                    onclick="document.getElementById('modal-eliminar-{{ $item->id }}').classList.add('hidden')"
-                                                    class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700"
-                                                >
-                                                    Cancelar
+                                            <div class="flex flex-wrap justify-end gap-3">
+                                                <button type="button"
+                                                        onclick="document.getElementById('modal-eliminar-{{ $item->id }}').classList.add('hidden')"
+                                                        class="btn btn-secondary categoria-boton-icono">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                         stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                                    </svg>
+                                                    <span>Cancelar</span>
                                                 </button>
 
-                                                <button
-                                                    type="submit"
-                                                    style="background-color: #dc2626; color: white; padding: 10px 16px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"
-                                                >
-                                                    Mover gastos y eliminar
+                                                <button type="submit" class="btn btn-danger categoria-boton-icono">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                         stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                                    </svg>
+                                                    <span>Mover y eliminar</span>
                                                 </button>
                                             </div>
                                         </form>
                                     </div>
                                 </div>
                             @else
-                                {{-- Si no tiene gastos, se puede eliminar directamente --}}
-                                <form
-                                    method="POST"
-                                    action="{{ route('categorias.destroy', $item->id) }}"
-                                    onsubmit="return confirm('¿Seguro que deseas eliminar esta categoría?');"
-                                >
+                                {{-- Sin gastos: eliminar directo --}}
+                                <form method="POST" action="{{ route('categorias.destroy', $item->id) }}"
+                                      onsubmit="return confirm('¿Seguro que deseas eliminar esta categoría?');"
+                                      class="inline-flex">
                                     @csrf
                                     @method('DELETE')
-
-                                    <button
-                                        type="submit"
-                                        class="text-red-600 hover:text-red-800 text-sm font-semibold"
-                                    >
-                                        Eliminar
+                                    <button type="submit" class="categoria-accion-link categoria-accion-link--eliminar">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                             stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                            <path d="M10 11v6M14 11v6"/>
+                                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                                        </svg>
+                                        <span>Eliminar</span>
                                     </button>
                                 </form>
                             @endif
