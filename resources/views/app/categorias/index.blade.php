@@ -11,21 +11,15 @@
     <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
 
         <header>
-            <h1 class="font-headline-xl text-headline-xl text-on-surface">
-                Categorías
-            </h1>
-            <p class="font-body-md text-body-md text-on-surface-variant mt-1">
-                Organiza tus gastos
-            </p>
+            <h1 class="font-headline-xl text-headline-xl text-on-surface">Categorías</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant mt-1">Organiza tus gastos</p>
         </header>
 
         <section class="card p-space-lg" data-dinamico="categorias">
-
             <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
                 Mis categorías y las del sistema
             </h2>
 
-            {{-- Mensaje de éxito --}}
             @if(session('exito'))
                 <div class="categoria-exito" role="status">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -38,7 +32,7 @@
                 </div>
             @endif
 
-            {{-- Formulario para crear categoría --}}
+            {{-- FORMULARIO CREAR --}}
             <form method="POST" action="{{ route('categorias.store') }}" class="categoria-form-crear">
                 @csrf
 
@@ -51,15 +45,9 @@
                         <label for="nombre" class="block font-label-md text-label-md text-on-surface-variant mb-1">
                             Nombre
                         </label>
-                        <input
-                            type="text"
-                            id="nombre"
-                            name="nombre"
-                            value="{{ old('nombre') }}"
-                            maxlength="50"
-                            required
-                            placeholder="Ej: Gimnasio"
-                            class="input">
+                        <input type="text" id="nombre" name="nombre"
+                               value="{{ old('nombre') }}" maxlength="50" required
+                               placeholder="Ej: Gimnasio" class="input">
                         @error('nombre')
                             <span class="categoria-campo-error">{{ $message }}</span>
                         @enderror
@@ -81,6 +69,31 @@
                     </div>
                 </div>
 
+                {{-- SELECTOR DE ICONOS (CREAR) --}}
+                <div class="mt-4">
+                    <label class="block font-label-md text-label-md text-on-surface-variant mb-2">
+                        Icono de la categoría (opcional)
+                    </label>
+                    <div class="categoria-icono-selector">
+                        <label class="categoria-icono-label" title="Icono automático">
+                            <input type="radio" name="icono" value="" class="sr-only"
+                                   {{ old('icono') === '' || old('icono') === null ? 'checked' : '' }}>
+                            <span class="material-symbols-outlined text-[20px]">magic_button</span>
+                        </label>
+
+                        @foreach(\App\Models\Categoria::ICONOS as $key => $label)
+                            <label class="categoria-icono-label" title="{{ $label }}">
+                                <input type="radio" name="icono" value="{{ $key }}" class="sr-only"
+                                       {{ old('icono') === $key ? 'checked' : '' }}>
+                                <x-categoria-icono :icono="$key" :size="20" />
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('icono')
+                        <span class="categoria-campo-error">{{ $message }}</span>
+                    @enderror
+                </div>
+
                 <div class="mt-4 flex justify-end">
                     <button type="submit" class="btn btn-primary categoria-boton-icono">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -93,7 +106,7 @@
                 </div>
             </form>
 
-            {{-- Formulario para editar categoría --}}
+            {{-- FORMULARIO EDITAR --}}
             @if($categoriaEditar)
                 <div class="categoria-form-editar">
                     <h3 class="font-headline-sm text-headline-sm text-on-surface mb-4">
@@ -104,33 +117,55 @@
                         @csrf
                         @method('PUT')
 
-                        <div class="mb-4">
-                            <label for="editar_nombre" class="block font-label-md text-label-md text-on-surface-variant mb-1">
-                                Nombre
-                            </label>
-                            <input
-                                type="text"
-                                id="editar_nombre"
-                                name="nombre"
-                                value="{{ old('nombre', $categoriaEditar->nombre) }}"
-                                maxlength="50"
-                                required
-                                class="input">
-                            @error('nombre')
-                                <p class="categoria-campo-error">{{ $message }}</p>
-                            @enderror
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="editar_nombre" class="block font-label-md text-label-md text-on-surface-variant mb-1">
+                                    Nombre
+                                </label>
+                                <input type="text" id="editar_nombre" name="nombre"
+                                       value="{{ old('nombre', $categoriaEditar->nombre) }}"
+                                       maxlength="50" required class="input">
+                                @error('nombre')
+                                    <p class="categoria-campo-error">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="editar_bloque" class="block font-label-md text-label-md text-on-surface-variant mb-1">
+                                    Bloque
+                                </label>
+                                <select id="editar_bloque" name="bloque" required class="input">
+                                    <option value="necesidades" {{ old('bloque', $categoriaEditar->bloque) === 'necesidades' ? 'selected' : '' }}>Necesidades</option>
+                                    <option value="discrecionales" {{ old('bloque', $categoriaEditar->bloque) === 'discrecionales' ? 'selected' : '' }}>Discrecionales</option>
+                                    <option value="ahorro" {{ old('bloque', $categoriaEditar->bloque) === 'ahorro' ? 'selected' : '' }}>Ahorro</option>
+                                </select>
+                                @error('bloque')
+                                    <p class="categoria-campo-error">{{ $message }}</p>
+                                @enderror
+                            </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label for="editar_bloque" class="block font-label-md text-label-md text-on-surface-variant mb-1">
-                                Bloque
+                        {{-- SELECTOR DE ICONOS (EDITAR) --}}
+                        <div class="mb-6">
+                            <label class="block font-label-md text-label-md text-on-surface-variant mb-2">
+                                Icono de la categoría (opcional)
                             </label>
-                            <select id="editar_bloque" name="bloque" required class="input">
-                                <option value="necesidades" {{ old('bloque', $categoriaEditar->bloque) === 'necesidades' ? 'selected' : '' }}>Necesidades</option>
-                                <option value="discrecionales" {{ old('bloque', $categoriaEditar->bloque) === 'discrecionales' ? 'selected' : '' }}>Discrecionales</option>
-                                <option value="ahorro" {{ old('bloque', $categoriaEditar->bloque) === 'ahorro' ? 'selected' : '' }}>Ahorro</option>
-                            </select>
-                            @error('bloque')
+                            <div class="categoria-icono-selector">
+                                <label class="categoria-icono-label" title="Icono automático">
+                                    <input type="radio" name="icono" value="" class="sr-only"
+                                           {{ old('icono', $categoriaEditar->icono) === '' || old('icono', $categoriaEditar->icono) === null ? 'checked' : '' }}>
+                                    <span class="material-symbols-outlined text-[20px]">magic_button</span>
+                                </label>
+
+                                @foreach(\App\Models\Categoria::ICONOS as $key => $label)
+                                    <label class="categoria-icono-label" title="{{ $label }}">
+                                        <input type="radio" name="icono" value="{{ $key }}" class="sr-only"
+                                               {{ old('icono', $categoriaEditar->icono) === $key ? 'checked' : '' }}>
+                                        <x-categoria-icono :icono="$key" :size="20" />
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('icono')
                                 <p class="categoria-campo-error">{{ $message }}</p>
                             @enderror
                         </div>
@@ -159,21 +194,12 @@
                 </div>
             @endif
 
-            {{-- Listado de categorías --}}
+            {{-- LISTADO DE CATEGORÍAS --}}
             @forelse(($categorias ?? []) as $item)
                 <div class="categoria-item">
-
                     <div class="categoria-item__info">
                         <div class="categoria-item__titulo">
-
-                            {{-- Icono tag de la categoría --}}
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                 stroke-linejoin="round" width="16" height="16" aria-hidden="true"
-                                 class="categoria-item__icono">
-                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                                <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/>
-                            </svg>
+                            <x-categoria-icono :categoria="$item" :size="20" class="categoria-item__icono" />
 
                             <h3 class="font-label-md text-label-md font-semibold text-on-surface">
                                 {{ $item->nombre }}
@@ -195,7 +221,6 @@
                         <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
                             Bloque: {{ ucfirst($item->bloque) }}
                         </p>
-
                         <p class="font-body-sm text-body-sm text-on-surface-variant">
                             {{ $item->gastos_count }} gasto(s)
                         </p>
@@ -203,7 +228,6 @@
 
                     @if(!$item->esDelSistema())
                         <div class="categoria-item__acciones">
-
                             <a href="{{ route('categorias.index', ['editar' => $item->id]) }}"
                                class="categoria-accion-link categoria-accion-link--editar">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -231,10 +255,8 @@
                                 </button>
 
                                 {{-- Modal de traslado de gastos --}}
-                                <div id="modal-eliminar-{{ $item->id }}"
-                                     class="categoria-modal hidden">
+                                <div id="modal-eliminar-{{ $item->id }}" class="categoria-modal hidden">
                                     <div class="categoria-modal__caja">
-
                                         <h3 class="font-headline-sm text-headline-sm text-on-surface mb-3">
                                             Eliminar categoría
                                         </h3>
@@ -263,15 +285,12 @@
                                             </label>
 
                                             <select id="destino-{{ $item->id }}"
-                                                    name="categoria_destino_id"
-                                                    required
-                                                    class="input mb-5">
+                                                    name="categoria_destino_id" required class="input mb-5">
                                                 <option value="">Selecciona una categoría</option>
                                                 @foreach($categorias as $destino)
                                                     @if($destino->id !== $item->id)
                                                         <option value="{{ $destino->id }}">
-                                                            {{ $destino->nombre }}
-                                                            {{ $destino->esDelSistema() ? '(Sistema)' : '' }}
+                                                            {{ $destino->nombre }} {{ $destino->esDelSistema() ? '(Sistema)' : '' }}
                                                         </option>
                                                     @endif
                                                 @endforeach

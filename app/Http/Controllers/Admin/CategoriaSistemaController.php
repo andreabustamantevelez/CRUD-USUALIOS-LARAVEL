@@ -70,6 +70,7 @@ class CategoriaSistemaController extends Controller
             'nombre' => $request->validated('nombre'),
             'bloque' => $request->validated('bloque'),
             'peso_recomendado' => $request->validated('peso_recomendado'),
+            'icono' => $request->validated('icono'),
             'activa' => true,
         ]);
 
@@ -84,6 +85,7 @@ class CategoriaSistemaController extends Controller
             'nombre' => $request->validated('nombre'),
             'bloque' => $request->validated('bloque'),
             'peso_recomendado' => $request->validated('peso_recomendado'),
+            'icono' => $request->validated('icono'),
         ]);
 
         return back()->with('exito', 'Categoría actualizada');

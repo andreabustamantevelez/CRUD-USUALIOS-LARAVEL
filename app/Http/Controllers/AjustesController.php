@@ -34,12 +34,18 @@ class AjustesController extends Controller
     public function actualizarPerfil(UpdatePerfilRequest $request): RedirectResponse
     {
         $usuario = $request->user();
-        $datos   = $request->validated();
+        $datos = $request->validated();
+        $esAdmin = $usuario->rol === 'administrador';
         $mensaje = 'Tu perfil se actualizó correctamente.';
 
         // 1. Datos básicos
-        $usuario->nombre          = $datos['nombre'];
-        $usuario->ingreso_mensual = $datos['ingreso_mensual'] ?? null;
+        $usuario->nombre = $datos['nombre'];
+
+        // Solo los no-admin tienen ingreso mensual. El admin conserva el valor que
+        // tuviera en BD (nunca debería tener uno, pero por si acaso).
+        if (!$esAdmin) {
+            $usuario->ingreso_mensual = $datos['ingreso_mensual'] ?? null;
+        }
 
         // 2. Contraseña (si aplica)
         if (!empty($datos['nueva_contrasena'])) {
@@ -137,7 +143,7 @@ class AjustesController extends Controller
             'tipo_cuenta' => ['required', 'in:estandar,familiar'],
         ], [
             'tipo_cuenta.required' => 'Selecciona un tipo de cuenta.',
-            'tipo_cuenta.in'       => 'Selecciona un tipo de cuenta válido.',
+            'tipo_cuenta.in' => 'Selecciona un tipo de cuenta válido.',
         ]);
 
         try {
@@ -175,13 +181,13 @@ class AjustesController extends Controller
         );
 
         $request->validate([
-            'contrasena_actual'     => ['required', 'current_password'],
+            'contrasena_actual' => ['required', 'current_password'],
             'confirmar_eliminacion' => ['required', 'accepted'],
         ], [
-            'contrasena_actual.required'         => 'Ingresa tu contraseña actual.',
+            'contrasena_actual.required' => 'Ingresa tu contraseña actual.',
             'contrasena_actual.current_password' => 'La contraseña actual no es correcta.',
-            'confirmar_eliminacion.required'     => 'Debes confirmar que deseas eliminar tu cuenta.',
-            'confirmar_eliminacion.accepted'     => 'Debes confirmar que deseas eliminar tu cuenta.',
+            'confirmar_eliminacion.required' => 'Debes confirmar que deseas eliminar tu cuenta.',
+            'confirmar_eliminacion.accepted' => 'Debes confirmar que deseas eliminar tu cuenta.',
         ]);
 
         $usuario = $request->user();

@@ -39,10 +39,6 @@
       {{-- Separador --}}
       <div class="my-2 border-t border-outline-variant/30"></div>
 
-      <a
-        class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md{{ request()->routeIs('ajustes*') ? ' nav-active' : '' }}"
-        href="{{ route('ajustes.tipo-cuenta') }}"
-      >Mis ajustes</a>
     </nav>
   </div>
 

@@ -5,7 +5,6 @@
 
 /* --- Aviso contextual --- */
 .admin-aviso {
-  border-left: 3px solid var(--accent);
   background: var(--surface-container-low);
 }
 .admin-aviso__icono {
@@ -207,4 +206,56 @@
     transition: none;
   }
   .admin-categoria__editar[open] .admin-categoria__form { animation: none; }
+}
+
+/* =========================================================================
+   Selector de íconos (mismo patrón que categorias.css del usuario)
+   ========================================================================= */
+.categoria-icono-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.5rem, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.categoria-icono-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-lowest);
+  transition: all 0.15s var(--ease);
+}
+
+.categoria-icono-label:hover {
+  background: var(--surface-container-low);
+  border-color: var(--outline);
+  color: var(--on-surface);
+}
+
+.categoria-icono-label:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Icono en cada fila del listado */
+.admin-categoria__icono {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Formulario de edición: el selector ocupa toda la fila */
+.admin-categoria__form-iconos {
+  flex-basis: 100%;
+}
+
+/* Ajuste para que el grid del formulario de editar acepte full-width */
+.admin-categoria__form {
+  flex-wrap: wrap;
 }

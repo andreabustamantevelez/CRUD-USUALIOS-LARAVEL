@@ -7,6 +7,7 @@
 @endpush
 
 @section('content')
+    @php($esAdmin = $usuario->rol === 'administrador')
     <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
         <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
             <header>
@@ -14,7 +15,11 @@
                     Ajustes · Perfil
                 </h1>
                 <p class="font-body-md text-body-md text-on-surface-variant mt-1">
-                    Actualiza tus datos personales, tu ingreso mensual y tu contraseña.
+                    @if($esAdmin)
+                        Actualiza tus datos personales y tu contraseña.
+                    @else
+                        Actualiza tus datos personales, tu ingreso mensual y tu contraseña.
+                    @endif
                 </p>
             </header>
 
@@ -32,9 +37,7 @@
                         nuevo correo. Tu correo actual seguirá siendo
                         <strong>{{ $usuario->email }}</strong> hasta que confirmes el cambio.
 
-                        <form method="POST"
-                              action="{{ route('ajustes.confirmar-correo.reenviar') }}"
-                              class="mt-3">
+                        <form method="POST" action="{{ route('ajustes.confirmar-correo.reenviar') }}" class="mt-3">
                             @csrf
                             <button type="submit" class="btn btn-secondary">
                                 Reenviar correo de confirmación
@@ -81,15 +84,8 @@
                     <div class="ajustes-form__grid ajustes-form__grid--2">
                         <div class="ajustes-campo">
                             <label for="nombre" class="ajustes-campo__label">Nombre completo</label>
-                            <input
-                                type="text"
-                                id="nombre"
-                                name="nombre"
-                                value="{{ old('nombre', $usuario->nombre) }}"
-                                maxlength="100"
-                                required
-                                autocomplete="name"
-                                class="ajustes-campo__input">
+                            <input type="text" id="nombre" name="nombre" value="{{ old('nombre', $usuario->nombre) }}"
+                                maxlength="100" required autocomplete="name" class="ajustes-campo__input">
                             @error('nombre')
                                 <p class="ajustes-campo__error">{{ $message }}</p>
                             @enderror
@@ -97,44 +93,33 @@
 
                         <div class="ajustes-campo">
                             <label for="email" class="ajustes-campo__label">Correo electrónico</label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                value="{{ old('email', $usuario->email) }}"
-                                maxlength="150"
-                                required
-                                autocomplete="email"
-                                class="ajustes-campo__input">
+                            <input type="email" id="email" name="email" value="{{ old('email', $usuario->email) }}"
+                                maxlength="150" required autocomplete="email" class="ajustes-campo__input">
                             @error('email')
                                 <p class="ajustes-campo__error">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        <div class="ajustes-campo ajustes-campo--full">
-                            <label for="ingreso_mensual" class="ajustes-campo__label">
-                                Ingreso mensual
-                            </label>
-                            <div class="ajustes-campo__sufijo">
-                                <input
-                                    type="text"
-                                    inputmode="numeric"
-                                    id="ingreso_mensual"
-                                    name="ingreso_mensual"
-                                    value="{{ old('ingreso_mensual', $usuario->ingreso_mensual !== null ? number_format($usuario->ingreso_mensual, 0, ',', '.') : '') }}"
-                                    autocomplete="off"
-                                    placeholder="Ej: 3.500.000"
-                                    class="ajustes-campo__input">
-                                <span class="ajustes-campo__sufijo-texto">COP</span>
+                        @if(!$esAdmin)
+                            <div class="ajustes-campo ajustes-campo--full">
+                                <label for="ingreso_mensual" class="ajustes-campo__label">
+                                    Ingreso mensual
+                                </label>
+                                <div class="ajustes-campo__sufijo">
+                                    <input type="text" inputmode="numeric" id="ingreso_mensual" name="ingreso_mensual"
+                                        value="{{ old('ingreso_mensual', $usuario->ingreso_mensual !== null ? number_format($usuario->ingreso_mensual, 0, ',', '.') : '') }}"
+                                        autocomplete="off" placeholder="Ej: 3.500.000" class="ajustes-campo__input">
+                                    <span class="ajustes-campo__sufijo-texto">COP</span>
+                                </div>
+                                <p class="ajustes-campo__hint">
+                                    Se usa en el simulador de créditos y en el informe mensual.
+                                    Déjalo vacío si aún no lo tienes.
+                                </p>
+                                @error('ingreso_mensual')
+                                    <p class="ajustes-campo__error">{{ $message }}</p>
+                                @enderror
                             </div>
-                            <p class="ajustes-campo__hint">
-                                Se usa en el simulador de créditos y en el informe mensual.
-                                Déjalo vacío si aún no lo tienes.
-                            </p>
-                            @error('ingreso_mensual')
-                                <p class="ajustes-campo__error">{{ $message }}</p>
-                            @enderror
-                        </div>
+                        @endif
                     </div>
 
                     <hr class="ajustes-separador">
@@ -154,12 +139,8 @@
                             <label for="contrasena_actual" class="ajustes-campo__label">
                                 Contraseña actual
                             </label>
-                            <input
-                                type="password"
-                                id="contrasena_actual"
-                                name="contrasena_actual"
-                                autocomplete="current-password"
-                                class="ajustes-campo__input">
+                            <input type="password" id="contrasena_actual" name="contrasena_actual"
+                                autocomplete="current-password" class="ajustes-campo__input">
                             @error('contrasena_actual')
                                 <p class="ajustes-campo__error">{{ $message }}</p>
                             @enderror
@@ -169,11 +150,7 @@
                             <label for="nueva_contrasena" class="ajustes-campo__label">
                                 Nueva contraseña
                             </label>
-                            <input
-                                type="password"
-                                id="nueva_contrasena"
-                                name="nueva_contrasena"
-                                autocomplete="new-password"
+                            <input type="password" id="nueva_contrasena" name="nueva_contrasena" autocomplete="new-password"
                                 class="ajustes-campo__input">
                             <p class="ajustes-campo__hint">Mínimo 8 caracteres.</p>
                             @error('nueva_contrasena')
@@ -185,12 +162,8 @@
                             <label for="nueva_contrasena_confirmation" class="ajustes-campo__label">
                                 Confirmar nueva contraseña
                             </label>
-                            <input
-                                type="password"
-                                id="nueva_contrasena_confirmation"
-                                name="nueva_contrasena_confirmation"
-                                autocomplete="new-password"
-                                class="ajustes-campo__input">
+                            <input type="password" id="nueva_contrasena_confirmation" name="nueva_contrasena_confirmation"
+                                autocomplete="new-password" class="ajustes-campo__input">
                         </div>
                     </div>
 
@@ -205,15 +178,15 @@
     </main>
 
     @push('scripts')
-    <script>
-        (function () {
-            var ingreso = document.getElementById('ingreso_mensual');
-            if (!ingreso) return;
-            ingreso.addEventListener('input', function () {
-                var valor = this.value.replace(/\D/g, '');
-                this.value = valor.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            });
-        })();
-    </script>
+        <script>
+            (function () {
+                var ingreso = document.getElementById('ingreso_mensual');
+                if (!ingreso) return;
+                ingreso.addEventListener('input', function () {
+                    var valor = this.value.replace(/\D/g, '');
+                    this.value = valor.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                });
+            })();
+        </script>
     @endpush
 @endsection

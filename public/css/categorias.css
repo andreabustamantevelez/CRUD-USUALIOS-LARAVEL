@@ -188,3 +188,39 @@
   flex-shrink: 0;
   margin-top: 0.125rem;
 }
+/* =========================================================================
+   Selector de íconos
+   ========================================================================= */
+.categoria-icono-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
+    gap: 0.5rem;
+}
+
+.categoria-icono-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    border: 1px solid var(--outline-variant);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    color: var(--on-surface-variant);
+    background: var(--surface-container-lowest);
+    transition: all 0.2s var(--ease);
+}
+
+.categoria-icono-label:hover {
+    background: var(--surface-container-low);
+    border-color: var(--outline);
+    color: var(--on-surface);
+}
+
+/* Cuando el radio button está seleccionado */
+.categoria-icono-label:has(input:checked) {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+
+}

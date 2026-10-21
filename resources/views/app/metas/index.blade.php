@@ -1,24 +1,40 @@
 {{--
   ==============================================================================
   ARCHIVO : resources/views/app/metas/index.blade.php        (J5 HECHO)
-  QUÉ ES  : "Metas compartidas": lista de mis metas (individuales o compartidas) con su avance y formulario para crear una.
-  RUTA    : GET /metas (metas.index) · POST /metas (metas.store) · rol:familiar · MetaController@index
-  DATOS   : $metas (con aportes_sum_monto = total conjunto) · $invitaciones (cantidad pendiente)
-  PRIVACIDAD: solo se muestran NOMBRES de participantes y el total conjunto; nunca aportes individuales.
+  QUÉ ES  : "Metas": lista de mis metas (individuales o compartidas) con su avance
+            y formulario para crear una.
+  RUTA    : GET /metas (metas.index) · POST /metas (metas.store) · MetaController@index
+  DATOS   : $metas (con aportes_sum_monto = total conjunto) · $invitaciones
+  PRIVACIDAD: solo se muestran NOMBRES de participantes y el total conjunto; nunca
+              aportes individuales.
   CSS     : public/css/metas-compartidas.css
+  NOTA 2026-10-20: título y subtítulo cambian según rol:
+    · estandar → "Metas"
+    · familiar → "Metas compartidas"
   ==============================================================================
 --}}
 
 @extends('layouts.app')
-@section('titulo', 'Metas compartidas · Cuentas Claras')
+
+@php
+  $esFamiliar   = auth()->user()->rol === 'familiar';
+  $tituloPagina = $esFamiliar ? 'Metas compartidas' : 'Metas';
+  $subtitulo    = $esFamiliar
+      ? 'Ahorra junto a otra persona hacia un objetivo común'
+      : 'Ahorra hacia tus objetivos personales';
+@endphp
+
+@section('titulo', $tituloPagina . ' · Cuentas Claras')
+
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/metas-compartidas.css') }}">
 @endpush
+
 @section('content')
   <main class="relative pt-16 w-full px-margin min-h-screen bg-surface">
     <div class="w-full max-w-7xl mx-auto py-space-lg flex flex-col gap-space-lg">
       <header class="metas-encabezado">
-        @if(auth()->user()->rol === 'estandar')
+        @if(! $esFamiliar)
           <section class="card p-space-md" role="note">
             <p class="font-body-md text-body-md text-on-surface-variant">
               Puedes tener metas individuales. Para <strong>compartir</strong> una meta con otra persona,
@@ -27,8 +43,8 @@
           </section>
         @endif
         <div>
-          <h1 class="font-headline-xl text-headline-xl text-on-surface">Metas compartidas</h1>
-          <p class="font-body-md text-body-md text-on-surface-variant mt-1">Ahorra solo o junto a otra persona</p>
+          <h1 class="font-headline-xl text-headline-xl text-on-surface">{{ $tituloPagina }}</h1>
+          <p class="font-body-md text-body-md text-on-surface-variant mt-1">{{ $subtitulo }}</p>
         </div>
         <a href="{{ route('metas.invitaciones') }}" class="btn btn-secondary">
           <span class="material-symbols-outlined text-[18px]">mail</span>
@@ -38,7 +54,9 @@
       </header>
 
       <section class="card p-space-lg" data-dinamico="nueva-meta">
-        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">Crear una meta</h2>
+        <h2 class="font-headline-md text-headline-md text-on-surface mb-space-md">
+          {{ $esFamiliar ? 'Crear una meta' : 'Crear una meta' }}
+        </h2>
         <form method="POST" action="{{ route('metas.store') }}" class="metas-formulario" novalidate>
           @csrf
           <div class="metas-campo">
@@ -56,7 +74,7 @@
             <input id="fecha_limite" name="fecha_limite" type="date" class="input" value="{{ old('fecha_limite') }}">
             @error('fecha_limite')<p class="metas-error">{{ $message }}</p>@enderror
           </div>
-          @if(auth()->user()->rol === 'familiar')
+          @if($esFamiliar)
             <div class="metas-campo metas-campo--ancho metas-compartir">
               <label class="metas-casilla" for="compartida">
                 <input id="compartida" name="compartida" type="checkbox" value="1" @checked(old('compartida'))>
@@ -105,7 +123,9 @@
             </p>
           </a>
         @empty
-          <p class="font-body-md text-body-md text-on-surface-variant">Aún no tienes metas compartidas</p>
+          <p class="font-body-md text-body-md text-on-surface-variant">
+            {{ $esFamiliar ? 'Aún no tienes metas compartidas' : 'Aún no tienes metas' }}
+          </p>
         @endforelse
       </section>
     </div>
