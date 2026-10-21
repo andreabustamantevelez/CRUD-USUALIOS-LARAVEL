@@ -18,18 +18,18 @@
           <x-logo :alto="32" />
           <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold">
             <span class="material-symbols-outlined text-[13px]">verified_user</span>
-            Privacidad Garantizada
+            Privacidad y confianza
           </span>
         </div>
 
-        <p class="font-body-sm text-body-sm text-on-surface-variant max-w-lg leading-relaxed">
-          Plataforma inteligente de gestión de finanzas personales, presupuestos colaborativos y optimización
-          de flujo familiar. Diseñada bajo estándares de seguridad bancaria y transparencia absoluta.
-        </p>
+       <p class="font-body-sm text-body-sm text-on-surface-variant max-w-lg leading-relaxed">
+       Plataforma para organizar las finanzas personales y familiares, llevar un registro de gastos,
+       consultar compromisos y planificar metas de ahorro.
+       </p>
 
         <div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm mt-1">
           <span class="material-symbols-outlined text-[16px] text-primary">lock</span>
-          <span>Encriptación AES-256 de extremo a extremo</span>
+         <span>Consulta nuestra política de privacidad</span>
         </div>
       </div>
 
@@ -65,12 +65,10 @@
     {{-- Bloque inferior: aviso legal + copyright --}}
     <div class="pt-6 border-t border-outline-variant/30 flex flex-col md:flex-row items-center justify-between gap-4">
       <p class="font-body-sm text-[12px] text-secondary text-center md:text-left leading-relaxed max-w-4xl">
-        Aviso Legal: Cuentas Claras es una herramienta tecnológica orientada a la planeación y educación
-        financiera personal. No constituye una entidad financiera, no realiza captación masiva ni
-        intermediación bancaria, y no reporta información crediticia negativa ante centrales de riesgo.
+        Aviso Legal: Cuentas Claras es una herramienta tecnológica para organizar las finanzas personales y familiares.No es una entidad financiera ni una entidad prestamista.Su finalidad es facilitar el registro de gastos, el seguimiento de compromisos y la planificación de metas de ahorro.
       </p>
       <p class="font-label-sm text-label-sm text-secondary shrink-0">
-        © 2024 Cuentas Claras. Todos los derechos reservados.
+       © 2026 Cuentas Claras. Todos los derechos reservados.
       </p>
     </div>
   </div>

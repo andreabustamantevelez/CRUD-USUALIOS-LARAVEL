@@ -52,7 +52,7 @@
                   class="material-symbols-outlined text-[17px] text-primary"
                   style="font-variation-settings: &quot;FILL&quot; 1;"
                 >verified</span>
-                <span class="font-label-sm text-label-sm uppercase tracking-wider font-semibold">Plataforma Pedagógica y de Control Familiar • 100% Gratuita y Privada</span>
+                <span class="font-label-sm text-label-sm uppercase tracking-wider font-semibold">Organiza tus finanzas personales y familiares</span>
               </div>
               <!-- Main Dynamic Title -->
               <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight leading-[1.12]">
@@ -60,14 +60,13 @@
               </h1>
               <!-- Value Clarification -->
               <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
-                Centraliza tus gastos diarios, automatiza alertas <span class="font-semibold text-on-surface">72h antes</span> de tus recibos fijos, simula créditos con cálculo transparente y ahorra en pareja o familia con absoluta confidencialidad.
-              </p>
+Centraliza tus gastos diarios, organiza tus recibos fijos, simula créditos con cálculo transparente y planifica metas de ahorro personales o familiares. </p>
               <!-- Primary CTAs -->
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
                 <a
                   class="inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-md hover:shadow-lg transition-all duration-200 group active:scale-[0.98]"
                   data-path="crear-cuenta"
-                  href="{{ route('registro') }}"
+                  href="{{ route('registro', ['tipo' => 'estandar']) }}"
                 ><span>Comenzar Gratis Ahora</span> <span class="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span> </a>
               </div>
               <!-- Trust & Anti-anxiety Micro-guarantees -->
@@ -216,20 +215,20 @@
         <div class="max-w-7xl mx-auto px-margin">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div class="flex flex-col items-center">
-              <span class="font-numeric-lg text-numeric-lg text-primary font-bold">+18.000</span>
-              <span class="font-body-sm text-body-sm text-secondary mt-1">Hogares Organizados</span>
+              <span class="font-numeric-lg text-numeric-lg text-primary font-bold">Finanzas</span>
+              <span class="font-body-sm text-body-sm text-secondary mt-1">Organización financiera para tu hogar</span>
             </div>
             <div class="flex flex-col items-center">
-              <span class="font-numeric-lg text-numeric-lg text-on-surface font-bold">72 Horas</span>
-              <span class="font-body-sm text-body-sm text-secondary mt-1">Alertas Preventivas Previas</span>
+              <span class="font-numeric-lg text-numeric-lg text-on-surface font-bold">Alertas</span>
+              <span class="font-body-sm text-body-sm text-secondary mt-1">Recordatorios de gastos fijos</span>
             </div>
             <div class="flex flex-col items-center">
-              <span class="font-numeric-lg text-numeric-lg text-primary font-bold">100% Privado</span>
-              <span class="font-body-sm text-body-sm text-secondary mt-1">Sin Credenciales Bancarias</span>
+              <span class="font-numeric-lg text-numeric-lg text-primary font-bold">Privacidad</span>
+              <span class="font-body-sm text-body-sm text-secondary mt-1">Protección de datos personales</span>
             </div>
             <div class="flex flex-col items-center">
-              <span class="font-numeric-lg text-numeric-lg text-on-surface font-bold">0 COP</span>
-              <span class="font-body-sm text-body-sm text-secondary mt-1">Acceso Completo Gratuito</span>
+              <span class="font-numeric-lg text-numeric-lg text-on-surface font-bold">Gratis</span>
+             <span class="font-body-sm text-body-sm text-secondary mt-1">Consulta las condiciones de acceso</span>
             </div>
           </div>
         </div>
@@ -259,8 +258,7 @@
                 Sin deudas sorpresivas
               </h3>
               <p class="font-body-md text-body-md text-secondary leading-relaxed mb-6">
-                Notificaciones oportunas con <strong class="text-on-surface">3 días de antelación</strong> antes de cada vencimiento de recibos de luz, agua, arriendos o suscripciones streaming. Di adiós a los recargos por mora y cortes no programados.
-              </p>
+Organiza las fechas de vencimiento de tus recibos de luz, agua, arriendo y suscripciones para llevar un mejor control de tus compromisos. </p>
               <div class="mt-auto bg-surface-container-low p-4 rounded-xl flex items-center gap-3">
                 <span class="material-symbols-outlined text-primary text-[20px]">notifications_paused</span>
                 <span class="font-label-md text-label-md text-on-surface-variant font-medium">Recordatorios vía correo o navegador</span>
@@ -327,7 +325,7 @@
                     </div>
                     <div>
                       <h4 class="font-headline-md text-headline-md text-on-surface font-bold">
-                        Vacaciones Familiares Caribe 2025
+                      Vacaciones Familiares.
                       </h4>
                       <p class="font-body-sm text-body-sm text-secondary">
                         Meta compartida con 2 integrantes
@@ -389,7 +387,7 @@
                     style="font-variation-settings: &quot;FILL&quot; 1;"
                   >enhanced_encryption</span>
                   <p class="font-body-sm text-[12px] leading-snug">
-                    <strong>Garantía RQNF-03:</strong> Ni tu pareja ni ningún familiar vinculado pueden ver tus compras en tarjeta, cuentas individuales o saldos personales. Solo el pozo de la meta es visible.
+                    <strong>Privacidad en las metas compartidas:</strong> Consulta cómo se gestionan los datos personales y los permisos de acceso a la información dentro de la plataforma.
                   </p>
                 </div>
               </div>
@@ -414,7 +412,7 @@
                   </div>
                   <div>
                     <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                      Progreso consolidado en tiempo real
+                      Seguimiento de metas compartidas
                     </h4>
                     <p class="font-body-md text-body-md text-secondary">
                       Monitorean conjuntamente cuánto falta para el hito sin necesidad de hojas de cálculo
@@ -488,7 +486,7 @@
                 </li>
                 <li class="flex items-center gap-3">
                   <span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                  <span>Alertas preventivas 72 horas antes de vencimiento</span>
+                  <span>Organización y seguimiento de gastos fijos</span>
                 </li>
                 <li class="flex items-center gap-3">
                   <span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
@@ -507,7 +505,7 @@
                 <a
                   class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-headline-sm text-headline-sm transition-colors"
                   data-path="crear-cuenta"
-                  href="{{ route('registro') }}"
+                  href="{{ route('registro', ['tipo' => 'estandar']) }}"
                 > Elegir Cuenta Estándar </a>
               </div>
             </div>
@@ -551,7 +549,7 @@
                     class="material-symbols-outlined text-primary text-[20px]"
                     style="font-variation-settings: &quot;FILL&quot; 1;"
                   >check_circle</span>
-                  <span class="font-medium">Privacidad absoluta de gastos individuales garantizada</span>
+                  <span class="font-medium">Consulta las opciones de privacidad disponibles para los gastos individuales</span>
                 </li>
                 <li class="flex items-center gap-3">
                   <span
@@ -565,7 +563,7 @@
                 <a
                   class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-md transition-all"
                   data-path="crear-cuenta"
-                  href="{{ route('registro') }}"
+                  href="{{ route('registro', ['tipo' => 'familiar']) }}"
                 ><span>Crear Cuenta Familiar</span> <span class="material-symbols-outlined text-[18px]">arrow_forward</span> </a>
               </div>
             </div>
@@ -605,8 +603,7 @@
                 </h4>
               </div>
               <p class="font-body-sm text-body-sm text-secondary pl-8">
-                <strong>Bajo ninguna circunstancia.</strong> Cuentas Claras no es una entidad prestamista ni bancaria. Su único objetivo es alertarte a ti 72 horas antes para que recuerdes tus compromisos y vivas sin preocupaciones.
-              </p>
+             <strong>Bajo ninguna circunstancia.</strong> Cuentas Claras no es una entidad prestamista ni bancaria. Su objetivo es ayudarte a llevar un registro de tus compromisos y consultar las fechas de vencimiento de tus gastos.</p>
             </div>
             <!-- Question 3 -->
             <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col gap-2">
@@ -617,9 +614,7 @@
                 </h4>
               </div>
               <p class="font-body-sm text-body-sm text-secondary pl-8">
-                Todos los registros que ingresas son cifrados de extremo a extremo con el protocolo AES-256.
-                No comercializamos bases de datos con firmas publicitarias ni terceros. Puedes solicitar la
-                eliminación total de tus registros en cualquier momento.
+                Tratamos los datos personales de acuerdo con nuestra Política de privacidad y la normativa aplicable. Allí puedes consultar las finalidades del tratamiento y los canales disponibles para ejercer tus derechos.
               </p>
             </div>
           </div>
@@ -695,11 +690,11 @@
               <ul class="flex flex-col gap-3 font-body-md text-body-md text-on-surface">
                 <li class="flex items-start gap-2.5">
                   <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">check_circle</span>
-                  <span>Alertas preventivas 72h antes a tu correo y navegador, cero recargos.</span>
+                  <span>Organiza tus compromisos y consulta las fechas de vencimiento de tus gastos.</span>
                 </li>
                 <li class="flex items-start gap-2.5">
                   <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">check_circle</span>
-                  <span>Garantía de Privacidad RQNF-03: tus compras personales quedan 100% ocultas.</span>
+                  <span>Consulta cómo se gestionan los datos personales y los permisos de acceso en la plataforma.</span>
                 </li>
                 <li class="flex items-start gap-2.5">
                   <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">check_circle</span>
@@ -707,7 +702,7 @@
                 </li>
                 <li class="flex items-start gap-2.5">
                   <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">check_circle</span>
-                  <span>Diagnóstico visual instantáneo de la Regla 50/30/20 en tiempo real.</span>
+                  <span>Consulta visual de la distribución de tus ingresos y gastos.</span>
                 </li>
               </ul>
             </div>
@@ -718,13 +713,12 @@
       <section class="w-full py-20 bg-surface-container-low">
         <div class="max-w-7xl mx-auto px-margin flex flex-col gap-12">
           <div class="flex flex-col items-center text-center gap-3 max-w-3xl mx-auto">
-            <span class="font-label-sm text-label-sm text-tertiary uppercase font-bold tracking-widest bg-tertiary-fixed px-3 py-1 rounded-full"> Historias Reales </span>
+            <span class="font-label-sm text-label-sm text-tertiary uppercase font-bold tracking-widest bg-tertiary-fixed px-3 py-1 rounded-full"> Ejemplos de uso </span>
             <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
-              Familias y profesionales que transformaron sus finanzas
+              Ejemplos de cómo puedes organizar tus finanzas
             </h2>
-            <p class="font-body-md text-body-md text-secondary">
-              Descubre cómo miles de colombianos eliminaron el estrés financiero y lograron sus proyectos
-              compartidos.
+             <p class="font-body-md text-body-md text-secondary">
+             Estos ejemplos ilustran cómo puedes registrar tus gastos, organizar tus compromisos y planificar tus metas de ahorro.
             </p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -767,9 +761,7 @@
                   <span class="material-symbols-outlined text-[18px]">star</span>
                 </div>
                 <p class="font-body-md text-body-md text-on-surface leading-relaxed">
-                  "Las alertas 72 horas antes me salvaron de dos cortes de luz por olvido. Antes pagaba
-                  recargos de reconexión todos los meses; hoy todo está calendarizado y mi historial está
-                  impecable."
+                 Llevar un registro de mis gastos me ayuda a organizar mejor mis compromisos. Ahora puedo consultar las fechas de vencimiento y planificar mis pagos con más claridad.
                 </p>
               </div>
               <div class="flex items-center gap-3 pt-4 border-t border-outline-variant/30">
@@ -820,11 +812,10 @@
                 <span class="material-symbols-outlined text-[28px]">enhanced_encryption</span>
               </div>
               <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                Cifrado Bancario AES-256
+                Protección de datos personales
               </h4>
               <p class="font-body-sm text-body-sm text-secondary">
-                Toda tu información viaja y se almacena bajo estándares criptográficos militares de extremo a
-                extremo.
+                La información personal debe tratarse conforme a la Política de privacidad de Cuentas Claras y a la normativa aplicable.
               </p>
             </div>
             <div class="flex flex-col items-center gap-3 p-4">
@@ -847,8 +838,7 @@
                 Cumplimiento Ley 1581 de 2012
               </h4>
               <p class="font-body-sm text-body-sm text-secondary">
-                Tus datos personales son 100% tuyos. No comercializamos bases de datos ni compartimos
-                información con terceros.
+                El tratamiento de tus datos personales se explica en nuestra Política de privacidad, donde puedes consultar las finalidades y los canales disponibles para ejercer tus derechos.
               </p>
             </div>
           </div>
@@ -868,14 +858,13 @@
                 Toma el control de tu dinero hoy mismo
               </h2>
               <p class="font-body-lg text-body-lg text-surface-container-highest/80 leading-relaxed">
-                Sin costos ocultos, sin vinculación a bancos y con la certeza de que tu información familiar
-                está completamente resguardada.
+                Organiza tus gastos, consulta tus compromisos y planifica tus metas personales o familiares desde una misma plataforma.
               </p>
               <div class="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full sm:w-auto">
                 <a
                   class="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-lg transition-transform active:scale-95"
                   data-path="crear-cuenta"
-                  href="{{ route('registro') }}"
+                  href="{{ route('registro', ['tipo' => 'estandar']) }}"
                 ><span>Crear Mi Cuenta Gratis</span><span class="material-symbols-outlined text-[20px]">bolt</span></a>
               </div>
               <p class="font-label-sm text-label-sm text-surface-container-highest/60 mt-2">
