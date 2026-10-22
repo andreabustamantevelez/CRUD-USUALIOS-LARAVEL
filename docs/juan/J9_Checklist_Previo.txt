@@ -1,0 +1,72 @@
+========================================
+BACKUPS — creación y restauración
+========================================
+
+CREACIÓN (cron diario 02:00)
+----------------------------------------
+/usr/local/bin/backup-cuentas-claras.sh:
+
+  #!/bin/bash
+  set -euo pipefail
+  FECHA=$(date +%Y%m%d_%H%M%S)
+  DESTINO=/backups
+  mkdir -p "$DESTINO"
+
+  # 1. Base de datos
+  mysqldump --single-transaction --quick --lock-tables=false \
+    -u cuentas_claras -p"$DB_PASSWORD" cuentas_claras \
+    | gzip > "$DESTINO/db_${FECHA}.sql.gz"
+
+  # 2. Archivos subidos (storage/app/public si aplica)
+  tar -czf "$DESTINO/storage_${FECHA}.tar.gz" \
+    -C /var/www/cuentas-claras storage/app
+
+  # 3. Retención 30 días
+  find "$DESTINO" -name "db_*.sql.gz"       -mtime +30 -delete
+  find "$DESTINO" -name "storage_*.tar.gz" -mtime +30 -delete
+
+  # 4. Enviar a almacenamiento externo (S3, B2, otro servidor)
+  #    aws s3 cp "$DESTINO/db_${FECHA}.sql.gz" s3://mi-bucket/cuentas-claras/
+  #    aws s3 cp "$DESTINO/storage_${FECHA}.tar.gz" s3://mi-bucket/cuentas-claras/
+
+Cron:
+  0 2 * * * /usr/local/bin/backup-cuentas-claras.sh >> /var/log/backup-cc.log 2>&1
+
+RESTAURACIÓN (staging, mensual, como prueba)
+----------------------------------------
+1. Crear base vacía en staging:
+   mysql -e "CREATE DATABASE cuentas_claras_restore_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+2. Restaurar el dump:
+   gunzip -c /backups/db_2026-10-20_020000.sql.gz \
+     | mysql -u root -p cuentas_claras_restore_test
+
+3. Apuntar el .env de staging a esa base y verificar:
+   php artisan migrate:status
+   php artisan about
+   php artisan tinker --execute="echo App\Models\User::count();"
+
+4. Verificar que se puede hacer login con un usuario de staging:
+   - ir a /iniciar-sesion
+   - usuario de prueba debe poder entrar
+   - el dashboard debe mostrar los mismos números del backup
+
+5. Anotar el resultado en docs/juan/backups.md:
+   fecha de la última restauración exitosa: ____
+   fecha del backup restaurado:              ____
+   incidencias:                              ____
+
+VERIFICACIÓN RÁPIDA (sin restaurar, solo comprobar el archivo)
+----------------------------------------
+gzip -t /backups/db_*.sql.gz && echo "OK"
+# -t testea el gzip sin descomprimir. Si falla, el backup está corrupto.
+
+zcat /backups/db_*.sql.gz | head -20
+# Debe empezar con "-- MySQL dump" y "-- Host: ...".
+
+INCIDENCIAS CONOCIDAS
+----------------------------------------
+- Si mysqldump pide contraseña interactiva, usar ~/.my.cnf o MYSQL_PWD.
+- Si el backup crece > 500 MB, comprimir con zstd y plantear backup incremental.
+- Si se rota el APP_KEY, el backup es inútil porque las sesiones no se descifran.
+  → Guardar el APP_KEY en un gestor de secretos aparte.

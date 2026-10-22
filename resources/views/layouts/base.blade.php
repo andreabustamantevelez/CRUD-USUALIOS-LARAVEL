@@ -10,6 +10,9 @@
       el body (evita el destello blanco al cargar en oscuro).
     - data-account-type en <html> para el tinte por tipo de cuenta.
     - Preconnect + preload de Google Fonts (evita el salto de fuente).
+  ACTUALIZADO 2026-10-21:
+    - Se eliminó @stack('scripts') duplicado del <head> (los scripts van al
+      final del body, una sola vez).
   ==============================================================================
 --}}
 
@@ -50,8 +53,6 @@
     {{-- Aplica el tema + favicon + theme-color ANTES de pintar el body (evita flash) --}}
     <script>
       (function () {
-        // Paleta de favicon por combinación (rol × tema).
-        // Hex hardcodeado porque data URI no lee CSS vars.
         var PALETA = {
           'estandar|claro':      { bg: '#059669', fg: '#ffffff', accent: '#a7f3d0' },
           'estandar|oscuro':     { bg: '#10b981', fg: '#ffffff', accent: '#86efac' },
@@ -90,7 +91,6 @@
           if (metaEl) metaEl.setAttribute('content', TEMA_COLOR[tema]);
         }
 
-        // Exponer para que theme.js lo llame al cambiar de tema.
         window.CC = window.CC || {};
         window.CC.refreshIcons = refreshIcons;
 
@@ -123,15 +123,15 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/transiciones.css') }}">
+
+    {{-- Los estilos de cada vista van aquí, después del CSS global --}}
     @stack('styles')
   </head>
-    <body class="@yield('body-class', 'bg-surface font-body-md text-body-md text-on-surface antialiased')">
+  <body class="@yield('body-class', 'bg-surface font-body-md text-body-md text-on-surface antialiased')">
     <a href="#contenido" class="skip-link">Saltar al contenido principal</a>
-    @yield('body')  
+    @yield('body')
     <x-toast />
     <script>
-      // Skip link universal: identifica el primer <main> de la página con id="contenido".
-      // Así no hace falta tocar cada vista ni el layout de cada rol.
       (function () {
         function marcarMain() {
           var main = document.querySelector('main');
@@ -147,6 +147,8 @@
     <script src="{{ asset('js/transiciones.js') }}" defer></script>
     <script src="{{ asset('js/theme.js') }}" defer></script>
     <script src="{{ asset('js/shell.js') }}" defer></script>
+
+    {{-- Los scripts de cada vista van aquí, al final del body --}}
     @stack('scripts')
   </body>
 </html>

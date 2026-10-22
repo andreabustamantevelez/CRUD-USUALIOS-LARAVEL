@@ -159,6 +159,8 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 | 40 | Casts de Gasto | `fecha => date`, `monto => integer` | Formateo consistente en toda la app |
 | 41 | Vista del dashboard | Se traslada el `code.html` a Blade tal cual | El diseño no se cambia; solo se conectan datos |
 
+**#38 CERRADA el 2026-10-22**: `Gasto::delPeriodo($anio, $mes)` implementado (C1). `DashboardController` lo usa. `TODO(J8)` cerrado. Ver #61.
+
 ---
 
 ## Decisiones del 2026-10-16 — J7 Administración (#42..#44)
@@ -168,6 +170,8 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 | 42 | Tinte del administrador | Core Blue (#2563EB claro / #93b4ff oscuro). Se reutiliza el azul de "Necesidades" del gráfico 50/30/20 | No introducir un color nuevo al sistema |
 | 43 | ¿El admin puede eliminarse a sí mismo? | No desde el panel de administración. Sí desde Ajustes si hay otro admin activo | El panel es para gestionar a otros; Ajustes es para la propia cuenta |
 | 44 | Registro de acciones del admin (auditoría) | **No implementado** en esta versión ([PROPUESTA]) | Requiere tabla nueva y decisión de alcance; se hace en una PR aparte si se decide |
+
+**#44 CERRADA el 2026-10-22**: auditoría implementada. Ver #61.
 
 ---
 
@@ -214,6 +218,28 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 
 ---
 
+## Decisiones del 2026-10-21 — Dashboard del administrador (#60)
+
+| # | Tema | Qué se decidió | Por qué |
+|---|------|----------------|---------|
+| 60 | Dashboard del administrador en `/admin/panel` | Nueva ruta `admin.panel` (GET `/admin/panel`) como pantalla principal del admin. Primera ruta del Grupo E. `PanelController` nuevo (separado de `EstadisticaController`, que mantiene su responsabilidad y sus 3 tests). Solo COUNT y agregados, sin datos financieros. El header "Ir a mi panel" apunta a `admin.panel` si rol=administrador, a `panel` si estandar\|familiar. Fix del bug del 404 en `/panel` para admin. `/admin/estadisticas` se mantiene como pantalla de agregados detallados. `docs/backend/00-rutas.php` pasa a 65 rutas (11+9+35+0+10) | El admin no tenía dashboard propio. `/admin/estadisticas` era solo COUNT y no daba una visión general. Un dashboard unifica KPIs, accesos rápidos y últimos movimientos (sin datos financieros) |
+
+---
+
+## Decisiones del 2026-10-22 — J9 Seguridad (#61..#67)
+
+| # | Tema | Qué se decidió | Por qué |
+|---|------|----------------|---------|
+| 61 | Auditoría de acciones del administrador (**cierra #44**) | Tabla `auditorias` (`user_id` FK nullOnDelete, `accion`, `modelo`, `modelo_id`, `antes` JSON, `despues` JSON, `ip`, `user_agent`, `timestamps`) + índices `(user_id, created_at)`, `(modelo, modelo_id)`, `accion`. Modelo `Auditoria` (casts JSON, solo INSERT, inmutable). Servicio `App\Services\Auditoria::registrar($accion, $modelo, $modeloId, $antes, $despues)`. `AuditoriaController@index` (solo lectura, filtros por acción/admin/fecha, 30 por página). Ruta `admin.auditoria` + ítem en `sidebar-admin`. `UsuarioController` audita `usuario.rol`, `usuario.suspender`, `usuario.reactivar`, `usuario.eliminar`. `CategoriaSistemaController` audita `categoria.crear`, `categoria.actualizar`, `categoria.desactivar`, `categoria.reactivar`. En `destroy` se captura `$idBorrado` y `$rolBorrado` **antes** del delete. `user_id` es nullable + nullOnDelete para que el histórico sobreviva al borrado del admin. `modelo_id` es `unsignedBigInteger` sin FK (histórico intencional) | Trazabilidad completa de acciones del admin, exigible en escenarios de soporte y compliance. Cerrar una acción sin dejar registro es un riesgo operativo: si mañana un admin suspende a 50 usuarios, no hay forma de saber quién fue. La tabla es inmutable por diseño |
+| 62 | Notificaciones de seguridad por correo | `App\Notifications\AlertaSeguridad` (implements `ShouldQueue`). 5 eventos: `password.changed`, `email.changed`, `account.suspended`, `login.new_ip`, `login.blocked`. `email.changed` se envía al correo VIEJO (por si el cambio fue un ataque; el dueño se entera). `login.new_ip` se envía solo si NO es el primer login tras registro (`User::esIpNueva` compara contra `last_login_ip` / `last_login_at`). `login.blocked` se envía desde `LoginRequest::notificarBloqueo()` con Cache 1h por usuario para no spamear. Cada `notify` va en `try/catch` con `Log::warning` para no bloquear el flujo principal si el SMTP falla. Columnas nuevas `users.last_login_ip` (45), `users.last_login_at` (timestamp). `User::registrarLogin($ip, $ua)` las asigna con `forceFill`. `LoginController@store` detecta IP nueva y llama `registrarLogin`. `PasswordResetController@actualizar` notifica `password.changed` tras reset exitoso. `AjustesController@confirmarCorreo` captura `$correoViejo` antes del servicio y notifica al correo viejo | El usuario se entera si alguien le cambió contraseña, correo o intenta entrar. `email.changed` al correo VIEJO es la pieza clave: si un atacante con la sesión abierta cambia el correo, el dueño recibe el aviso en su correo anterior y puede revertirlo. `login.new_ip` da visibilidad de accesos sospechosos. `login.blocked` avisa si alguien está intentando fuerza bruta. Ninguna notificación bloquea la request principal |
+| 63 | Re-autenticación para acciones destructivas | `EliminarUsuarioRequest` y `EliminarCategoriaSistemaRequest` con `password` `current_password`. `UsuarioController@destroy` y `CategoriaSistemaController@desactivar` usan estos Requests. **El `authorize()` de `EliminarCategoriaSistemaRequest` valida que la categoría sea del sistema (`user_id === null`) ANTES de la validación de `password`**, para que el 403 ocurra primero (bug detectado y corregido en el mismo J9: antes daba 302 con error de password en vez de 403). El `abort_unless` duplicado en el controlador se elimina: la autorización vive solo en el Request | Si el admin deja la sesión abierta, un tercero no puede ejecutar acciones destructivas sin conocer la contraseña. Es el patrón de GitHub, Stripe y AWS: re-auth para acciones que no se pueden deshacer. El bug del 403 vs 302 es un recordatorio: **la autorización siempre va antes de la validación de reglas** para que los códigos HTTP sean semánticamente correctos |
+| 64 | Content-Security-Policy (CSP) | Modo permisivo: `script-src 'self' 'unsafe-inline'`, `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`, `font-src 'self' https://fonts.gstatic.com data:`, `img-src 'self' data: https:`, `connect-src 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, `base-uri 'self'`, `object-src 'none'`. `upgrade-insecure-requests` solo en HTTPS. HSTS en producción + HTTPS. Todo se aplica desde `App\Http\Middleware\SecurityHeaders`, registrado globalmente en `bootstrap/app.php` | Los 2 scripts inline del tema (`base.blade.php`: bootstrap de tema + marcado de `<main id>`) y los `style=""` dinámicos (barras de progreso) rompen la CSP estricta. Migrar a nonces queda para J9.2. Aun en modo permisivo, la CSP bloquea `<script src="evil.com">`, clickjacking (`frame-ancestors`), secuestro de base href y plugins. Es el 80% del valor con el 0% del riesgo de romper el diseño en producción |
+| 65 | Regeneración de sesión en login | Verificado con `test_login_regenera_la_sesion`. La sesión anterior no sirve después del login exitoso. `LoginController@store` ya llamaba `$request->session()->regenerate()`; ahora hay test que lo cubre | Mitiga session fixation attacks. Es una defensa estándar de Laravel que a veces se rompe por accidente al customizar el login. Tener el test evita regresiones |
+| 66 | Notificación de bloqueo por intentos fallidos | `LoginRequest::notificarBloqueo()` envía `login.blocked` al usuario. Solo si el correo existe en BD (no revelar existencia). Cache 1h por usuario (`login-bloqueado:{user_id}`) para no spamear si el atacante sigue intentando. Se llama desde `asegurarSinBloqueo()` cuando el `RateLimiter` dispara | Avisar al dueño si alguien intenta entrar por fuerza bruta. El cache de 1h evita que un ataque sostenido genere 100 correos. El hecho de que solo se envíe si el correo existe es deliberado: hacia afuera el mensaje sigue siendo genérico ("Demasiados intentos"), pero el dueño real recibe el aviso |
+| 67 | 2FA (TOTP) para usuarios y admin — **PENDIENTE J9.2** | Paquetes `pragmarx/google2fa` + `bacon/bacon-qr-code`. Columnas `users.two_factor_secret` (text, nullable) y `users.two_factor_confirmed_at` (timestamp, nullable). `TwoFactorController` (activar, confirmar, desactivar). Rutas `ajustes.seguridad.{index, 2fa.enable, 2fa.confirm, 2fa.disable}`, `login.2fa`, `login.2fa.verify`. Vistas `app/ajustes/seguridad.blade.php`, `app/ajustes/seguridad-2fa-setup.blade.php`, `publico/verificar-2fa.blade.php`. `LoginController`: si `hasTwoFactorEnabled`, desloguear y pedir código TOTP. Desactivar requiere `current_password`. **Estado**: diseño completo documentado, no implementado por bloqueo de Composer en el entorno local (ver §2 PENDIENTE J9.2 en el documento de arquitectura) | Capa extra de seguridad, especialmente para el admin (que puede suspender/eliminar usuarios). El proyecto actual ya es seguro con contraseña + rate limit + sesión 15 min + notificación de login nuevo, que cubre el 80% del riesgo. 2FA lo lleva al 99%, pero 4 horas de J9 en un entorno con Composer bloqueado no es viable. Se hace en J9.2 cuando el entorno esté sano |
+
+---
+
 ## Otras decisiones cerradas
 
 | # | Decisión | Fecha | Por qué |
@@ -231,30 +257,79 @@ Equipo: Juan (J), Nikol (N), Valeria (V).
 
 ## Pendientes (solo lo que sigue realmente abierto)
 
-- **N5 (Nikol)**: landing final y páginas legales. En curso desde 2026-10-19. Reemplaza los
-  `Route::view` de `público.php` por vistas completas con contenido de marketing y textos
-  legales. Pendiente: validar cifras y promesas con el equipo (decisión #21).
-- **J9 (Juan)**: `docs/backend/00-rutas.php` debe actualizarse a 64 rutas (agregar las 2
-  nuevas de `ajustes.confirmar-correo`). También cerrar `TODO(J8)` en `DashboardController`
-  usando `Gasto::delPeriodo()` (ya existe el scope desde C1).
-- **J9 (Juan)**: configurar SMTP real para producción (hoy `MAIL_MAILER=log` en desarrollo).
-- **J9 (Juan)**: revisión de seguridad integral y despliegue. Ver
-  `docs/juan/J9_Checklist_Previo.txt`.
-- **J9 (Juan + Nikol)**: #21 cifras de la landing y textos legales. Validar las promesas
-  (AES-256, "cero reportes", cifras de usuarios) o corregir el texto.
-- **Mejora opcional**: si se decide implementar el registro de acciones del administrador
-  (auditoría), se hace en una PR aparte (#44).
+### J9.2 (Juan) — bloqueado por entorno local, no por diseño
+
+- **2FA (TOTP)**: paquetes `pragmarx/google2fa` + `bacon/bacon-qr-code` no instalados. El
+  `composer require` falla en el entorno local (Composer no accesible desde Git Bash). Una
+  vez resuelto, se aplica el diseño completo de la decisión #67.
+- **`composer audit`**: no se pudo correr. Comando correcto en el entorno local:
+  `php /c/Users/juane/.config/herd-lite/bin/composer.phar audit`. Pégame el output y se
+  cierra el punto.
+- **Grep de logs**: `grep -rn "Log::" app/` para verificar que no haya fugas de tokens ni
+  contraseñas en logs. No se pudo correr.
+- **Instalar `backup-cuentas-claras.sh`** en el servidor. El script está documentado en
+  `docs/juan/J9_Checklist_Previo.txt` (creación, restauración mensual, verificación gzip,
+  incidencias) pero no está instalado.
+
+### N5 (Nikol) — en curso desde 2026-10-19
+
+- Landing final y páginas legales. Reemplaza los `Route::view` de `público.php` por vistas
+  completas con contenido de marketing y textos legales. Pendiente: validar cifras y
+  promesas con el equipo (decisión #21).
+
+### J9 (Juan) — despliegue
+
+- Configurar SMTP real para producción (hoy `MAIL_MAILER=log` en desarrollo).
+- Seguir `docs/juan/J9_Checklist_Previo.txt`.
+- Ejecutar `docs/juan/deploy.sh` (con `composer audit` obligatorio antes de `composer install`).
+- Restaurar un backup en staging (verificación mensual del procedimiento).
+
+### J9 (Juan + Nikol) — contenido
+
+- #21: cifras de la landing y textos legales. Validar las promesas (AES-256, "cero reportes",
+  cifras de usuarios) o corregir el texto.
+
+### Docs
+
+- `docs/backend/00-rutas.php`: actualizar a **68 rutas reales** (11+9+37+0+11) + fallback = 69
+  líneas mostradas por `php artisan route:list --except-vendor`. Ya incluye `admin.panel` y
+  `admin.auditoria`, y las 2 rutas que estaban sin doc (`gastos.edit`,
+  `notificaciones.leerTodas`).
+- Crear `docs/juan/J9_Seguridad_2026-10-22.txt` con el resumen de los cambios de J9
+  (auditoría, notificaciones, CSP, re-auth, throttles) y lo que queda pendiente en J9.2.
+
+### Cerrados en esta sesión (para no confundir con pendientes)
+
+- **#38** (whereYear/whereMonth): cerrado con `Gasto::delPeriodo`. Ver #61.
+- **#44** (auditoría): implementada. Ver #61.
+- **TODO(J8)** en `DashboardController`: cerrado con `delPeriodo`.
+- 3 bugs de tests corregidos:
+  - `AuthTest.php` tenía `class UsuariosTest` (35 tests no corrían).
+  - `ajustes.php` tenía `/ajustes/ajustes/confirmar-correo/reenviar` (URL duplicada).
+  - `CategoriasSistemaTest` daba 302 en vez de 403 (el `abort_unless` estaba en el
+    controlador, la validación de password lo interceptaba antes). Movido al
+    `authorize()` del FormRequest.
 
 ---
 
 ## Notas de cierre
 
 - Todas las decisiones con número (`#N`) están referenciadas en
-  `docs/juan/Arquitectura_Cuentas_Claras.txt` sección 14.
+  `Arquitectura_Cuentas_Claras.txt` sección 14.
 - Las decisiones de la sesión del 2026-10-17 (V4, verificación de correo, rediseño de reset)
   cerraron el alcance funcional del producto para la primera versión.
 - Las decisiones del 2026-10-19 y 2026-10-20 (restricción de Ajustes, 404, sesión,
   iconografía, botones, ícono personalizable, admin sin ingreso) son pulido y consistencia.
+- La sesión del 2026-10-21 agregó el dashboard del admin (`/admin/panel`) y cerró el bug del
+  header.
+- La sesión del 2026-10-22 (J9) agregó seguridad de producción: auditoría, notificaciones de
+  seguridad, CSP, re-auth, throttles, notificación de bloqueo, procedimiento de backup y
+  `deploy.sh`. También cerró `#38` y `#44`, corrigió 3 bugs de tests, y movió `TODO(J8)` a
+  cerrado con `delPeriodo`.
 - Antes de reabrir una decisión, revisar la sección "Pendientes" y el documento de
   arquitectura; muchas veces lo que parece una decisión nueva ya está resuelto con la
   misma respuesta.
+- **Regla de oro de J9**: cualquier acción nueva del admin que modifique estado DEBE pasar
+  por `App\Services\Auditoria::registrar()`. Cualquier notificación de seguridad nueva DEBE
+  usar `App\Notifications\AlertaSeguridad`. Cualquier acción destructiva nueva DEBE usar un
+  FormRequest con `current_password`.

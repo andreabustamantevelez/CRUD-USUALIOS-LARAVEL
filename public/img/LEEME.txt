@@ -1,9 +1,0 @@
-CARPETA DE IMÁGENES (hoy vacía).
-
-Para qué sirve: guardar aquí el logo y las imágenes del diseño que ahora están enlazadas
-desde lh3.googleusercontent.com (direcciones temporales que pueden dejar de funcionar).
-
-Qué hay que hacer: 1) descargar cada imagen; 2) guardarla aquí con nombre claro;
-3) cambiar cada src de las vistas por asset('img/nombre.ext').
-
-Ejemplo (texto): el logo se guardaría como logo.png y las vistas lo llamarían con asset('img/logo.png').

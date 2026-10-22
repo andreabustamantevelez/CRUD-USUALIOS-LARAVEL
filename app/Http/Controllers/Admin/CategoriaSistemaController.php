@@ -6,19 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCategoriaSistemaRequest;
 use App\Http\Requests\Admin\UpdateCategoriaSistemaRequest;
 use App\Models\Categoria;
+use App\Services\Auditoria;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-
+use App\Http\Requests\Admin\EliminarCategoriaSistemaRequest;
 /**
- * Qué hace: CRUD de categorías del sistema (user_id = null).
- *           El admin nunca toca categorías personales de otros usuarios.
- *           Las categorías del sistema se DESACTIVAN (activa=false), no se borran.
- * Quién lo usa: rutas admin.categorias.* (rol:administrador).
- * Dueño: Juan (J7).
+ * 2026-10-22 (J9): auditoría en store, update y desactivar.
+ *                  desactivar togglea: registra categoria.desactivar o
+ *                  categoria.reactivar según el estado anterior.
  */
 class CategoriaSistemaController extends Controller
 {
+    public function __construct(private Auditoria $auditoria)
+    {
+    }
+
     public function index(Request $request): View
     {
         $categorias = Categoria::query()
@@ -34,8 +37,6 @@ class CategoriaSistemaController extends Controller
             'inactivas' => $categorias->where('activa', false)->count(),
         ];
 
-        // Definición de los bloques del 50/30/20, con descripción y porcentaje
-        // objetivo. Se muestra en la cabecera de cada grupo.
         $bloques = [
             'necesidades' => [
                 'nombre' => 'Necesidades',
@@ -65,7 +66,7 @@ class CategoriaSistemaController extends Controller
 
     public function store(StoreCategoriaSistemaRequest $request): RedirectResponse
     {
-        Categoria::create([
+        $categoria = Categoria::create([
             'user_id' => null,
             'nombre' => $request->validated('nombre'),
             'bloque' => $request->validated('bloque'),
@@ -74,12 +75,22 @@ class CategoriaSistemaController extends Controller
             'activa' => true,
         ]);
 
+        $this->auditoria->registrar(
+            accion: 'categoria.crear',
+            modelo: 'Categoria',
+            modeloId: $categoria->id,
+            antes: null,
+            despues: $categoria->only(['nombre', 'bloque', 'icono', 'activa']),
+        );
+
         return back()->with('exito', 'Categoría creada');
     }
 
     public function update(UpdateCategoriaSistemaRequest $request, Categoria $categoria): RedirectResponse
     {
         abort_unless($categoria->user_id === null, 403);
+
+        $antes = $categoria->only(['nombre', 'bloque', 'peso_recomendado', 'icono']);
 
         $categoria->update([
             'nombre' => $request->validated('nombre'),
@@ -88,15 +99,33 @@ class CategoriaSistemaController extends Controller
             'icono' => $request->validated('icono'),
         ]);
 
+        $this->auditoria->registrar(
+            accion: 'categoria.actualizar',
+            modelo: 'Categoria',
+            modeloId: $categoria->id,
+            antes: $antes,
+            despues: $categoria->fresh()->only(['nombre', 'bloque', 'peso_recomendado', 'icono']),
+        );
+
         return back()->with('exito', 'Categoría actualizada');
     }
 
-    public function desactivar(Request $request, Categoria $categoria): RedirectResponse
+    public function desactivar(EliminarCategoriaSistemaRequest $request, Categoria $categoria): RedirectResponse
     {
-        abort_unless($categoria->user_id === null, 403);
+        $activaAntes = (bool) $categoria->activa;
+        $categoria->update(['activa' => !$activaAntes]);
 
-        $categoria->update(['activa' => ! $categoria->activa]);
+        $accion = $activaAntes ? 'categoria.desactivar' : 'categoria.reactivar';
+        $mensaje = $activaAntes ? 'Categoría desactivada' : 'Categoría activada';
 
-        return back()->with('exito', $categoria->activa ? 'Categoría activada' : 'Categoría desactivada');
+        $this->auditoria->registrar(
+            accion: $accion,
+            modelo: 'Categoria',
+            modeloId: $categoria->id,
+            antes: ['activa' => $activaAntes],
+            despues: ['activa' => !$activaAntes],
+        );
+
+        return back()->with('exito', $mensaje);
     }
 }

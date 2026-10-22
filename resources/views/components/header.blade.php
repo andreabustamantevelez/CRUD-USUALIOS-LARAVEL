@@ -12,7 +12,9 @@
 --}}
 
 {{-- Header público (landing, login, registro, recuperar). Los enlaces ancla apuntan a secciones de la landing. --}}
-<header class="fixed top-0 left-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(15,23,42,0.04)]">
+<header 
+@if (request()->routeIs('inicio')) data-landing-header @endif
+class="fixed top-0 left-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(15,23,42,0.04)]">
   <div class="h-20 max-w-7xl mx-auto px-margin flex items-center justify-between gap-space-md">
     <div class="flex items-center gap-space-md">
       <a
@@ -78,10 +80,15 @@
       @endguest
 
       @auth
+        @php
+          $rutaPanel = auth()->user()->rol === 'administrador'
+              ? route('admin.panel')
+              : route('panel');
+        @endphp
         <a
           class="inline-flex items-center gap-1.5 px-space-md py-space-xs rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md whitespace-nowrap transition-all shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
           data-path="panel"
-          href="{{ route('panel') }}"
+          href="{{ $rutaPanel }}"
         >
           <span class="material-symbols-outlined text-[18px]">dashboard</span>
           <span>Ir a mi panel</span>
@@ -134,9 +141,14 @@
         >Crear Cuenta Gratis</a>
       @endguest
       @auth
+        @php
+          $rutaPanel = auth()->user()->rol === 'administrador'
+              ? route('admin.panel')
+              : route('panel');
+        @endphp
         <a
           class="px-space-sm py-space-sm rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md text-center"
-          href="{{ route('panel') }}"
+          href="{{ $rutaPanel }}"
         >Ir a mi panel</a>
       @endauth
     </div>

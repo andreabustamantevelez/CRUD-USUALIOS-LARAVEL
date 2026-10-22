@@ -1,220 +1,369 @@
 {{--
-  ==============================================================================
-  ARCHIVO : resources/views/publico/terminos-y-condiciones.blade.php
-  QUÉ ES  : Página estática de términos y condiciones de uso.
-  RUTA    : GET /terminos (terminos)
-  DATOS QUE LLEGAN DEL CONTROLADOR:
-    - Ninguno.
-  BASE DE DATOS: Ninguna.
-  QUÉ HAY QUE HACER (en orden):
-    1. Redactar el texto legal.
-    2. Enlazarla desde el registro si se exige aceptarla.
-  CÓMO HACERLO / NOTAS:
-    - Puede quedarse como Route::view.
-  CÓMO SE COMPRUEBA:
-    - El enlace del footer la abre.
-  ==============================================================================
+==============================================================================
+ARCHIVO : resources/views/publico/terminos-y-condiciones.blade.php
+QUÉ ES  : Términos y Condiciones de Uso.
+RUTA    : GET /terminos (terminos)
+CSS     : public/css/legal.css
+DATOS   : config('legal.*'). Si config/legal.php no existe, usa fallbacks.
+==============================================================================
 --}}
 
 @extends('layouts.publico')
-@section('titulo', 'Términos y condiciones · Cuentas Claras')
+
+@section('titulo', 'Términos y condiciones · ' . (config('legal.app_name') ?: 'Cuentas Claras'))
+
 @push('styles')
-  <link rel="stylesheet" href="{{ asset('css/terminos-y-condiciones.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/legal.css') }}">
 @endpush
+
 @section('content')
-  <main class="min-h-screen pt-28 pb-16 px-margin bg-surface">
-    <article class="card max-w-3xl mx-auto p-space-xl">
-      <h1 class="font-headline-xl text-headline-xl text-on-surface mb-space-md">Términos y condiciones</h1>
-     {{-- BORRADOR N5: requiere validación del equipo y revisión jurídica antes de publicar. --}}
+@php
+  $app           = config('legal.app_name') ?: 'Cuentas Claras';
+  $empresa       = config('legal.company_name') ?: 'Cuentas Claras';
+  $nit           = config('legal.company_nit') ?: '—';
+  $domicilio     = config('legal.company_domicile') ?: 'Colombia';
+  $emailContacto = config('legal.contact_email') ?: 'contacto@cuentasclaras.app';
+  $version       = config('legal.terms_version') ?: '1.0.0';
+  $fecha         = config('legal.terms_date') ?: now()->toDateString();
+  $minAge        = config('legal.min_age') ?: 18;
+@endphp
 
-<div class="mb-space-lg rounded-lg border border-amber-300 bg-amber-50 p-space-md">
-    <p class="font-body-md text-body-md text-on-surface">
-        <strong>Aviso de revisión:</strong> este documento es un borrador.
-        Antes de publicar, el equipo debe verificar que sus condiciones
-        coincidan con las funciones reales de Cuentas Claras y obtener
-        revisión jurídica.
-    </p>
-</div>
+<main class="min-h-screen pt-28 pb-16 px-margin bg-surface">
+  <article class="card max-w-3xl mx-auto p-space-xl">
 
-<div class="space-y-space-lg font-body-md text-body-md text-on-surface-variant leading-relaxed">
+    <header class="legal-header">
+      <p class="legal-meta legal-meta--version">
+        Versión {{ $version }} · Vigente desde {{ $fecha }}
+      </p>
+      <h1 class="font-headline-xl text-headline-xl text-on-surface mt-space-sm">
+        Términos y Condiciones de Uso
+      </h1>
+      <p class="legal-meta">
+        {{ $app }} · Titular: {{ $empresa }}
+      </p>
+    </header>
 
-    <p>
-        <strong>Última actualización:</strong> [COMPLETAR FECHA].
-    </p>
+    <aside class="legal-aviso" role="note">
+      <p>
+        Al crear una cuenta y usar <strong>{{ $app }}</strong> aceptas estos
+        Términos y Condiciones y la
+        <a href="{{ route('politica') }}">Política de Privacidad</a>.
+        {{ $app }} es una herramienta de organización financiera personal y
+        familiar; <strong>no es una entidad financiera</strong>, no presta
+        servicios bancarios y no está vigilada por la Superintendencia
+        Financiera de Colombia.
+      </p>
+    </aside>
 
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        1. Aceptación de los términos
-    </h2>
+    <nav class="legal-toc" aria-label="Contenido de los términos">
+      <p class="legal-toc__titulo">Contenido</p>
+      <ol class="legal-toc__lista">
+        <li><a href="#aceptacion">1. Aceptación de los términos</a></li>
+        <li><a href="#servicio">2. Descripción del servicio</a></li>
+        <li><a href="#registro">3. Registro y seguridad de la cuenta</a></li>
+        <li><a href="#uso">4. Uso permitido</a></li>
+        <li><a href="#alcance">5. Alcance informativo y responsabilidad financiera</a></li>
+        <li><a href="#privacidad">6. Información personal y privacidad</a></li>
+        <li><a href="#disponibilidad">7. Disponibilidad y mantenimiento</a></li>
+        <li><a href="#propiedad">8. Propiedad intelectual</a></li>
+        <li><a href="#responsabilidad">9. Limitaciones de responsabilidad</a></li>
+        <li><a href="#cierre">10. Cierre o suspensión de cuentas</a></li>
+        <li><a href="#menores">11. Menores de edad</a></li>
+        <li><a href="#modificaciones">12. Modificaciones a los términos</a></li>
+        <li><a href="#divisibilidad">13. Divisibilidad e integridad</a></li>
+        <li><a href="#fuerza-mayor">14. Fuerza mayor</a></li>
+        <li><a href="#legislacion">15. Legislación aplicable y jurisdicción</a></li>
+        <li><a href="#contacto">16. Contacto</a></li>
+      </ol>
+    </nav>
 
-    <p>
-        Estos términos regulan el acceso y uso de Cuentas Claras, una
-        herramienta de organización financiera personal y familiar.
-        Al utilizar la plataforma, aceptas cumplir las condiciones
-        aquí descritas y la normativa aplicable. Si no estás de acuerdo,
-        debes abstenerte de utilizar las funciones correspondientes.
-    </p>
+    <div class="legal-cuerpo">
 
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        2. Descripción del servicio
-    </h2>
+      <section id="aceptacion" class="legal-seccion">
+        <h2 class="legal-titulo">1. Aceptación de los términos</h2>
+        <p>
+          Estos términos regulan el acceso y uso de <strong>{{ $app }}</strong>,
+          una herramienta de organización financiera personal y familiar operada
+          por <strong>{{ $empresa }}</strong>. Al marcar la casilla de aceptación
+          durante el registro y al utilizar la plataforma, aceptas cumplir estas
+          condiciones, la <a href="{{ route('politica') }}">Política de
+          Privacidad</a> y la normativa aplicable.
+        </p>
+        <p>
+          El sistema registra la fecha y hora de aceptación. Si no estás de
+          acuerdo con alguna de las condiciones, debes abstenerte de crear
+          una cuenta y de utilizar las funciones que requieran una sesión
+          iniciada.
+        </p>
+      </section>
 
-    <p>
-        Cuentas Claras está diseñada para ayudar a organizar información
-        financiera, como ingresos, gastos, presupuestos y metas de ahorro,
-        de acuerdo con las funciones disponibles en la plataforma.
-    </p>
+      <section id="servicio" class="legal-seccion">
+        <h2 class="legal-titulo">2. Descripción del servicio</h2>
+        <p>
+          {{ $app }} permite registrar y organizar información financiera
+          personal y familiar. Concretamente, el servicio incluye:
+        </p>
+        <ul class="legal-lista">
+          <li>Registro de gastos diarios y administración de categorías propias y del sistema.</li>
+          <li>Registro de gastos fijos mensuales con vencimiento y recordatorios automáticos tres días antes de la fecha límite.</li>
+          <li>Informe mensual de gastos conforme a la regla 50/30/20 (necesidades, gustos y ahorro).</li>
+          <li>Simulador de créditos por sistema francés, con semáforo de capacidad de endeudamiento (por debajo del 20 % del ingreso: saludable; entre 20 % y 30 %: moderado; por encima del 30 %: riesgo).</li>
+          <li>Metas de ahorro individuales o compartidas (máximo dos participantes), con privacidad de aportes: cada participante ve el total conjunto y su propio historial, no el aporte del otro.</li>
+          <li>Cambio del tipo de cuenta (estándar ↔ familiar) desde Ajustes, siempre que se cumplan las condiciones vigentes.</li>
+          <li>Cambio de correo electrónico con verificación mediante enlace de un solo uso al nuevo correo y aviso al correo anterior.</li>
+          <li>Autenticación de dos factores (2FA) opcional con aplicación autenticadora TOTP.</li>
+          <li>Modo claro y oscuro, y tinte visual por tipo de cuenta.</li>
+        </ul>
+        <p>
+          El servicio <strong>no</strong> solicita, almacena ni procesa claves
+          bancarias, números de tarjetas, tokens de entidades financieras ni
+          credenciales de terceros. Las funciones descritas pueden cambiar,
+          mejorar, limitarse o dejar de estar disponibles cuando {{ $empresa }}
+          lo decida, informándolo por los medios habituales de contacto y
+          respetando los derechos adquiridos por los usuarios.
+        </p>
+      </section>
 
-    <p>
-        Las herramientas y funcionalidades pueden cambiar, mejorar,
-        limitarse o dejar de estar disponibles. El equipo deberá verificar
-        que esta descripción coincida con las funciones implementadas.
-    </p>
+      <section id="registro" class="legal-seccion">
+        <h2 class="legal-titulo">3. Registro y seguridad de la cuenta</h2>
+        <p>
+          Para usar {{ $app }} debes crear una cuenta con información veraz y
+          mantenerla actualizada. Eres responsable de proteger tus credenciales
+          de acceso y de informar de inmediato cualquier uso no autorizado a
+          <strong>{{ $emailContacto }}</strong>.
+        </p>
+        <ul class="legal-lista">
+          <li>Las contraseñas se almacenan exclusivamente como hash criptográfico; el sistema no puede recuperarlas en texto plano.</li>
+          <li>La sesión expira automáticamente después de 15 minutos de inactividad.</li>
+          <li>El enlace de restablecimiento de contraseña es de un solo uso y vence a los 30 minutos.</li>
+          <li>El cambio de correo requiere la contraseña actual y la confirmación mediante enlace de un solo uso enviado al nuevo correo, con vencimiento de 1 hora.</li>
+          <li>El cambio de tipo de cuenta y la eliminación de la cuenta solo están disponibles para los roles estándar y familiar; el rol administrador no tiene acceso a esas funciones.</li>
+          <li>Algunas acciones administrativas requieren re-autenticación con la contraseña actual del administrador.</li>
+          <li>El inicio de sesión desde una ubicación IP nueva y los intentos fallidos bloqueados generan una notificación por correo al titular.</li>
+          <li>La autenticación de dos factores (2FA), cuando está activa, requiere un código TOTP adicional después de la contraseña.</li>
+        </ul>
+      </section>
 
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        3. Registro y seguridad de la cuenta
-    </h2>
+      <section id="uso" class="legal-seccion">
+        <h2 class="legal-titulo">4. Uso permitido</h2>
+        <p>Al utilizar {{ $app }} te comprometes a:</p>
+        <ul class="legal-lista">
+          <li>Utilizar la plataforma de forma lícita y de buena fe.</li>
+          <li>Ingresar únicamente información que estés autorizado a proporcionar.</li>
+          <li>No intentar acceder sin autorización a cuentas, datos o sistemas de otras personas.</li>
+          <li>No interferir con el funcionamiento, la disponibilidad o la seguridad del servicio.</li>
+          <li>No utilizar la plataforma para actividades fraudulentas, ilícitas o contrarias a estos términos.</li>
+          <li>No copiar, alterar ni explotar indebidamente los componentes del servicio, salvo cuando la ley lo permita.</li>
+          <li>No automatizar accesos ni realizar extracciones masivas de datos sin autorización expresa.</li>
+        </ul>
+      </section>
 
-    <p>
-        Cuando el servicio requiera una cuenta, debes proporcionar
-        información veraz, mantenerla actualizada y proteger tus
-        credenciales de acceso. También debes informar al responsable
-        del servicio si detectas un uso no autorizado de tu cuenta.
-    </p>
+      <section id="alcance" class="legal-seccion">
+        <h2 class="legal-titulo">5. Alcance informativo y responsabilidad financiera</h2>
+        <p>
+          {{ $app }} es una herramienta de <strong>organización y seguimiento
+          financiero</strong>. Salvo que se indique expresamente lo contrario,
+          la información y los cálculos que ofrece no constituyen asesoría
+          financiera, tributaria, contable ni jurídica personalizada.
+        </p>
+        <p>
+          El simulador de créditos utiliza el sistema francés y ofrece
+          resultados orientativos. <strong>No otorga créditos reales, no
+          consulta centrales de riesgo y no reporta información a terceros</strong>.
+          El semáforo de capacidad de endeudamiento es informativo y no
+          reemplaza la evaluación de una entidad financiera.
+        </p>
+        <p>
+          Las decisiones financieras que tomes son de tu exclusiva
+          responsabilidad. Debes revisar los datos que ingresas y comprobar
+          los resultados antes de utilizarlos para tomar decisiones.
+        </p>
+      </section>
 
-    <p>
-        El equipo debe confirmar los procedimientos reales para recuperar
-        el acceso, actualizar los datos y cerrar una cuenta antes de
-        publicar condiciones específicas sobre estos procesos.
-    </p>
+      <section id="privacidad" class="legal-seccion">
+        <h2 class="legal-titulo">6. Información personal y privacidad</h2>
+        <p>
+          El tratamiento de los datos personales se rige por la
+          <a href="{{ route('politica') }}">Política de Privacidad</a>, que
+          describe las finalidades del tratamiento, los derechos del titular y
+          los canales para ejercerlos conforme a la Ley 1581 de 2012 y sus
+          decretos reglamentarios.
+        </p>
+        <p>
+          El registro exige la aceptación expresa de estos términos y de la
+          Política de Privacidad. El sistema registra la fecha y hora de la
+          aceptación y no permite crear la cuenta sin ese consentimiento.
+        </p>
+      </section>
 
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        4. Uso permitido
-    </h2>
+      <section id="disponibilidad" class="legal-seccion">
+        <h2 class="legal-titulo">7. Disponibilidad y mantenimiento</h2>
+        <p>
+          {{ $empresa }} procurará mantener la plataforma disponible y en
+          funcionamiento, pero no garantiza que el acceso sea ininterrumpido
+          ni que esté libre de errores. Podrán realizarse tareas de
+          mantenimiento, actualizaciones o cambios necesarios para el
+          funcionamiento del servicio. Cuando sea posible, los mantenimientos
+          programados se anunciarán con antelación.
+        </p>
+      </section>
 
-    <p>Al utilizar Cuentas Claras, te comprometes a:</p>
+      <section id="propiedad" class="legal-seccion">
+        <h2 class="legal-titulo">8. Propiedad intelectual</h2>
+        <p>
+          Los elementos de la plataforma, incluidos su diseño, marca, textos y
+          componentes propios, están sujetos a los derechos de propiedad
+          intelectual de {{ $empresa }} o de sus licenciantes. No se concede
+          autorización para utilizarlos fuera de lo permitido por la ley o por
+          el titular de los derechos.
+        </p>
+        <p>
+          El usuario conserva la titularidad de la información que ingresa. Al
+          usar el servicio, otorga a {{ $empresa }} una licencia limitada,
+          no exclusiva y revocable para almacenar, procesar y mostrar esa
+          información con la única finalidad de prestar el servicio.
+        </p>
+      </section>
 
-    <ul class="list-disc pl-6 font-body-md text-body-md text-on-surface-variant leading-relaxed" style="list-style-type: disc; padding-left: 1.5rem;">
-        <li>Utilizar la plataforma de forma lícita y de buena fe.</li>
-        <li>Ingresar información que estés autorizado a proporcionar.</li>
-        <li>No intentar acceder sin autorización a cuentas, datos o sistemas de otras personas.</li>
-        <li>No interferir con el funcionamiento, la disponibilidad o la seguridad del servicio.</li>
-        <li>No utilizar la plataforma para actividades fraudulentas o ilícitas.</li>
-        <li>No copiar, alterar o explotar indebidamente los componentes del servicio, salvo cuando la ley lo permita.</li>
-    </ul>
+      <section id="responsabilidad" class="legal-seccion">
+        <h2 class="legal-titulo">9. Limitaciones de responsabilidad</h2>
+        <p>
+          En la medida permitida por la legislación aplicable, cada usuario es
+          responsable de la información que introduce y de las decisiones que
+          toma a partir de ella. {{ $empresa }} no será responsable por daños
+          indirectos, incidentales o consecuentes derivados del uso o de la
+          imposibilidad de uso del servicio, salvo en los casos de dolo o culpa
+          grave.
+        </p>
+        <p>
+          Nada en estos términos excluye ni limita derechos o responsabilidades
+          que legalmente no puedan excluirse o limitarse, en particular los
+          derechos del consumidor y los derechos del titular de datos
+          personales.
+        </p>
+      </section>
 
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        5. Alcance informativo y responsabilidad financiera
-    </h2>
+      <section id="cierre" class="legal-seccion">
+        <h2 class="legal-titulo">10. Cierre o suspensión de cuentas</h2>
+        <p>
+          {{ $empresa }} podrá suspender o limitar el acceso cuando existan
+          motivos legítimos, como riesgos de seguridad, uso contrario a estos
+          términos o requerimientos de autoridad competente, respetando la
+          legislación aplicable y el derecho de defensa del usuario.
+        </p>
+        <p>
+          El usuario puede eliminar su cuenta desde
+          <strong>Ajustes &gt; Eliminar cuenta</strong>. La eliminación borra en
+          cascada los datos asociados, cancela las metas compartidas activas
+          (con notificación al otro participante) y transfiere la titularidad de
+          la meta al otro participante cuando el usuario que se va era el
+          creador. El sistema no permite eliminar la cuenta del último
+          administrador activo. Los detalles completos están en la
+          <a href="{{ route('politica') }}">Política de Privacidad</a>.
+        </p>
+      </section>
 
-    <p>
-        Cuentas Claras es una herramienta de organización y seguimiento
-        financiero. Salvo que se indique expresamente lo contrario,
-        la información y los cálculos que ofrece no constituyen asesoría
-        financiera, tributaria, contable ni jurídica personalizada.
-    </p>
+      <section id="menores" class="legal-seccion">
+        <h2 class="legal-titulo">11. Menores de edad</h2>
+        <p>
+          El servicio está dirigido a personas mayores de
+          <strong>{{ $minAge }} años</strong>. Al registrarte declaras cumplir
+          con este requisito. Si {{ $empresa }} detecta una cuenta creada por
+          un menor sin la autorización de su representante legal, procederá a
+          su eliminación.
+        </p>
+      </section>
 
-    <p>
-        Las decisiones financieras son responsabilidad de cada usuario.
-        Debes revisar los datos que ingresas y comprobar los resultados
-        antes de utilizarlos para tomar decisiones. El equipo debe verificar
-        las funciones de cálculo y los límites reales del servicio para
-        evitar promesas de exactitud que no pueda garantizar.
-    </p>
+      <section id="modificaciones" class="legal-seccion">
+        <h2 class="legal-titulo">12. Modificaciones a los términos</h2>
+        <p>
+          {{ $empresa }} puede modificar estos términos cuando cambien el
+          servicio, las prácticas comerciales o los requisitos legales. La
+          versión vigente estará siempre disponible en esta página con su
+          número de versión y su fecha de vigencia.
+        </p>
+        <p>
+          Cuando los cambios sean sustanciales, se notificará a los usuarios
+          por correo electrónico con antelación razonable y, si la ley lo
+          exige, se solicitará una nueva aceptación. El uso continuado del
+          servicio después de la entrada en vigencia de los cambios implica su
+          aceptación.
+        </p>
+      </section>
 
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        6. Información personal y privacidad
-    </h2>
+      <section id="divisibilidad" class="legal-seccion">
+        <h2 class="legal-titulo">13. Divisibilidad e integridad</h2>
+        <p>
+          Si alguna disposición de estos términos fuera declarada nula, ilegal
+          o inaplicable por autoridad competente, las demás disposiciones
+          seguirán vigentes. La disposición afectada se interpretará en la
+          medida necesaria para preservar la intención original de las partes.
+        </p>
+        <p>
+          Estos términos, junto con la
+          <a href="{{ route('politica') }}">Política de Privacidad</a>,
+          constituyen el acuerdo completo entre el usuario y {{ $empresa }}
+          respecto del uso del servicio, y sustituyen cualquier acuerdo
+          anterior sobre la misma materia.
+        </p>
+      </section>
 
-    <p>
-        El tratamiento de los datos personales se describe en nuestra
-        <a href="{{ route('politica') }}" class="underline">
-            Política de privacidad
-        </a>,
-        que explica las finalidades del tratamiento y los derechos de los
-        titulares conforme a la normativa aplicable.
-    </p>
+      <section id="fuerza-mayor" class="legal-seccion">
+        <h2 class="legal-titulo">14. Fuerza mayor</h2>
+        <p>
+          {{ $empresa }} no será responsable por el incumplimiento o la demora
+          en la prestación del servicio cuando ello se deba a causas de fuerza
+          mayor o caso fortuito, incluyendo, sin limitación, desastres
+          naturales, actos de autoridad, fallas generalizadas de
+          telecomunicaciones o de energía, ciberataques de gran escala,
+          pandemias o conflictos armados. En tales casos, {{ $empresa }}
+          notificará a los usuarios y adoptará medidas razonables para
+          restablecer el servicio.
+        </p>
+      </section>
 
-    <p>
-        Antes de publicar, el equipo debe verificar si el registro requiere
-        una aceptación expresa de estos términos y de la política de
-        privacidad, y cómo se registra dicha aceptación.
-    </p>
+      <section id="legislacion" class="legal-seccion">
+        <h2 class="legal-titulo">15. Legislación aplicable y jurisdicción</h2>
+        <p>
+          Estos términos se rigen por las leyes de la República de Colombia,
+          sin perjuicio de las normas imperativas que resulten aplicables,
+          incluyendo las de protección al consumidor y las de protección de
+          datos personales (Ley 1581 de 2012 y sus decretos reglamentarios).
+        </p>
+        <p>
+          Cualquier controversia que no pueda resolverse amigablemente será
+          sometida a los jueces competentes de la República de Colombia, en
+          los términos que establezca la ley procesal aplicable. Lo anterior no
+          limita el derecho del consumidor a acudir a la jurisdicción de su
+          domicilio cuando la ley lo permita.
+        </p>
+      </section>
 
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        7. Disponibilidad y cambios del servicio
-    </h2>
+      <section id="contacto" class="legal-seccion">
+        <h2 class="legal-titulo">16. Contacto</h2>
+        <p>
+          Para consultas, solicitudes o reclamaciones relacionadas con estos
+          términos:
+        </p>
+        <ul class="legal-lista">
+          <li><strong>Correo:</strong> {{ $emailContacto }}</li>
+          <li><strong>Titular:</strong> {{ $empresa }}</li>
+          <li><strong>NIT:</strong> {{ $nit }}</li>
+          <li><strong>Domicilio:</strong> {{ $domicilio }}</li>
+        </ul>
+      </section>
 
-    <p>
-        Se procurará mantener la plataforma disponible y en funcionamiento,
-        pero no se garantiza que el acceso sea ininterrumpido o esté libre
-        de errores. Podrán realizarse tareas de mantenimiento, actualizaciones
-        o cambios necesarios para el funcionamiento del servicio.
-    </p>
+    </div>
 
-    <p>
-        Los cambios relevantes de estos términos se publicarán en esta
-        página, indicando la fecha de actualización. Cuando la normativa
-        lo exija, se solicitará la aceptación correspondiente.
-    </p>
+    <footer class="legal-footer">
+      <p class="legal-footer__version">
+        {{ $app }} · Términos y Condiciones v{{ $version }} · Vigente desde {{ $fecha }}
+      </p>
+      <p class="legal-footer__empresa">
+        {{ $empresa }} · NIT {{ $nit }} · {{ $domicilio }}
+      </p>
+    </footer>
 
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        8. Propiedad intelectual
-    </h2>
-
-    <p>
-        Los elementos de la plataforma, incluidos su diseño, marca,
-        textos y componentes propios, estarán sujetos a los derechos
-        de propiedad intelectual que correspondan. No se concede una
-        autorización para utilizarlos fuera de lo permitido por la ley
-        o por el titular de los derechos.
-    </p>
-
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        9. Limitaciones de responsabilidad
-    </h2>
-
-    <p>
-        En la medida permitida por la legislación aplicable, cada usuario
-        es responsable de la información que introduce y de las decisiones
-        que toma a partir de ella. Nada en estos términos excluye o limita
-        derechos o responsabilidades que legalmente no puedan excluirse
-        ni limitarse.
-    </p>
-
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        10. Cierre o suspensión de cuentas
-    </h2>
-
-    <p>
-        El acceso podrá suspenderse o limitarse cuando existan motivos
-        legítimos, como riesgos de seguridad o un uso contrario a estos
-        términos, respetando la legislación aplicable.
-    </p>
-
-    <p>
-        Las opciones para cerrar una cuenta y el tratamiento posterior
-        de los datos se regirán por los procedimientos disponibles y por
-        la Política de privacidad. El equipo debe confirmar que estas
-        opciones existen y funcionan como se describen.
-    </p>
-
-    <h2 class="font-headline-md text-headline-md text-on-surface">
-        11. Legislación aplicable y contacto
-    </h2>
-
-    <p>
-        Estos términos se interpretarán conforme a la legislación
-        colombiana, sin perjuicio de las normas imperativas que resulten
-        aplicables.
-    </p>
-
-    <p>
-        Para consultas o reclamaciones, puedes comunicarte a través de
-        [CORREO O CANAL OFICIAL]. Este dato debe completarse antes de
-        publicar el documento.
-    </p>
-
-</div>
-    </article>
-  </main>
+  </article>
+</main>
 @endsection

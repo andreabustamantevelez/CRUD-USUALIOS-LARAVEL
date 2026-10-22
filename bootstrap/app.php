@@ -15,13 +15,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-       $middleware->redirectUsersTo(fn () => auth()->user()->rol === 'administrador'
-       ? route('admin.estadisticas')
-       : route('panel'));
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
+        // Un usuario ya autenticado que visita /iniciar-sesion o /crear-usuario
+        // es redirigido aquí. El admin va a /admin/panel; estandar|familiar a /panel.
+        $middleware->redirectUsersTo(
+            fn () => auth()->user()?->rol === 'administrador'
+                ? route('admin.panel')
+                : route('panel')
+        );
 
         $middleware->alias([
-            'cuenta.activa'     => CuentaActiva::class,
-            'rol'               => RolRequerido::class,
+            'cuenta.activa'      => CuentaActiva::class,
+            'rol'                => RolRequerido::class,
             'sesion.inactividad' => ExpirarSesionPorInactividad::class,
         ]);
     })

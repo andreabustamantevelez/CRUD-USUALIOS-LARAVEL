@@ -1,11 +1,1492 @@
 /*
  * ==============================================================================
  * ARCHIVO : public/css/landing-page.css
- * QUÉ ES  : Estilos EXCLUSIVOS de la Landing page pública.
+ * QUÉ ES  : Estilos y animaciones EXCLUSIVOS de la Landing page pública.
+ * REGLAS  : sin colores propios (los colores salen de las clases del tema en el
+ *           Blade). Aquí solo hay movimiento, geometría y estados.
+ *           Todo movimiento se apaga con prefers-reduced-motion.
+ *           Si JS no carga, el contenido se ve completo (la clase .lp-js la
+ *           añade public/js/landing-page.js).
+ * CAMBIOS : - El stagger ahora funciona también cuando está ANIDADO dentro de
+ *             un .lp-reveal (sección "Cómo funciona").
+ *           - Se quitó la regla que ocultaba las fotos con .is-missing.
+ *           - Proporción 3:2 y avatar con clases propias (.lp-ratio-3x2,
+ *             .lp-avatar): ya no dependen de que Tailwind las haya compilado.
+ *           - Sección 13 (al final): responsive. Solo media queries; en pantallas
+ *             de 1450 px o más el diseño no cambia.
  * ==============================================================================
  */
 
-/* Compensa el header público fijo (5 rem) al navegar por los enlaces ancla. */
 html {
   scroll-padding-top: 5rem;
+  scroll-behavior: smooth;
 }
+
+[hidden] {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   1. Barra de progreso de scroll
+   --------------------------------------------------------------------------- */
+.lp-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 60;
+  transform-origin: left center;
+  transform: scaleX(0);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------------
+   2. Entrada del hero (solo CSS, funciona sin JS)
+   --------------------------------------------------------------------------- */
+@keyframes lp-rise {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lp-rise {
+  opacity: 0;
+  animation: lp-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.lp-d1 { animation-delay: 0.05s; }
+.lp-d2 { animation-delay: 0.15s; }
+.lp-d3 { animation-delay: 0.28s; }
+.lp-d4 { animation-delay: 0.4s; }
+.lp-d5 { animation-delay: 0.52s; }
+
+/* Palabra rotatoria del título */
+.lp-rotator {
+  display: inline-block;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.lp-rotator.is-out {
+  opacity: 0;
+  transform: translateY(-0.35em);
+}
+
+/* ---------------------------------------------------------------------------
+   3. Aparición al hacer scroll
+   --------------------------------------------------------------------------- */
+html.lp-js .lp-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+html.lp-js .lp-reveal--left  { transform: translateX(-36px); }
+html.lp-js .lp-reveal--right { transform: translateX(36px); }
+html.lp-js .lp-reveal--zoom  { transform: scale(0.94); }
+
+html.lp-js .lp-reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hijos escalonados */
+html.lp-js .lp-stagger > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Se activan cuando el propio .lp-stagger es visible, o cuando está ANIDADO
+   dentro de un .lp-reveal que ya es visible (caso "Cómo funciona"). */
+html.lp-js .lp-stagger.is-visible > *,
+html.lp-js .lp-reveal.is-visible .lp-stagger > * {
+  opacity: 1;
+  transform: none;
+}
+html.lp-js .lp-stagger.is-visible > *:nth-child(2),
+html.lp-js .lp-reveal.is-visible .lp-stagger > *:nth-child(2) { transition-delay: 0.12s; }
+html.lp-js .lp-stagger.is-visible > *:nth-child(3),
+html.lp-js .lp-reveal.is-visible .lp-stagger > *:nth-child(3) { transition-delay: 0.24s; }
+html.lp-js .lp-stagger.is-visible > *:nth-child(4),
+html.lp-js .lp-reveal.is-visible .lp-stagger > *:nth-child(4) { transition-delay: 0.36s; }
+html.lp-js .lp-stagger.is-visible > *:nth-child(5),
+html.lp-js .lp-reveal.is-visible .lp-stagger > *:nth-child(5) { transition-delay: 0.48s; }
+
+/* Las tarjetas con .lp-lift dentro de un stagger conservan su elevación al pasar el mouse */
+html.lp-js .lp-stagger.is-visible > .lp-lift:hover,
+html.lp-js .lp-reveal.is-visible .lp-stagger > .lp-lift:hover {
+  transform: translateY(-6px);
+  transition-delay: 0s;
+}
+
+/* ---------------------------------------------------------------------------
+   4. Flotación, manchas y pulsos
+   --------------------------------------------------------------------------- */
+@keyframes lp-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+.lp-float      { animation: lp-float 6s ease-in-out infinite; }
+.lp-float-slow { animation: lp-float 8s ease-in-out infinite; animation-delay: -2s; }
+.lp-float-late { animation: lp-float 7s ease-in-out infinite; animation-delay: -4s; }
+
+@keyframes lp-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(40px, 24px) scale(1.12); }
+}
+.lp-drift { animation: lp-drift 14s ease-in-out infinite; }
+
+@keyframes lp-wiggle {
+  0%, 82%, 100% { transform: rotate(0); }
+  86% { transform: rotate(14deg); }
+  90% { transform: rotate(-12deg); }
+  94% { transform: rotate(8deg); }
+  98% { transform: rotate(-4deg); }
+}
+.lp-wiggle {
+  display: inline-block;
+  transform-origin: 50% 10%;
+  animation: lp-wiggle 4s ease-in-out infinite;
+}
+
+@keyframes lp-ring {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 35%, transparent); }
+  100% { box-shadow: 0 0 0 14px transparent; }
+}
+.lp-ring { animation: lp-ring 2.2s ease-out infinite; }
+
+/* Brillo que cruza el botón principal */
+.lp-shine {
+  position: relative;
+  overflow: hidden;
+}
+.lp-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%) skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: lp-shine 3.6s ease-in-out infinite;
+}
+@keyframes lp-shine {
+  0%, 55% { transform: translateX(-120%) skewX(-20deg); }
+  100%    { transform: translateX(120%) skewX(-20deg); }
+}
+
+/* ---------------------------------------------------------------------------
+   5. Cinta de funciones (marquee)
+   --------------------------------------------------------------------------- */
+.lp-marquee {
+  display: flex;
+  overflow: hidden;
+  gap: 1.5rem;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.lp-marquee__track {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 100%;
+  gap: 1.5rem;
+  justify-content: space-around;
+}
+html.lp-js .lp-marquee__track {
+  animation: lp-marquee 38s linear infinite;
+}
+.lp-marquee:hover .lp-marquee__track {
+  animation-play-state: paused;
+}
+@keyframes lp-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-100% - 1.5rem)); }
+}
+
+/* ---------------------------------------------------------------------------
+   6. Barras de progreso animadas (dentro de un .lp-reveal)
+   --------------------------------------------------------------------------- */
+.lp-fill {
+  width: 100%;
+}
+html.lp-js .lp-fill {
+  width: 0;
+  transition: width 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
+}
+html.lp-js .is-visible .lp-fill.lp-w-20  { width: 20%; }
+html.lp-js .is-visible .lp-fill.lp-w-22  { width: 22%; }
+html.lp-js .is-visible .lp-fill.lp-w-28  { width: 28%; }
+html.lp-js .is-visible .lp-fill.lp-w-30  { width: 30%; }
+html.lp-js .is-visible .lp-fill.lp-w-50  { width: 50%; }
+html.lp-js .is-visible .lp-fill.lp-w-72  { width: 72%; }
+html:not(.lp-js) .lp-fill.lp-w-20 { width: 20%; }
+html:not(.lp-js) .lp-fill.lp-w-22 { width: 22%; }
+html:not(.lp-js) .lp-fill.lp-w-28 { width: 28%; }
+html:not(.lp-js) .lp-fill.lp-w-30 { width: 30%; }
+html:not(.lp-js) .lp-fill.lp-w-50 { width: 50%; }
+html:not(.lp-js) .lp-fill.lp-w-72 { width: 72%; }
+
+/* Línea que une los 3 pasos */
+.lp-line {
+  transform-origin: left center;
+}
+html.lp-js .lp-line {
+  transform: scaleX(0);
+  transition: transform 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s;
+}
+html.lp-js .is-visible .lp-line,
+html.lp-js .lp-line.is-visible {
+  transform: scaleX(1);
+}
+
+/* ---------------------------------------------------------------------------
+   7. Tarjetas con inclinación 3D (la inclinación la calcula el JS)
+   --------------------------------------------------------------------------- */
+.lp-tilt {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.25s ease-out, box-shadow 0.3s ease;
+  will-change: transform;
+}
+.lp-lift {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+}
+.lp-lift:hover {
+  transform: translateY(-6px);
+}
+
+/* ---------------------------------------------------------------------------
+   8. Fotos: marco con relleno detrás de la imagen
+   - La imagen va en position:absolute, así que el marco necesita una altura
+     propia: por eso .lp-ratio-3x2 y .lp-avatar están definidas aquí y no
+     dependen de Tailwind.
+   - Ya NO se oculta la imagen con .is-missing: si el archivo existe, se ve.
+   --------------------------------------------------------------------------- */
+.lp-foto {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.lp-foto__ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  opacity: 0.55;
+  z-index: 0;
+}
+.lp-foto > img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-foto--zoom:hover > img {
+  transform: scale(1.06);
+}
+
+/* Proporción 3:2 para las fotos grandes */
+.lp-ratio-3x2 {
+  aspect-ratio: 3 / 2;
+}
+
+/* Avatar circular de los casos de uso */
+.lp-avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+/* Foto a sangre en la parte superior de una card, con desvanecido hacia abajo */
+.lp-foto-fade {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 88%);
+}
+.lp-foto-fade > img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+/* ---------------------------------------------------------------------------
+   9. Demo interactivo (pestañas + semáforo)
+   --------------------------------------------------------------------------- */
+.lp-tab {
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease;
+}
+.lp-tab:active {
+  transform: scale(0.97);
+}
+
+.lp-panel:not([hidden]) {
+  animation: lp-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.lp-seg {
+  opacity: 0.3;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.lp-seg.is-active {
+  opacity: 1;
+  transform: scaleY(1.25);
+}
+
+.lp-marker {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 4px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  transition: left 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lp-bar-live {
+  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lp-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   10. Preguntas frecuentes (details/summary)
+   --------------------------------------------------------------------------- */
+.lp-faq summary {
+  list-style: none;
+  cursor: pointer;
+}
+.lp-faq summary::-webkit-details-marker {
+  display: none;
+}
+.lp-faq .lp-faq__icon {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-faq[open] .lp-faq__icon {
+  transform: rotate(45deg);
+}
+.lp-faq[open] .lp-faq__body {
+  animation: lp-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------------------------------------------------------------------------
+   Hero: foto de fondo a la derecha (800 px de ancho, alto automático).
+   - La imagen se VOLTEA con CSS (scaleX(-1)); el archivo queda como el original.
+   - La máscara va en el contenedor (no en la imagen) para que el volteo no la
+     invierta: izquierda transparente -> derecha completa, y se funde arriba y abajo.
+   - En móvil la foto queda tenue detrás del texto para no quitar legibilidad.
+   --------------------------------------------------------------------------- */
+.lp-hero-bg {
+  width: 800px;
+  max-width: 100%;
+  opacity: 0.22;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 82%, transparent 100%);
+  animation: lp-bg-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Dos fotos apiladas que se alternan con un fundido lento (sin botones).
+   - La primera da la altura del marco; la segunda se superpone igual de grande.
+   - Las dos se voltean con scaleX(-1); el archivo queda como el original.
+   - La que entra se asienta con un acercamiento muy leve (10 s) para que no se
+     sienta como un simple corte de diapositiva. */
+.lp-hero-bg {
+  position: relative;
+}
+.lp-hero-bg > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: scaleX(-1);
+  opacity: 0;
+  transition: opacity 2.4s ease-in-out;
+}
+.lp-hero-bg > img + img {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  object-fit: cover;
+}
+.lp-hero-bg > img.is-active {
+  opacity: 1;
+  animation: lp-hero-settle 10s ease-out both;
+}
+@keyframes lp-hero-settle {
+  from { transform: scaleX(-1) scale(1.05); }
+  to   { transform: scaleX(-1) scale(1); }
+}
+@keyframes lp-bg-in {
+  from { opacity: 0; transform: translateX(24px); }
+}
+@media (min-width: 1024px) {
+  .lp-hero-bg {
+    opacity: 1;
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.08) 10%, rgba(0, 0, 0, 0.45) 22%, #000 38%),
+      linear-gradient(to bottom, transparent 0%, #000 14%, #000 82%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.08) 1%, rgba(0, 0, 0, 0.45) 8%, #000 18%),
+      linear-gradient(to bottom, transparent 0%, #000 0%, #000 92%, transparent 101%);
+    mask-composite: intersect;
+  }
+}
+
+@media (max-width: 1450px) {
+  #hero-right {
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.45) 5%, #000 7%);
+    opacity: .6;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   CTA final: foto de fondo a la derecha que se desvanece hacia la izquierda.
+   La máscara va en el contenedor. En móvil queda tenue detrás del texto.
+   --------------------------------------------------------------------------- */
+.lp-cta-bg {
+  opacity: 0.22;
+}
+.lp-cta-bg > img {
+  display: block;
+  width: 66%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 70% center;   /* antes: 58% center */
+  float: inline-end;
+}
+@media (min-width: 1024px) {
+  .lp-cta-bg {
+    opacity: 1;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.15) 18%,
+      rgba(0, 0, 0, 0.55) 42%,
+      #000 68%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 35%,
+      rgba(0, 0, 0, 0.15) 50%,
+      rgba(0, 0, 0, 0.55) 61%,
+      #000 75%
+    );
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   12. Variedad de secciones
+   a) "¿Te suena?": burbujas de pensamiento con cola. La cola hereda el color
+      de fondo de la burbuja (background: inherit), así que sirve con cualquier
+      color del tema. La burbuja NO puede tener overflow:hidden.
+   b) "Tus datos": panel oscuro con filas y una cifra por compromiso.
+   --------------------------------------------------------------------------- */
+.lp-bubble {
+  position: relative;
+}
+.lp-bubble::after {
+  content: "";
+  position: absolute;
+  left: 2.25rem;
+  bottom: -0.6rem;
+  width: 1.3rem;
+  height: 1.3rem;
+  background: inherit;
+  border-radius: 0 0 0.4rem 0;
+  transform: rotate(45deg);
+}
+.lp-situacion:hover .lp-bubble {
+  transform: translateY(-4px);
+}
+.lp-bubble {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (min-width: 768px) {
+  .lp-situaciones {
+    align-items: start;
+  }
+  /* La tarjeta del medio baja un poco: rompe la fila recta de siempre */
+  .lp-situacion:nth-child(2) {
+    margin-top: 2.5rem;
+  }
+}
+
+.lp-trust {
+  display: grid;
+  gap: 2.5rem;
+  padding: 2rem;
+}
+@media (min-width: 640px) {
+  .lp-trust {
+    padding: 3rem;
+  }
+}
+@media (min-width: 1024px) {
+  .lp-trust {
+    grid-template-columns: 5fr 7fr;
+    gap: 3.5rem;
+    padding: 4rem;
+    align-items: center;
+  }
+}
+.lp-trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1rem;
+  border-radius: 1rem;
+}
+.lp-trust-row + .lp-trust-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.lp-trust-row:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.lp-trust-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.lp-trust-text {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.lp-trust-metric {
+  flex-shrink: 0;
+  min-width: 5rem;
+  text-align: right;
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------------------------
+   11. Reducir movimiento
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .lp-rise,
+  .lp-float,
+  .lp-float-slow,
+  .lp-float-late,
+  .lp-drift,
+  .lp-hero-bg,
+  .lp-hero-bg > img.is-active,
+  .lp-wiggle,
+  .lp-ring,
+  .lp-shine::after,
+  html.lp-js .lp-marquee__track {
+    animation: none !important;
+  }
+  .lp-rise { opacity: 1; }
+  html.lp-js .lp-reveal,
+  html.lp-js .lp-stagger > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  html.lp-js .lp-fill,
+  html.lp-js .lp-line {
+    transition: none;
+  }
+  .lp-tilt,
+  .lp-lift:hover {
+    transform: none;
+  }
+}
+
+/* =========================================================================
+   Hero con imagen de fondo + tarjetas flotantes
+   Posicionamiento en % sobre la foto: se adapta al tamaño del contenedor.
+   ========================================================================= */
+
+/* Contenedor de las tarjetas flotantes.
+   inset-0 lo hace coincidir exactamente con la foto. */
+.lp-hero-cards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;        /* las tarjetas no roban clics a los botones */
+}
+
+/* Base común de cada tarjeta */
+.lp-card {
+  position: absolute;
+  background: var(--surface-container-lowest);
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px -15px rgb(0 0 0 / 25%);
+  padding: 1rem;
+  pointer-events: auto;
+}
+
+/* Tarjeta 1 · Vencimiento (a la izquierda de la foto) */
+.lp-card--vencimiento {
+  top: 28%;
+  right: 68%;
+}
+
+/* Tarjeta 2 · Disponible del mes (arriba a la derecha de la foto) */
+.lp-card--disponible {
+  top: 15%;
+  right: 18%;
+}
+
+/* Tarjeta 3 · Meta (abajo a la derecha de la foto) */
+.lp-card--meta {
+  bottom: 10%;
+  right: 8%;
+}
+
+/* Tarjetas del juego 2 (van con la foto 2). Nunca en el centro: ahí están las personas. */
+.lp-card--invitacion {
+  top: 10%;
+  right: 66%;
+}
+.lp-card--gasto {
+  bottom: 12%;
+  right: 66%;
+}
+.lp-card--informe {
+  top: 40%;
+  right: 3%;
+}
+
+/* Juegos de tarjetas que se alternan con la foto.
+   - El que sale se desvanece al mismo tiempo que la foto.
+   - El que entra espera medio segundo y sus tarjetas suben una tras otra. */
+.lp-cards-set {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1.2s ease-in-out, visibility 0s linear 1.2s;
+}
+.lp-cards-set.is-active {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 1.2s ease-in-out 0.6s, visibility 0s linear 0s;
+}
+.lp-cards-set .lp-card {
+  transform: translateY(14px) scale(0.97);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-cards-set.is-active .lp-card {
+  transform: none;
+  transition-delay: 0.6s;
+}
+.lp-cards-set.is-active .lp-card:nth-child(2) { transition-delay: 0.78s; }
+.lp-cards-set.is-active .lp-card:nth-child(3) { transition-delay: 0.96s; }
+
+/* En pantallas menores a lg, ocultamos las tarjetas para no tapar el texto */
+@media (max-width: 1023px) {
+  .lp-hero-cards { display: none; }
+}
+
+#hero{
+  padding-top: 0px;
+}
+
+
+/* =========================================================================
+   13. RESPONSIVE
+   Todo lo de esta sección está en media queries: en pantallas de 1450 px o
+   más NO cambia nada (el escritorio queda exactamente como lo tenías).
+   Los selectores con #id o con dos clases ganan sobre las utilidades de
+   Tailwind sin importar en qué orden se carguen los archivos.
+   ========================================================================= */
+
+/* Nada debe provocar scroll horizontal (las entradas laterales del reveal) */
+main {
+  overflow-x: clip;
+}
+
+/* ---------------------------------------------------------------------------
+   13.1 Hero · 1024 a 1449 px
+   La foto se achica con el ancho de la pantalla (anclada a la derecha) para que
+   no se meta debajo del título. Las tarjetas flotantes se escalan con ella, y
+   por debajo de 1280 px se ocultan porque quedarían demasiado pequeñas.
+   --------------------------------------------------------------------------- */
+#hero-right > div {
+  transform: scale(var(--hs, 1));
+  transform-origin: right center;
+}
+@media (min-width: 1024px) { #hero-right { --hs: 0.7; } }
+@media (min-width: 1120px) { #hero-right { --hs: 0.76; } }
+@media (min-width: 1200px) { #hero-right { --hs: 0.82; } }
+@media (min-width: 1280px) { #hero-right { --hs: 0.87; } }
+@media (min-width: 1366px) { #hero-right { --hs: 0.94; } }
+@media (min-width: 1450px) { #hero-right { --hs: 1; } }
+
+@media (max-width: 1279px) {
+  #hero .lp-hero-cards {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   13.2 Hero · menos de 1024 px (tablet y celular)
+   El texto va primero y la foto debajo, completa y con el desvanecido de arriba
+   y de abajo, en vez de quedar casi invisible detrás del título.
+   --------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  #hero {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+  }
+  #hero > .max-w-7xl {
+    order: 1;
+    width: 100%;
+    padding-top: 1.25rem;
+  }
+  #hero > .max-w-7xl .grid {
+    padding-top: 0;
+  }
+  #hero-right {
+      order: 2;
+      position: absolute;
+      inset: auto;
+      width: 100%;
+      margin-top: 1.5rem;
+      opacity: 1;
+      -webkit-mask-image: none;
+      mask-image: none;
+      opacity: .2;
+  }
+  #hero-right > div {
+    width: 100%;
+    transform: none;
+  }
+  #hero .lp-hero-bg {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+/* Los dos botones del hero no se aprietan: si no caben en una línea, pasan a dos */
+@media (min-width: 640px) {
+  #hero .lp-d4 {
+    flex-wrap: wrap;
+  }
+  #hero .lp-d4 a {
+    white-space: nowrap;
+  }
+}
+
+/* Celular: título más ajustado y la palabra que rota en su propia línea
+   (así, al cambiar de palabra, el texto y la foto de abajo no saltan). */
+@media (max-width: 639px) {
+  #hero h1 {
+    font-size: clamp(2rem, 9.4vw, 2.75rem);
+  }
+  #hero .lp-rotator {
+    display: block;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   13.3 "Probar sin registrarte" en celular
+   --------------------------------------------------------------------------- */
+@media (max-width: 479px) {
+  #simulador [role="tablist"] {
+    display: flex;
+    width: 100%;
+  }
+  #simulador .lp-tab {
+    flex: 1 1 0;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.65rem 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    text-align: center;
+  }
+  /* La leyenda de 3 columnas pasa a 3 filas: nada se sale de la tarjeta */
+  #reg-resultado > .grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  #reg-resultado > .grid > div {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   13.4 Características · tablet: 2 columnas y la tercera ocupa todo el ancho
+   --------------------------------------------------------------------------- */
+#caracteristicas .lp-stagger .mt-auto.flex {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  #caracteristicas .lp-stagger {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #caracteristicas .lp-stagger > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   13.5 Metas compartidas · la tarjeta no se estira de más al apilarse
+   --------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  #metas-familiares .lp-reveal--left {
+    width: 100%;
+    max-width: 34rem;
+    margin-inline: auto;
+  }
+}
+@media (max-width: 479px) {
+  .lp-foto-fade + .relative {
+    margin-top: -4rem;
+  }
+}
+
+#metas-familiares .justify-between.pt-1 {
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+/* ---------------------------------------------------------------------------
+   13.6 Cuentas · la fila "etiqueta + precio" puede partirse en dos líneas
+   --------------------------------------------------------------------------- */
+.tarjeta-tinte .justify-between.mb-4 {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ---------------------------------------------------------------------------
+   13.7 ¿Te suena? · tablet: una sola columna centrada (3 columnas quedaban
+   muy angostas). El escalón de la tarjeta del medio solo se usa desde 1024.
+   --------------------------------------------------------------------------- */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .lp-situaciones.lp-stagger {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 36rem;
+    margin-inline: auto;
+    gap: 2.5rem;
+  }
+  .lp-situacion:nth-child(2) {
+    margin-top: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   13.8 Tus datos · celular: el ícono queda junto al texto y la cifra baja
+   alineada con el texto
+   --------------------------------------------------------------------------- */
+@media (max-width: 639px) {
+  .lp-trust-text {
+    flex: 1 1 0;
+  }
+  .lp-trust-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    padding-left: 4rem;     /* 3rem del ícono + 1rem de separación */
+    text-align: left;
+  }
+}
+@media (max-width: 479px) {
+  .lp-trust {
+    padding: 1.5rem;
+    gap: 2rem;
+  }
+  .lp-trust-row {
+    padding: 1rem 0.5rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   13.9 Pantallas táctiles: sin efectos "hover" pegados al tocar
+   --------------------------------------------------------------------------- */
+@media (hover: none) {
+  .lp-lift:hover,
+  html.lp-js .lp-stagger.is-visible > .lp-lift:hover,
+  html.lp-js .lp-reveal.is-visible .lp-stagger > .lp-lift:hover {
+    transform: none;
+  }
+  .lp-situacion:hover .lp-bubble {
+    transform: none;
+  }
+  .lp-trust-row:hover {
+    background-color: transparent;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   14. "Probar sin registrarte": fondo de íconos.
+   - El SVG va como MÁSCARA: el color sale de bg-primary del Blade.
+   - El segundo mask (gradiente vertical) desvanece arriba y abajo.
+   - En móvil, el fade vertical es MÍNIMO para que el patrón se vea en el
+     padding de la sección alrededor del card.
+   --------------------------------------------------------------------------- */
+.lp-doodles {
+  /* Variables para ajustar por breakpoint sin reescribir el SVG */
+  --doodles-fade-top: 12%;
+  --doodles-fade-bottom: 88%;
+  --doodles-size: 520px;
+  --doodles-opacity: 0.15;
+
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--doodles-opacity);
+
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22520%22 height=%22520%22 viewBox=%220 0 520 520%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.4%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cg transform=%22translate(28 36) rotate(-12 24.0 24.0) scale(2.0)%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%229%22/%3E%3Cpath d=%22M14.8 9.4c-.4-1-1.4-1.6-2.8-1.6-1.6 0-2.8.8-2.8 2.1 0 1.4 1.2 1.9 2.8 2.2s2.8.8 2.8 2.2c0 1.3-1.2 2.1-2.8 2.1-1.4 0-2.5-.6-2.9-1.7M12 6.3v1.5M12 16.2v1.5%22/%3E%3C/g%3E%3Cg transform=%22translate(168 18) rotate(8 27.6 27.6) scale(2.3)%22%3E%3Cpath d=%22M4.5 12.2c0-3.3 3.2-5.7 7.2-5.7 1.3 0 2.5.3 3.5.7L18 5.8v3.3c1.2.9 1.9 2 1.9 3.3 0 1.3-.5 2.4-1.4 3.2V19h-2.6v-1.7H9.9V19H7.3v-3.4c-1.7-.9-2.8-2.1-2.8-3.4z%22/%3E%3Cpath d=%22M2.8 11.2c0 1.4 1 2.4 2.2 2.4M10 8.7h3.4M15.7 11h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(330 52) rotate(-8 24.0 24.0) scale(2.0)%22%3E%3Crect x=%225%22 y=%222.5%22 width=%2214%22 height=%2219%22 rx=%222.5%22/%3E%3Crect x=%228%22 y=%226%22 width=%228%22 height=%223.5%22 rx=%22.8%22/%3E%3Cpath d=%22M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(440 26) rotate(14 21.6 21.6) scale(1.8)%22%3E%3Cpath d=%22M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 1.5h-15z%22/%3E%3Cpath d=%22M10 20.5a2.2 2.2 0 0 0 4 0%22/%3E%3C/g%3E%3Cg transform=%22translate(78 168) rotate(6 25.2 25.2) scale(2.1)%22%3E%3Cpath d=%22M3.5 17l5.5-5.5 3.5 3.5 8-8M15.5 7h5v5%22/%3E%3C/g%3E%3Cg transform=%22translate(236 150) rotate(-14 24.0 24.0) scale(2.0)%22%3E%3Crect x=%227%22 y=%222.5%22 width=%2210%22 height=%2219%22 rx=%222.5%22/%3E%3Cpath d=%22M10.5 18.5h3%22/%3E%3C/g%3E%3Cg transform=%22translate(396 186) rotate(10 25.2 25.2) scale(2.1)%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%229%22/%3E%3Cpath d=%22M12 3v9l6.4 6.4%22/%3E%3C/g%3E%3Cg transform=%22translate(22 300) rotate(12 22.8 22.8) scale(1.9)%22%3E%3Cpath d=%22M18.5 5.5l-13 13%22/%3E%3Ccircle cx=%227.5%22 cy=%227.5%22 r=%222.3%22/%3E%3Ccircle cx=%2216.5%22 cy=%2216.5%22 r=%222.3%22/%3E%3C/g%3E%3Cg transform=%22translate(150 316) rotate(-6 26.4 26.4) scale(2.2)%22%3E%3Cpath d=%22M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3%22/%3E%3Crect x=%223.5%22 y=%228%22 width=%2217%22 height=%2211.5%22 rx=%222.5%22/%3E%3Cpath d=%22M16.5 13.8h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(304 288) rotate(8 25.2 25.2) scale(2.1)%22%3E%3Cpath d=%22M3.5 20.5h17M7 20.5v-6M12 20.5v-12M17 20.5v-9%22/%3E%3C/g%3E%3Cg transform=%22translate(440 326) rotate(-10 20.4 20.4) scale(1.7)%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%229%22/%3E%3Cpath d=%22M14.8 9.4c-.4-1-1.4-1.6-2.8-1.6-1.6 0-2.8.8-2.8 2.1 0 1.4 1.2 1.9 2.8 2.2s2.8.8 2.8 2.2c0 1.3-1.2 2.1-2.8 2.1-1.4 0-2.5-.6-2.9-1.7M12 6.3v1.5M12 16.2v1.5%22/%3E%3C/g%3E%3Cg transform=%22translate(64 428) rotate(6 22.8 22.8) scale(1.9)%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%229%22/%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%225%22/%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%22.6%22/%3E%3C/g%3E%3Cg transform=%22translate(214 440) rotate(12 21.6 21.6) scale(1.8)%22%3E%3Crect x=%225%22 y=%222.5%22 width=%2214%22 height=%2219%22 rx=%222.5%22/%3E%3Crect x=%228%22 y=%226%22 width=%228%22 height=%223.5%22 rx=%22.8%22/%3E%3Cpath d=%22M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(356 430) rotate(-8 24.0 24.0) scale(2.0)%22%3E%3Cpath d=%22M4.5 12.2c0-3.3 3.2-5.7 7.2-5.7 1.3 0 2.5.3 3.5.7L18 5.8v3.3c1.2.9 1.9 2 1.9 3.3 0 1.3-.5 2.4-1.4 3.2V19h-2.6v-1.7H9.9V19H7.3v-3.4c-1.7-.9-2.8-2.1-2.8-3.4z%22/%3E%3Cpath d=%22M2.8 11.2c0 1.4 1 2.4 2.2 2.4M10 8.7h3.4M15.7 11h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(466 440) rotate(10 19.2 19.2) scale(1.6)%22%3E%3Cpath d=%22M3.5 17l5.5-5.5 3.5 3.5 8-8M15.5 7h5v5%22/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 var(--doodles-fade-top),
+      #000 var(--doodles-fade-bottom),
+      transparent 100%
+    );
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22520%22 height=%22520%22 viewBox=%220 0 520 520%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.4%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cg transform=%22translate(28 36) rotate(-12 24.0 24.0) scale(2.0)%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%229%22/%3E%3Cpath d=%22M14.8 9.4c-.4-1-1.4-1.6-2.8-1.6-1.6 0-2.8.8-2.8 2.1 0 1.4 1.2 1.9 2.8 2.2s2.8.8 2.8 2.2c0 1.3-1.2 2.1-2.8 2.1-1.4 0-2.5-.6-2.9-1.7M12 6.3v1.5M12 16.2v1.5%22/%3E%3C/g%3E%3Cg transform=%22translate(168 18) rotate(8 27.6 27.6) scale(2.3)%22%3E%3Cpath d=%22M4.5 12.2c0-3.3 3.2-5.7 7.2-5.7 1.3 0 2.5.3 3.5.7L18 5.8v3.3c1.2.9 1.9 2 1.9 3.3 0 1.3-.5 2.4-1.4 3.2V19h-2.6v-1.7H9.9V19H7.3v-3.4c-1.7-.9-2.8-2.1-2.8-3.4z%22/%3E%3Cpath d=%22M2.8 11.2c0 1.4 1 2.4 2.2 2.4M10 8.7h3.4M15.7 11h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(330 52) rotate(-8 24.0 24.0) scale(2.0)%22%3E%3Crect x=%225%22 y=%222.5%22 width=%2214%22 height=%2219%22 rx=%222.5%22/%3E%3Crect x=%228%22 y=%226%22 width=%228%22 height=%223.5%22 rx=%22.8%22/%3E%3Cpath d=%22M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(440 26) rotate(14 21.6 21.6) scale(1.8)%22%3E%3Cpath d=%22M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 1.5h-15z%22/%3E%3Cpath d=%22M10 20.5a2.2 2.2 0 0 0 4 0%22/%3E%3C/g%3E%3Cg transform=%22translate(78 168) rotate(6 25.2 25.2) scale(2.1)%22%3E%3Cpath d=%22M3.5 17l5.5-5.5 3.5 3.5 8-8M15.5 7h5v5%22/%3E%3C/g%3E%3Cg transform=%22translate(236 150) rotate(-14 24.0 24.0) scale(2.0)%22%3E%3Crect x=%227%22 y=%222.5%22 width=%2210%22 height=%2219%22 rx=%222.5%22/%3E%3Cpath d=%22M10.5 18.5h3%22/%3E%3C/g%3E%3Cg transform=%22translate(396 186) rotate(10 25.2 25.2) scale(2.1)%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%229%22/%3E%3Cpath d=%22M12 3v9l6.4 6.4%22/%3E%3C/g%3E%3Cg transform=%22translate(22 300) rotate(12 22.8 22.8) scale(1.9)%22%3E%3Cpath d=%22M18.5 5.5l-13 13%22/%3E%3Ccircle cx=%227.5%22 cy=%227.5%22 r=%222.3%22/%3E%3Ccircle cx=%2216.5%22 cy=%2216.5%22 r=%222.3%22/%3E%3C/g%3E%3Cg transform=%22translate(150 316) rotate(-6 26.4 26.4) scale(2.2)%22%3E%3Cpath d=%22M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3%22/%3E%3Crect x=%223.5%22 y=%228%22 width=%2217%22 height=%2211.5%22 rx=%222.5%22/%3E%3Cpath d=%22M16.5 13.8h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(304 288) rotate(8 25.2 25.2) scale(2.1)%22%3E%3Cpath d=%22M3.5 20.5h17M7 20.5v-6M12 20.5v-12M17 20.5v-9%22/%3E%3C/g%3E%3Cg transform=%22translate(440 326) rotate(-10 20.4 20.4) scale(1.7)%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%229%22/%3E%3Cpath d=%22M14.8 9.4c-.4-1-1.4-1.6-2.8-1.6-1.6 0-2.8.8-2.8 2.1 0 1.4 1.2 1.9 2.8 2.2s2.8.8 2.8 2.2c0 1.3-1.2 2.1-2.8 2.1-1.4 0-2.5-.6-2.9-1.7M12 6.3v1.5M12 16.2v1.5%22/%3E%3C/g%3E%3Cg transform=%22translate(64 428) rotate(6 22.8 22.8) scale(1.9)%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%229%22/%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%225%22/%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%22.6%22/%3E%3C/g%3E%3Cg transform=%22translate(214 440) rotate(12 21.6 21.6) scale(1.8)%22%3E%3Crect x=%225%22 y=%222.5%22 width=%2214%22 height=%2219%22 rx=%222.5%22/%3E%3Crect x=%228%22 y=%226%22 width=%228%22 height=%223.5%22 rx=%22.8%22/%3E%3Cpath d=%22M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(356 430) rotate(-8 24.0 24.0) scale(2.0)%22%3E%3Cpath d=%22M4.5 12.2c0-3.3 3.2-5.7 7.2-5.7 1.3 0 2.5.3 3.5.7L18 5.8v3.3c1.2.9 1.9 2 1.9 3.3 0 1.3-.5 2.4-1.4 3.2V19h-2.6v-1.7H9.9V19H7.3v-3.4c-1.7-.9-2.8-2.1-2.8-3.4z%22/%3E%3Cpath d=%22M2.8 11.2c0 1.4 1 2.4 2.2 2.4M10 8.7h3.4M15.7 11h.01%22/%3E%3C/g%3E%3Cg transform=%22translate(466 440) rotate(10 19.2 19.2) scale(1.6)%22%3E%3Cpath d=%22M3.5 17l5.5-5.5 3.5 3.5 8-8M15.5 7h5v5%22/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 var(--doodles-fade-top),
+      #000 var(--doodles-fade-bottom),
+      transparent 100%
+    );
+
+  -webkit-mask-size: var(--doodles-size) var(--doodles-size), 100% 100%;
+  mask-size: var(--doodles-size) var(--doodles-size), 100% 100%;
+  -webkit-mask-repeat: repeat, no-repeat;
+  mask-repeat: repeat, no-repeat;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+/* Tablets y móviles: se hace más visible y el fade vertical es mínimo
+   para que el patrón aparezca en el padding alrededor del card. */
+@media (max-width: 1023px) {
+  .lp-doodles {
+    --doodles-fade-top: 6%;
+    --doodles-fade-bottom: 94%;
+    --doodles-size: 400px;
+    --doodles-opacity: 0.13;
+  }
+}
+
+@media (max-width: 639px) {
+  .lp-doodles {
+    --doodles-fade-top: 4%;
+    --doodles-fade-bottom: 96%;
+    --doodles-size: 320px;
+    --doodles-opacity: 0.14;
+  }
+}
+
+/* ===========================================================================
+   15. CUENTAS: fondo con capas + cards "plan"
+   Los colores salen de los tokens del tema (claro/oscuro).
+   =========================================================================== */
+
+/* ---- Fondo ---- */
+.lp-plans__bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.lp-plans__dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--primary) 30%, transparent) 1.4px, transparent 1.8px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 55%, #000 25%, transparent 78%);
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 55%, #000 25%, transparent 78%);
+}
+.lp-plans .lp-plans__icon {
+  position: absolute;
+  font-size: 4.5rem;
+  opacity: 0.14;
+}
+@media (max-width: 1023px) {
+  .lp-plans .lp-plans__icon { display: none; }
+}
+
+/* ---- Card base ---- */
+.lp-plan {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.75rem;
+}
+.lp-plan__band {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lp-plan__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 9999px;
+}
+.lp-plan__rule { height: 1px; }
+.lp-plan__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 9999px;
+}
+.lp-plan__check .material-symbols-outlined {
+  font-size: 15px;
+  font-variation-settings: 'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 20;
+}
+.lp-plan__btn {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.95rem 1.5rem;
+  border-radius: 0.95rem;
+  font-weight: 700;
+  transition: background-color 0.2s ease, border-color 0.2s ease, filter 0.2s ease, transform 0.15s ease;
+}
+.lp-plan__btn:active { transform: scale(0.98); }
+
+/* ---- Personal (clara y neutra) ---- */
+.lp-plan--basic {
+  background: var(--surface-container-lowest);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 55%, transparent);
+  /* box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 22px 44px -28px rgba(15, 23, 42, 0.3); */
+}
+.lp-plan--basic .lp-plan__band {
+  background: var(--surface-container-low);
+  color: var(--on-surface-variant);
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 45%, transparent);
+}
+.lp-plan--basic .lp-plan__icon {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+.lp-plan--basic .lp-plan__rule {
+  background: color-mix(in srgb, var(--outline-variant) 55%, transparent);
+}
+.lp-plan--basic .lp-plan__check {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+.lp-plan--basic .lp-plan__off .lp-plan__check {
+  background: transparent;
+  color: var(--outline);
+}
+.lp-plan__btn--ghost {
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 90%, transparent);
+  color: var(--on-surface);
+  background: transparent;
+}
+.lp-plan__btn--ghost:hover {
+  background: var(--surface-container);
+  border-color: var(--outline);
+}
+
+/* ---- Pareja (oscura, con acento menta) ---- */
+.lp-plan--pro {
+  --plan-accent: var(--primary-fixed);
+  --plan-accent-on: var(--on-primary-fixed);
+  /* box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--plan-accent) 35%, transparent),
+    0 40px 70px -30px color-mix(in srgb, var(--primary) 55%, transparent); */
+}
+[data-theme="oscuro"] .lp-plan--pro {
+  --plan-accent: var(--primary);
+  --plan-accent-on: var(--on-primary);
+}
+.lp-plan--pro::before {
+  content: "";
+  position: absolute;
+  top: -6rem;
+  right: -8rem;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--plan-accent) 28%, transparent), transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+.lp-plan--pro::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 55%;
+  height: 40%;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.22) 1.2px, transparent 1.6px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse at 0% 100%, #000, transparent 70%);
+  mask-image: radial-gradient(ellipse at 0% 100%, #000, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.lp-plan--pro > * { position: relative; z-index: 1; }
+.lp-plan--pro .lp-plan__band {
+  background: var(--plan-accent);
+  color: var(--plan-accent-on);
+}
+.lp-plan--pro .lp-plan__icon {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--plan-accent);
+}
+.lp-plan--pro .lp-plan__muted { color: rgba(255, 255, 255, 0.72); }
+.lp-plan--pro .lp-plan__rule { background: rgba(255, 255, 255, 0.14); }
+.lp-plan--pro .lp-plan__check {
+  background: color-mix(in srgb, var(--plan-accent) 22%, transparent);
+  color: var(--plan-accent);
+}
+.lp-plan__btn--accent {
+  background: var(--plan-accent);
+  color: var(--plan-accent-on);
+  /* box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--plan-accent) 70%, transparent); */
+}
+.lp-plan__btn--accent:hover { filter: brightness(1.07); }
+
+/* Dos personas junto al precio */
+.lp-plan__pair { display: inline-flex; align-items: center; }
+.lp-plan__pair > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 9999px;
+  font-size: 20px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border: 2px solid var(--inverse-surface);
+}
+[data-theme="oscuro"] .lp-plan__pair > span { border-color: #1c2128; }
+.lp-plan__pair > span + span {
+  margin-left: -0.7rem;
+  background: var(--plan-accent);
+  color: var(--plan-accent-on);
+}
+
+/* ---- Garantías bajo las cards ---- */
+.lp-plans__perk {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-lowest);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 45%, transparent);
+}
+.lp-plans__perk .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--primary);
+}
+
+/* ---- Puntos reutilizables para otras secciones ---- */
+.lp-dots {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--primary) 22%, transparent) 1.2px, transparent 1.6px);
+  background-size: 26px 26px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-plans__ring--2 { animation: none !important; }
+}
+/* ===========================================================================
+   16. SEGURIDAD: haz de luz, palabra gigante, tarjeta de vidrio y franja
+   El panel es siempre oscuro, por eso los colores son fijos (rgba).
+   =========================================================================== */
+
+/* Haz de luz diagonal desde la esquina superior derecha */
+.lp-trust-beam {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 200deg at 100% 0%,
+    transparent 0deg,
+    rgba(126, 232, 189, 0.16) 28deg,
+    transparent 62deg
+  );
+}
+
+/* Palabra gigante en contorno, de fondo */
+.lp-trust-word {
+  position: absolute;
+  right: -1rem;
+  bottom: -2.5rem;
+  z-index: 0;
+  font-size: clamp(7rem, 17vw, 15rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.09);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Tarjeta de vidrio */
+.lp-vault {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 1.25rem 1.25rem 0.5rem;
+  text-align: left;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.5);
+}
+.lp-vault__head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 0.9rem;
+}
+.lp-vault__lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  background: rgba(126, 232, 189, 0.16);
+  color: #7ee8bd;
+}
+.lp-vault__lock .material-symbols-outlined { font-size: 18px; }
+.lp-vault__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.lp-vault__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7ee8bd;
+}
+.lp-vault__live::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #7ee8bd;
+  box-shadow: 0 0 0 0 rgba(126, 232, 189, 0.6);
+  animation: lp-vault-pulse 2s ease-out infinite;
+}
+@keyframes lp-vault-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(126, 232, 189, 0.55); }
+  100% { box-shadow: 0 0 0 8px rgba(126, 232, 189, 0); }
+}
+.lp-vault__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.lp-vault__row > .material-symbols-outlined {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.65);
+}
+.lp-vault__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+.lp-vault__pill {
+  flex-shrink: 0;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #7ee8bd;
+  background: rgba(126, 232, 189, 0.15);
+}
+
+/* Franja inferior a todo el ancho */
+.lp-trust-foot {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+@media (min-width: 768px) {
+  .lp-trust-foot { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+}
+.lp-trust-foot__title {
+  margin-bottom: 0.75rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+.lp-trust-foot__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.lp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.lp-chip .material-symbols-outlined {
+  font-size: 16px;
+  font-variation-settings: 'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 20;
+}
+.lp-chip--ok {
+  color: #7ee8bd;
+  background: rgba(126, 232, 189, 0.12);
+  border: 1px solid rgba(126, 232, 189, 0.25);
+}
+.lp-chip--no {
+  color: #ffb4ab;
+  background: rgba(255, 180, 171, 0.1);
+  border: 1px solid rgba(255, 180, 171, 0.25);
+}
+
+@media (max-width: 479px) {
+  .lp-vault { padding: 1rem 1rem 0.25rem; }
+  .lp-vault__live { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-vault__live::before { animation: none !important; }
+}
+
+/* ---------------------------------------------------------------------------
+   17. Header scroll effect (solo landing)
+   - El header se queda SIEMPRE pegado arriba (position: fixed).
+   - Al bajar más de 30px, el JS añade .is-scrolled:
+       · fondo más opaco + sombra para que "flote" sobre el contenido
+       · altura 80px → 64px y logo ligeramente más pequeño
+   - Al volver al top se quita la clase y vuelve al look original.
+   - <main> ya tiene pt-20 (80px), así que al compactarse no hay saltos de layout.
+   --------------------------------------------------------------------------- */
+[data-landing-header] {
+  position: fixed !important; /* evita que otra regla lo saque del flujo fijo */
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  transition:
+    box-shadow 0.3s ease,
+    background-color 0.3s ease;
+}
+
+/* Barra interior (la que tiene h-20 en el Blade) */
+[data-landing-header] > div:first-child {
+  transition: height 0.3s ease;
+}
+
+/* Logo */
+[data-landing-header] a[data-path="landing-page"] {
+  transform-origin: left center;
+  transition: transform 0.3s ease;
+}
+
+/* Estado compacto */
+[data-landing-header].is-scrolled {
+  background-color: color-mix(in srgb, var(--surface) 95%, transparent);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
+[data-landing-header].is-scrolled > div:first-child {
+  height: 4rem; /* 64px */
+}
+
+[data-landing-header].is-scrolled a[data-path="landing-page"] {
+  transform: scale(0.88);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-landing-header],
+  [data-landing-header] > div:first-child,
+  [data-landing-header] a[data-path="landing-page"] {
+    transition: none;
+  }
+}
+body {
+  transform: none !important;
+  animation: none !important;
+}
+/* ===========================================================================
+   18. UTILIDADES SEMÁNTICAS Y DE ACENTO SECUNDARIO
+   ---------------------------------------------------------------------------
+   - .bg-want / .bg-want-soft / .text-want / .text-on-want → bloque 50/30/20
+     "gustos". Usan --want / --want-bg (definidos en theme.css). NO cambian
+     con el rol: el morado semántico se mantiene en estándar, familiar y admin.
+   - .bg-accent-secondary / .text-on-accent-secondary → acento secundario de
+     marca. SÍ cambia con el rol (--accent-secondary en theme.css).
+   =========================================================================== */
+
+.bg-want      { background-color: var(--want); }
+.bg-want-soft { background-color: var(--want-bg); }
+.text-want    { color: var(--want); }
+.text-on-want { color: #ffffff; }
+[data-theme="oscuro"] .text-on-want { color: #1a1526; }
+
+.bg-accent-secondary              { background-color: var(--accent-secondary); }
+.bg-accent-secondary:hover        { background-color: var(--accent-secondary-hover); }
+.text-on-accent-secondary         { color: var(--on-accent-secondary); }

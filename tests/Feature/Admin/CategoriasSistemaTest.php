@@ -55,14 +55,27 @@ class CategoriasSistemaTest extends TestCase
 
     public function test_desactivar_cambia_el_estado(): void
     {
+        $admin = User::factory()->administrador()->create(['password' => bcrypt('secreto123')]);
+        $categoria = Categoria::factory()->delSistema()->create(['activa' => true]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.categorias.desactivar', $categoria), [
+                'password' => 'secreto123',
+            ]);
+
+        $this->assertFalse($categoria->fresh()->activa);
+    }
+
+    public function test_desactivar_sin_password_falla(): void
+    {
         $admin = User::factory()->administrador()->create();
         $categoria = Categoria::factory()->delSistema()->create(['activa' => true]);
 
         $this->actingAs($admin)
             ->patch(route('admin.categorias.desactivar', $categoria))
-            ->assertRedirect();
+            ->assertSessionHasErrors('password');
 
-        $this->assertFalse($categoria->fresh()->activa);
+        $this->assertTrue($categoria->fresh()->activa);
     }
 
     public function test_no_se_puede_desactivar_una_categoria_personal(): void

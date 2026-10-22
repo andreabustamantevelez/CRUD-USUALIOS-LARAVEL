@@ -3,15 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdatePerfilRequest;
+use App\Notifications\AlertaSeguridad;
 use App\Services\ServicioCuentas;
 use App\Services\ServicioMetas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+/**
+ * 2026-10-22 (J9): notifica email.changed al correo ANTERIOR tras confirmar
+ *                  el cambio de correo (para detectar ataques).
+ */
 class AjustesController extends Controller
 {
     public function __construct(
@@ -38,23 +45,18 @@ class AjustesController extends Controller
         $esAdmin = $usuario->rol === 'administrador';
         $mensaje = 'Tu perfil se actualizó correctamente.';
 
-        // 1. Datos básicos
         $usuario->nombre = $datos['nombre'];
 
-        // Solo los no-admin tienen ingreso mensual. El admin conserva el valor que
-        // tuviera en BD (nunca debería tener uno, pero por si acaso).
         if (!$esAdmin) {
             $usuario->ingreso_mensual = $datos['ingreso_mensual'] ?? null;
         }
 
-        // 2. Contraseña (si aplica)
         if (!empty($datos['nueva_contrasena'])) {
             $usuario->password = Hash::make($datos['nueva_contrasena']);
         }
 
         $usuario->save();
 
-        // 3. Cambio de correo (delegado al servicio, con su propia transacción)
         $emailNuevo = strtolower(trim($datos['email']));
         if ($emailNuevo !== $usuario->email) {
             try {
@@ -89,6 +91,10 @@ class AjustesController extends Controller
 
     public function confirmarCorreo(Request $request, string $token): RedirectResponse
     {
+        // Captura ANTES del servicio: después, $usuario->email es el nuevo.
+        $correoViejo = $request->user()->email;
+        $nombreUsuario = $request->user()->nombre;
+
         try {
             $this->cuentas->confirmarCambioCorreo($request->user(), $token);
         } catch (ValidationException $e) {
@@ -97,12 +103,22 @@ class AjustesController extends Controller
                 ->withErrors($e->errors());
         }
 
-        // Cerramos la sesión: se autenticó con el correo viejo.
-        // Vaciamos remember_token en memoria para que Auth::logout() no haga
-        // $user->save() de un modelo ya eliminado (no aplica aquí porque no
-        // eliminamos al usuario, pero es defensivo).
-        $request->user()->setRememberToken(null);
+        // Notifica al correo ANTERIOR (por si el cambio fue un ataque).
+        try {
+            Notification::route('mail', $correoViejo)
+                ->notify(new AlertaSeguridad('email.changed', [
+                    'nombre'       => $nombreUsuario,
+                    'correo_nuevo' => $request->user()->email,
+                    'fecha'        => now()->format('Y-m-d H:i'),
+                ]));
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo enviar alerta email.changed', [
+                'user_id' => $request->user()->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
+        $request->user()->setRememberToken(null);
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

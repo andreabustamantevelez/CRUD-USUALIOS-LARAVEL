@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
+
 /**
  * Pruebas de J3: registro, login, límite de intentos, cierre de sesión, recuperación de
  * contraseña y protección de las rutas privadas. Los usuarios se crean con UserFactory.
@@ -22,13 +23,13 @@ class AuthTest extends TestCase
     private function datosRegistro(array $cambios = []): array
     {
         return array_merge([
-            'nombre'                => 'Ana Pérez',
-            'identificacion'        => '1020304050',
-            'correo'                => 'ana@correo.com',
-            'password'              => 'Clave2026*',
+            'nombre' => 'Ana Pérez',
+            'identificacion' => '1020304050',
+            'correo' => 'ana@correo.com',
+            'password' => 'Clave2026*',
             'password_confirmation' => 'Clave2026*',
-            'tipo_cuenta'           => 'estandar',
-            'consentimiento'        => '1',
+            'tipo_cuenta' => 'estandar',
+            'consentimiento' => '1',
         ], $cambios);
     }
 
@@ -153,12 +154,78 @@ class AuthTest extends TestCase
         $this->assertAuthenticatedAs($usuario);
     }
 
-    public function test_login_del_administrador_va_a_estadisticas(): void
+    public function test_login_del_administrador_va_a_panel(): void
     {
-        User::factory()->administrador()->create(['email' => 'admin@correo.com', 'password' => 'Clave2026*']);
+        $admin = User::factory()->administrador()->create([
+            'password' => bcrypt('secreto123'),
+        ]);
 
-        $this->post(route('login.entrar'), ['correo' => 'admin@correo.com', 'password' => 'Clave2026*'])
-            ->assertRedirect(route('admin.estadisticas'));
+        $this->post(route('login.entrar'), [
+            'correo' => $admin->email,
+            'password' => 'secreto123',
+        ])->assertRedirect(route('admin.panel'));
+    }
+    // tests/Feature/AuthTest.php
+    public function test_login_regenera_la_sesion(): void
+    {
+        $usuario = User::factory()->create(['password' => bcrypt('secreto123')]);
+        $this->get(route('login'));
+        $sessionAntes = session()->getId();
+
+        $this->post(route('login.entrar'), [
+            'correo' => $usuario->email,
+            'password' => 'secreto123',
+        ]);
+
+        $this->assertNotEquals($sessionAntes, session()->getId());
+    }
+
+    // tests/Feature/AuthTest.php
+    public function test_login_notifica_ip_nueva(): void
+    {
+        Notification::fake();
+        $usuario = User::factory()->create([
+            'password' => bcrypt('secreto123'),
+            'last_login_ip' => '10.0.0.1',
+            'last_login_at' => now()->subDay(),
+        ]);
+
+        $this->post(route('login.entrar'), [
+            'correo' => $usuario->email,
+            'password' => 'secreto123',
+        ]);
+
+        Notification::assertSentTo(
+            $usuario,
+            \App\Notifications\AlertaSeguridad::class,
+            fn($n) => $n->evento === 'login.new_ip'
+        );
+    }
+
+    // tests/Feature/AuthTest.php
+    public function test_login_bloqueado_notifica_al_usuario(): void
+    {
+        Notification::fake();
+        $usuario = User::factory()->create(['password' => bcrypt('secreto123')]);
+
+        // 5 fallos (llega a MAX_INTENTOS)
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('login.entrar'), [
+                'correo' => $usuario->email,
+                'password' => 'mala',
+            ]);
+        }
+        // 6.º intento dispara el lockout
+        $this->post(route('login.entrar'), [
+            'correo' => $usuario->email,
+            'password' => 'secreto123',
+        ]);
+
+        Notification::assertSentTo(
+            $usuario,
+            \App\Notifications\AlertaSeguridad::class,
+            fn($n) => $n->evento === 'login.blocked'
+        );
     }
 
     public function test_login_vuelve_a_la_url_protegida_que_se_intento_abrir(): void
@@ -257,8 +324,17 @@ class AuthTest extends TestCase
 
     public function test_las_rutas_privadas_redirigen_al_login_sin_sesion(): void
     {
-        foreach (['panel', 'gastos.index', 'categorias.index', 'gastos-fijos.index', 'creditos.simulador',
-                  'informes.actual', 'metas.index', 'ajustes.perfil', 'admin.usuarios'] as $ruta) {
+        foreach ([
+            'panel',
+            'gastos.index',
+            'categorias.index',
+            'gastos-fijos.index',
+            'creditos.simulador',
+            'informes.actual',
+            'metas.index',
+            'ajustes.perfil',
+            'admin.usuarios'
+        ] as $ruta) {
             $this->get(route($ruta))->assertRedirect(route('login'));
         }
     }
@@ -298,8 +374,10 @@ class AuthTest extends TestCase
         $token = Password::broker()->createToken($usuario);
 
         $this->post(route('password.update'), [
-            'token' => $token, 'correo' => 'ana@correo.com',
-            'password' => 'ClaveNueva2026*', 'password_confirmation' => 'ClaveNueva2026*',
+            'token' => $token,
+            'correo' => 'ana@correo.com',
+            'password' => 'ClaveNueva2026*',
+            'password_confirmation' => 'ClaveNueva2026*',
         ])->assertRedirect(route('login'));
 
         $this->assertTrue(Hash::check('ClaveNueva2026*', $usuario->fresh()->password));
@@ -311,8 +389,12 @@ class AuthTest extends TestCase
     {
         $usuario = User::factory()->create(['email' => 'ana@correo.com']);
         $token = Password::broker()->createToken($usuario);
-        $datos = ['token' => $token, 'correo' => 'ana@correo.com',
-                  'password' => 'ClaveNueva2026*', 'password_confirmation' => 'ClaveNueva2026*'];
+        $datos = [
+            'token' => $token,
+            'correo' => 'ana@correo.com',
+            'password' => 'ClaveNueva2026*',
+            'password_confirmation' => 'ClaveNueva2026*'
+        ];
 
         $this->post(route('password.update'), $datos)->assertRedirect(route('login'));
         $this->post(route('password.update'), $datos)->assertSessionHasErrors('correo');
@@ -326,8 +408,10 @@ class AuthTest extends TestCase
         $this->travel(61)->minutes();
 
         $this->post(route('password.update'), [
-            'token' => $token, 'correo' => 'ana@correo.com',
-            'password' => 'ClaveNueva2026*', 'password_confirmation' => 'ClaveNueva2026*',
+            'token' => $token,
+            'correo' => 'ana@correo.com',
+            'password' => 'ClaveNueva2026*',
+            'password_confirmation' => 'ClaveNueva2026*',
         ])->assertSessionHasErrors('correo');
     }
 
@@ -336,8 +420,10 @@ class AuthTest extends TestCase
         $usuario = User::factory()->create(['email' => 'ana@correo.com', 'password' => 'ClaveVieja2026*']);
 
         $this->post(route('password.update'), [
-            'token' => 'token-inventado', 'correo' => 'ana@correo.com',
-            'password' => 'ClaveNueva2026*', 'password_confirmation' => 'ClaveNueva2026*',
+            'token' => 'token-inventado',
+            'correo' => 'ana@correo.com',
+            'password' => 'ClaveNueva2026*',
+            'password_confirmation' => 'ClaveNueva2026*',
         ])->assertSessionHasErrors('correo');
 
         $this->assertTrue(Hash::check('ClaveVieja2026*', $usuario->fresh()->password));
@@ -347,4 +433,5 @@ class AuthTest extends TestCase
     {
         $this->get(route('password.reset', ['token' => 'abc123']))->assertOk()->assertSee('abc123');
     }
+
 }

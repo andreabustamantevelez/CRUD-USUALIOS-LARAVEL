@@ -1,32 +1,23 @@
 {{--
-  ==============================================================================
-  ARCHIVO : resources/views/publico/landing.blade.php
-  QUÉ ES  : Landing page pública (diseño original code.html). Presenta el producto y lleva a
-            registro o login.
-  RUTA    : GET /  (nombre: inicio) · sin sesión · middleware guest opcional
-  DATOS QUE LLEGAN DEL CONTROLADOR:
-    - Ninguno obligatorio (es contenido estático).
-  BASE DE DATOS: Ninguna.
-  QUÉ HAY QUE HACER (en orden):
-    1. Crear la ruta "inicio" y un controlador simple (o Route::view) que devuelva esta vista.
-    2. Si el usuario ya inició sesión, mostrar "Ir a mi panel" en el header en lugar de Iniciar
-       Sesión / Crear Cuenta (@auth / @guest en components/header).
-    3. Verificar con el equipo cada cifra y promesa antes de publicar: "+18.000 hogares", "AES-256
-       de extremo a extremo", "100% gratuita", "Cero reportes a centrales". Si no son ciertas,
-       cambiar el texto.
-    4. El logo ahora es un SVG inline (<x-logo />) que se adapta al tema y tipo de cuenta.
-       Las demás imágenes externas pendientes se bajan a public/img en J9.
-    5. Los botones de plan ya envían al registro; para preseleccionar el tipo agregar
-       ?tipo=estandar o ?tipo=familiar al enlace (la vista de registro ya lo lee).
-    6. Redactar Política de privacidad y Términos (enlaces del footer).
-  CÓMO HACERLO / NOTAS:
-    - Los enlaces ancla del menú (#como-funciona, #caracteristicas, #simulador, #metas-familiares,
-      #seguridad) ya tienen su sección con ese id.
-    - Los textos de marketing no son dinámicos: se editan directamente aquí.
-  CÓMO SE COMPRUEBA:
-    - Todos los enlaces llevan a donde dicen y ninguno queda en "#".
-    - Se ve igual al code.html a 1440 px y 390 px.
-  ==============================================================================
+==============================================================================
+ARCHIVO : resources/views/publico/landing.blade.php
+QUÉ ES : Landing page pública. Presenta el producto y lleva a registro/login.
+RUTA : GET / (nombre: inicio) · sin sesión
+CSS : public/css/landing-page.css
+JS : public/js/landing-page.js (animaciones + demo interactivo)
+public/js/landing-header.js (auto-hide del header, solo aquí)
+==============================================================================
+IMÁGENES (3):
+#1 Hero · dos fotos que se alternan a la derecha, volteadas por CSS (.lp-hero-bg)
+1264x843 px · según el modo:
+- anónimo / estándar : public/img/hero-main.jpg y public/img/hero-main-2.jpg
+- familiar : public/img/hero-main-2_morado.jpg y public/img/hero-main_morado.jpg
+- admin : public/img/hero-main-2_azul.jpg y public/img/hero-main_azul.jpg
+#2 Metas compartidas · pareja con alcancía, se desvanece hacia abajo
+1200x800 px · public/img/meta-couple.jpg
+#3 CTA final · pareja planeando, con máscara lateral
+1200x800 px · public/img/cuenta-familiar.jpg
+==============================================================================
 --}}
 
 @extends('layouts.publico')
@@ -34,846 +25,1192 @@
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/landing-page.css') }}">
 @endpush
+
 @section('content')
+  @php
+    // ------------------------------------------------------------------
+    // Modo de la landing: define qué par de imágenes usa el hero.
+    //   - anonimo  : nadie logueado      -> imágenes originales (verde)
+    //   - estandar : rol 'estandar'      -> imágenes originales (verde)
+    //   - familiar : rol 'familiar'      -> imágenes moradas
+    //   - admin    : rol 'administrador' -> imágenes azules
+    // Roles según §4 de la arquitectura: estandar | familiar | administrador.
+    // ------------------------------------------------------------------
+    $user = auth()->user();
+
+    $modo = match (true) {
+        ! $user                        => 'anonimo',
+        $user->rol === 'administrador' => 'admin',
+        $user->rol === 'familiar'      => 'familiar',
+        default                        => 'estandar',
+    };
+
+    // Par de imágenes del hero (la primera es la activa inicial).
+    [$heroImgA, $heroImgB] = match ($modo) {
+        'familiar' => ['img/hero-main_morado.jpg', 'img/hero-main-2_morado.jpg'],
+        'admin'    => ['img/hero-main_azul.jpg',   'img/hero-main-2_azul.jpg'],
+        default    => ['img/hero-main.jpg',        'img/hero-main-2.jpg'],
+    };
+  @endphp
+
+  <div class="lp-progress bg-primary" aria-hidden="true"></div>
+
   <main class="w-full pt-20 bg-surface">
     <div class="flex flex-col w-full">
-      <!-- HERO SECTION -->
-      <section class="relative w-full overflow-hidden bg-gradient-to-b from-surface via-surface-container-low/40 to-surface pt-12 pb-24 lg:pt-16 lg:pb-32 pb-8">
-        <!-- Ambient Glow Drops -->
-        <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[360px] bg-primary/10 rounded-full blur-[110px] pointer-events-none"></div>
-        <div class="absolute top-1/3 -right-24 w-80 h-80 bg-tertiary-container/15 rounded-full blur-[90px] pointer-events-none"></div>
-        <div class="max-w-7xl mx-auto px-margin relative z-10">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            <!-- Left Column: Copy & Conversions -->
-            <div class="lg:col-span-7 flex flex-col gap-6 text-left">
-              <!-- Institutional Pill Badge -->
-              <div class="inline-flex items-center gap-2 self-start px-3.5 py-1.5 rounded-full bg-primary-fixed/40 text-on-primary-fixed shadow-sm">
-                <span
-                  class="material-symbols-outlined text-[17px] text-primary"
-                  style="font-variation-settings: &quot;FILL&quot; 1;"
-                >verified</span>
-                <span class="font-label-sm text-label-sm uppercase tracking-wider font-semibold">Organiza tus finanzas personales y familiares</span>
-              </div>
-              <!-- Main Dynamic Title -->
-              <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight leading-[1.12]">
-                Tus finanzas en orden, tus <span class="text-primary underline decoration-primary-fixed decoration-wavy underline-offset-8">metas compartidas</span> y tu tranquilidad asegurada.
-              </h1>
-              <!-- Value Clarification -->
-              <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
-Centraliza tus gastos diarios, organiza tus recibos fijos, simula créditos con cálculo transparente y planifica metas de ahorro personales o familiares. </p>
-              <!-- Primary CTAs -->
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-                <a
-                  class="inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-md hover:shadow-lg transition-all duration-200 group active:scale-[0.98]"
-                  data-path="crear-cuenta"
-                  href="{{ route('registro', ['tipo' => 'estandar']) }}"
-                ><span>Comenzar Gratis Ahora</span> <span class="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span> </a>
-              </div>
-              <!-- Trust & Anti-anxiety Micro-guarantees -->
-              <div class="pt-4 flex flex-wrap items-center gap-y-2 gap-x-6 text-on-surface-variant font-label-md text-label-md">
-                <div class="flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-[18px] text-primary">link_off</span>
-                  <span>Sin vincular cuentas bancarias</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
-                  <span>Cero reportes a centrales de riesgo</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-[18px] text-primary">shield</span>
-                  <span>Cumplimiento Ley 1581 Privacidad</span>
-                </div>
-              </div>
-            </div>
-            <!-- Right Column: Interactive Dashboard Simulation Canvas -->
-            <div class="lg:col-span-5 relative">
-              <!-- Glassmorphic Dashboard Showcase Container -->
-              <div class="relative bg-surface-container-lowest rounded-2xl shadow-xl p-6 sm:p-7 flex flex-col gap-6">
-                <!-- Floating Topbar within Widget -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <span class="material-symbols-outlined text-[22px]">account_balance_wallet</span>
-                    </div>
-                    <div>
-                      <p class="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">
-                        Flujo de Caja Disponible
-                      </p>
-                      <p class="font-numeric-lg text-numeric-lg text-on-surface font-bold tracking-tight">
-                        $3.850.000 <span class="font-label-sm text-label-sm text-secondary font-medium">COP</span>
-                      </p>
-                    </div>
-                  </div>
-                  <span class="px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span> En Línea </span>
-                </div>
-                <!-- Proactive Early Alert Notification (72h Notice) -->
-                <div class="bg-error-container/40 p-4 rounded-xl flex items-center justify-between gap-3 shadow-sm">
-                  <div class="flex items-start gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-error/15 text-error flex items-center justify-center shrink-0 mt-0.5">
-                      <span class="material-symbols-outlined text-[20px]">notifications_active</span>
-                    </div>
-                    <div>
-                      <div class="flex items-center gap-2">
-                        <span class="font-headline-sm text-[14px] leading-5 text-on-surface font-bold">Arriendo de Vivienda</span>
-                        <span class="px-2 py-0.5 rounded-md bg-error/15 text-error font-label-sm text-[10px] font-bold">VENCE EN 2 DÍAS</span>
-                      </div>
-                      <p class="font-body-sm text-[12px] text-secondary mt-0.5">
-                        $1.200.000 COP • Cuenta de ahorros
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    class="px-3.5 py-1.5 rounded-md bg-on-surface hover:bg-inverse-surface text-surface-bright font-label-sm text-label-sm font-bold shadow-sm transition-transform active:scale-95 shrink-0"
-                  > Pagar </button>
-                </div>
-                <!-- 50/30/20 Visual Diagnostic Breakdown -->
-                <div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-3">
-                  <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-1.5">
-                      <span class="material-symbols-outlined text-[18px] text-primary">pie_chart</span>
-                      <span class="font-headline-sm text-[14px] text-on-surface font-bold">Diagnóstico Regla 50 / 30 / 20</span>
-                    </div>
-                    <span class="font-label-sm text-label-sm text-primary font-bold">Equilibrado</span>
-                  </div>
-                  <!-- Segmented Multi-Color Progress Indicator -->
-                  <div class="w-full h-3 rounded-full bg-surface-container-high overflow-hidden flex gap-0.5">
-                    <div
-                      class="h-full bg-primary transition-all duration-500 rounded-l-full"
-                      style="width: 50%"
-                      title="Necesidades 50%"
-                    ></div>
-                    <div
-                      class="h-full bg-tertiary-container transition-all duration-500"
-                      style="width: 28%"
-                      title="Gustos 28% de 30%"
-                    ></div>
-                    <div
-                      class="h-full bg-primary-fixed-dim transition-all duration-500 rounded-r-full"
-                      style="width: 22%"
-                      title="Ahorro 22% de 20%"
-                    ></div>
-                  </div>
-                  <!-- Legend Details -->
-                  <div class="grid grid-cols-3 gap-2 pt-1 font-label-sm text-[11px]">
-                    <div class="flex flex-col">
-                      <span class="text-secondary flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary"></span>50% Necesidades</span>
-                      <span class="font-bold text-on-surface mt-0.5">$1.925.000 COP</span>
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-secondary flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tertiary-container"></span>28% Gustos</span>
-                      <span class="font-bold text-on-surface mt-0.5">$1.078.000 COP</span>
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-secondary flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary-fixed-dim"></span>22% Ahorro</span>
-                      <span class="font-bold text-on-surface mt-0.5">$847.000 COP</span>
-                    </div>
-                  </div>
-                </div>
-                <!-- Recent Fixed Obligations Mini-ledger -->
-                <div class="flex flex-col gap-2.5">
-                  <span class="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">Próximos Recibos Calendarizados</span>
-                  <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <span class="material-symbols-outlined text-[18px] text-tertiary">bolt</span>
-                      <span class="font-body-sm text-body-sm text-on-surface font-medium">Servicios Públicos (Enel / Acueducto)</span>
-                    </div>
-                    <div class="text-right">
-                      <span class="font-headline-sm text-[13px] text-on-surface font-semibold">$184.500 COP</span>
-                      <p class="font-label-sm text-[10px] text-secondary">Vence en 5 días</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors">
-                    <div class="flex items-center gap-2.5">
-                      <span class="material-symbols-outlined text-[18px] text-secondary">wifi</span>
-                      <span class="font-body-sm text-body-sm text-on-surface font-medium">Internet Fibra Óptica</span>
-                    </div>
-                    <div class="text-right">
-                      <span class="font-headline-sm text-[13px] text-on-surface font-semibold">$89.900 COP</span>
-                      <p class="font-label-sm text-[10px] text-secondary">Vence en 8 días</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- Decorative Offset Card Emphasizing Confidentiality -->
-              <div class="absolute -bottom-6 -left-6 hidden sm:flex items-center gap-3 bg-surface-container-highest/90 backdrop-blur-md px-4 py-3 rounded-xl shadow-lg">
-                <span
-                  class="material-symbols-outlined text-[24px] text-primary"
-                  style="font-variation-settings: &quot;FILL&quot; 1;"
-                >lock</span>
-                <div class="flex flex-col">
-                  <span class="font-headline-sm text-[12px] text-on-surface font-bold">Datos en Tu Poder</span>
-                  <span class="font-label-sm text-[10px] text-on-surface-variant">Sin APIs invasivas a tu banco</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <!-- SOCIAL PROOF / VALUE PILLARS STRIP -->
-      <section class="w-full bg-surface-container-low py-10">
-        <div class="max-w-7xl mx-auto px-margin">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div class="flex flex-col items-center">
-              <span class="font-numeric-lg text-numeric-lg text-primary font-bold">Finanzas</span>
-              <span class="font-body-sm text-body-sm text-secondary mt-1">Organización financiera para tu hogar</span>
-            </div>
-            <div class="flex flex-col items-center">
-              <span class="font-numeric-lg text-numeric-lg text-on-surface font-bold">Alertas</span>
-              <span class="font-body-sm text-body-sm text-secondary mt-1">Recordatorios de gastos fijos</span>
-            </div>
-            <div class="flex flex-col items-center">
-              <span class="font-numeric-lg text-numeric-lg text-primary font-bold">Privacidad</span>
-              <span class="font-body-sm text-body-sm text-secondary mt-1">Protección de datos personales</span>
-            </div>
-            <div class="flex flex-col items-center">
-              <span class="font-numeric-lg text-numeric-lg text-on-surface font-bold">Gratis</span>
-             <span class="font-body-sm text-body-sm text-secondary mt-1">Consulta las condiciones de acceso</span>
-            </div>
-          </div>
-        </div>
-      </section>
-      <!-- VALUE PROPOSITION: PROBLEMS WE SOLVE -->
-      <section id="como-funciona" class="w-full py-24 bg-surface relative">
-        <div class="max-w-7xl mx-auto px-margin flex flex-col gap-16">
-          <!-- Section Header -->
-          <div class="flex flex-col items-center text-center gap-4 max-w-3xl mx-auto">
-            <span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-widest bg-primary-fixed/40 px-3 py-1 rounded-full"> Soluciones Transparentes </span>
-            <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
-              Diseñado para eliminar el estrés financiero en hogares y jóvenes profesionales
-            </h2>
-            <p class="font-body-md text-body-md text-on-surface-variant">
-              Cuentas Claras transforma hojas de cálculo caóticas y recordatorios dispersos en una experiencia
-              guiada, pedagógica y visualmente serena.
-            </p>
-          </div>
-          <!-- 3 Key Features Bento Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- Card 1: Sin deudas sorpresivas -->
-            <div class="flex flex-col bg-surface-container-lowest rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div class="w-14 h-14 rounded-2xl bg-primary-fixed/50 flex items-center justify-center text-on-primary-fixed mb-6">
-                <span class="material-symbols-outlined text-[32px] text-primary">alarm_on</span>
-              </div>
-              <h3 class="font-headline-lg text-headline-lg text-on-surface font-bold mb-3">
-                Sin deudas sorpresivas
-              </h3>
-              <p class="font-body-md text-body-md text-secondary leading-relaxed mb-6">
-Organiza las fechas de vencimiento de tus recibos de luz, agua, arriendo y suscripciones para llevar un mejor control de tus compromisos. </p>
-              <div class="mt-auto bg-surface-container-low p-4 rounded-xl flex items-center gap-3">
-                <span class="material-symbols-outlined text-primary text-[20px]">notifications_paused</span>
-                <span class="font-label-md text-label-md text-on-surface-variant font-medium">Recordatorios vía correo o navegador</span>
-              </div>
-            </div>
-            <!-- Card 2: Regla 50/30/20 Visual -->
-            <div class="flex flex-col bg-surface-container-lowest rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div class="w-14 h-14 rounded-2xl bg-secondary-container flex items-center justify-center text-on-secondary-container mb-6">
-                <span class="material-symbols-outlined text-[32px] text-tertiary">query_stats</span>
-              </div>
-              <h3 class="font-headline-lg text-headline-lg text-on-surface font-bold mb-3">
-                Regla 50/30/20 Visual
-              </h3>
-              <p class="font-body-md text-body-md text-secondary leading-relaxed mb-6">
-                Diagnóstico automático mensual que clasifica cada centavo entre <strong class="text-on-surface">necesidades vitales (50%)</strong>, gustos personales que nutren tu vida (30%) y fondos de amortiguación o ahorro futuro (20%).
-              </p>
-              <!-- Mini Progress demo bar in card -->
-              <div class="mt-auto bg-surface-container-low p-4 rounded-xl flex flex-col gap-2">
-                <div class="flex justify-between font-label-sm text-label-sm font-semibold">
-                  <span>Distribución Ideal</span>
-                  <span class="text-primary">100% Asignado</span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-surface-container-high flex overflow-hidden">
-                  <div class="bg-primary h-full w-[50%]"></div>
-                  <div class="bg-tertiary-container h-full w-[30%]"></div>
-                  <div class="bg-primary-fixed-dim h-full w-[20%]"></div>
-                </div>
-              </div>
-            </div>
-            <!-- Card 3: Simulador de Créditos Inteligente -->
-            <div class="flex flex-col bg-surface-container-lowest rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div class="w-14 h-14 rounded-2xl bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed mb-6">
-                <span class="material-symbols-outlined text-[32px] text-tertiary">calculate</span>
-              </div>
-              <h3 id="simulador" class="font-headline-lg text-headline-lg text-on-surface font-bold mb-3">
-                Simulador de Créditos
-              </h3>
-              <p class="font-body-md text-body-md text-secondary leading-relaxed mb-6">
-                Conoce la cuota exacta antes de solicitar un préstamo comercial o bancario. Con tabla de amortización con <strong class="text-on-surface">sistema francés</strong> y semáforo preventivo que te avisa si excedes el 30% de tu capacidad segura de pago.
-              </p>
-              <div class="mt-auto bg-surface-container-low p-4 rounded-xl flex items-center justify-between">
-                <span class="font-label-sm text-label-sm font-semibold text-secondary">Tope de endeudamiento:</span>
-                <span class="font-label-sm text-label-sm font-bold text-primary px-2.5 py-0.5 rounded-full bg-primary-fixed/50">Máximo 30% Seguro</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <!-- FEATURE SPOTLIGHT: METAS COMPARTIDAS CON PRIVACIDAD TOTAL (RQNF-03) -->
+
+      <!-- ============================================================== -->
+      <!-- HERO -->
+      <!-- ============================================================== -->
       <section
-        id="metas-familiares"
-        class="w-full py-24 bg-surface-container-low/60 relative overflow-hidden"
-      >
+        class="relative w-full overflow-hidden bg-gradient-to-b from-surface via-surface-container-low/40 to-surface pt-0 pb-24 lg:pt-16 lg:pb-32"
+        id="hero">
+        <div
+          class="lp-drift absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[360px] bg-primary/10 rounded-full blur-[110px] pointer-events-none">
+        </div>
+        <div
+          class="lp-drift absolute top-1/3 -right-24 w-80 h-80 bg-tertiary-container/15 rounded-full blur-[90px] pointer-events-none">
+        </div>
+
+        {{-- IMAGEN #1: foto de fondo del hero (lado derecho) --}}
+        <div class="absolute inset-y-0 right-0 flex items-center pointer-events-none z-0" id="hero-right">
+          <div class="relative w-[800px] max-w-full">
+            <div class="lp-hero-bg" aria-hidden="true">
+              {{-- Las dos fotos se alternan solas con un fundido (sin botones). Ambas se voltean por CSS. --}}
+              <img class="lp-img is-active" src="{{ asset($heroImgA) }}" alt="" width="1264" height="843"
+                decoding="async" fetchpriority="high">
+              <img class="lp-img" src="{{ asset($heroImgB) }}" alt="" width="1264" height="843"
+                decoding="async">
+            </div>
+
+            {{-- Tarjetas flotantes posicionadas en % sobre la foto --}}
+            <div class="lp-hero-cards hidden lg:block lp-reveal lp-reveal--zoom">
+              {{-- Juego 1: va con la foto 1. Juego 2: va con la foto 2. Se alternan juntos. --}}
+              <div class="lp-cards-set is-active">
+                <div class="lp-card lp-card--vencimiento w-64 flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-error/15 text-error flex items-center justify-center shrink-0">
+                    <span class="lp-wiggle material-symbols-outlined text-[22px]">notifications_active</span>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-headline-sm text-[13px] text-on-surface font-bold truncate">Arriendo de vivienda</p>
+                    <p class="font-label-sm text-[11px] text-error font-bold">Vence en 2 días · $1.200.000</p>
+                  </div>
+                </div>
+
+                <div class="lp-card lp-card--disponible flex flex-col gap-1">
+                  <span class="font-label-sm text-[11px] text-secondary uppercase font-bold tracking-wider">Disponible
+                    del mes</span>
+                  <span class="lp-num font-numeric-lg text-numeric-lg text-primary font-bold" data-count="3850000"
+                    data-format="cop">$3.850.000</span>
+                </div>
+
+                <div class="lp-card lp-card--meta w-64 flex flex-col gap-2">
+                  <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-1.5 font-headline-sm text-[13px] text-on-surface font-bold">
+                      <span class="material-symbols-outlined text-[16px] text-primary">flight_takeoff</span>
+                      Vacaciones
+                    </span>
+                    <span class="lp-num font-label-sm text-[12px] text-primary font-bold" data-count="72"
+                      data-suffix="%">72%</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
+                    <div class="lp-fill lp-w-72 bg-primary h-full rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lp-cards-set">
+                <div class="lp-card lp-card--invitacion w-64 flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[22px]">mark_email_unread</span>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-headline-sm text-[13px] text-on-surface font-bold truncate">Tu pareja te invitó a una
+                      meta</p>
+                    <p class="font-label-sm text-[11px] text-primary font-bold">Fondo del apartamento · Responder</p>
+                  </div>
+                </div>
+
+                <div class="lp-card lp-card--gasto w-60 flex flex-col gap-2">
+                  <span class="font-label-sm text-[11px] text-secondary uppercase font-bold tracking-wider">Llevas
+                    gastado este mes</span>
+                  <span class="lp-num font-numeric-lg text-numeric-lg text-on-surface font-bold" data-count="1925000"
+                    data-format="cop">$1.925.000</span>
+                  <div class="w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
+                    <div class="lp-fill lp-w-50 bg-primary h-full rounded-full"></div>
+                  </div>
+                  <span class="font-label-sm text-[11px] text-secondary">50% de tu ingreso</span>
+                </div>
+
+                <div class="lp-card lp-card--informe w-64 flex flex-col gap-2">
+                  <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-1.5 font-headline-sm text-[13px] text-on-surface font-bold">
+                      <span class="material-symbols-outlined text-[16px] text-primary">insights</span>
+                      Tu informe está listo
+                    </span>
+                    <span class="font-label-sm text-[11px] text-primary font-bold">50/30/20</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-surface-container-high flex overflow-hidden">
+                    <div class="lp-fill lp-w-50 bg-primary h-full"></div>
+                    {{-- CAMBIO 1: bg-tertiary-container -> bg-want (bloque gustos) --}}
+                    <div class="lp-fill lp-w-30 bg-want h-full"></div>
+                    <div class="lp-fill lp-w-20 bg-primary-fixed-dim h-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-margin relative z-10 pt-14">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 items-center pt-12">
+
+            <div class="lg:col-span-6 flex flex-col gap-6 text-left">
+
+              <h1 class="lp-rise lp-d2 font-display-lg text-display-lg text-on-surface tracking-tight leading-[1.12]">
+                Pon en orden tus <span
+                  class="lp-rotator text-primary underline decoration-primary-fixed decoration-wavy underline-offset-8"
+                  data-rotator data-words="gastos|recibos|metas|ahorros|créditos">gastos</span> y alcanza tus metas, solo
+                o en pareja.
+              </h1>
+
+              <p class="lp-rise lp-d3 font-body-lg text-body-lg text-on-surface-variant max-w-xl leading-relaxed">
+                Registra tus gastos en segundos. Te avisamos antes de cada pago. Y si quieres, ahorras con tu pareja
+                sin que vea tus números.
+              </p>
+
+              <div class="lp-rise lp-d4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
+                <a class="lp-shine inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-md hover:shadow-lg transition-all duration-200 group active:scale-[0.98]"
+                  href="{{ route('registro', ['tipo' => 'estandar']) }}">
+                  <span>Crear mi cuenta gratis</span>
+                  <span
+                    class="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+                </a>
+                <a href="#probar"
+                  class="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md">
+                  <span class="material-symbols-outlined text-[18px]">play_circle</span>
+                  <span>Probar sin registrarme</span>
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- CINTA DE GANCHOS -->
+      <!-- ============================================================== -->
+      <section class="w-full bg-surface-container-low py-6 border-y border-outline-variant/30"
+        aria-label="Lo que puedes hacer con Cuentas Claras">
+        <div class="lp-marquee text-on-surface-variant">
+          <div class="lp-marquee__track font-label-md text-label-md font-semibold">
+
+            <span class="flex items-center gap-2 whitespace-nowrap">
+              <span class="material-symbols-outlined text-[18px] text-primary">link_off</span>
+              Sin claves bancarias
+            </span>
+
+            <span class="flex items-center gap-2 whitespace-nowrap">
+              <span class="material-symbols-outlined text-[18px] text-primary">notifications_active</span>
+              Avisos 3 días antes
+            </span>
+
+            <span class="flex items-center gap-2 whitespace-nowrap">
+              <span class="material-symbols-outlined text-[18px] text-primary">lock</span>
+              Metas en pareja, aportes privados
+            </span>
+
+            <span class="flex items-center gap-2 whitespace-nowrap">
+              <span class="material-symbols-outlined text-[18px] text-primary">pie_chart</span>
+              Tu informe automático
+            </span>
+
+            <span class="flex items-center gap-2 whitespace-nowrap">
+              <span class="material-symbols-outlined text-[18px] text-primary">calculate</span>
+              Simula sin miedo a reportes
+            </span>
+
+            <span class="flex items-center gap-2 whitespace-nowrap">
+              <span class="material-symbols-outlined text-[18px] text-primary">savings</span>
+              Gratis, sin tarjeta
+            </span>
+
+            <span class="flex items-center gap-2 whitespace-nowrap">
+              <span class="material-symbols-outlined text-[18px] text-primary">smartphone</span>
+              Funciona en tu celular
+            </span>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- CÓMO FUNCIONA -->
+      <!-- ============================================================== -->
+      <section id="como-funciona" class="w-full py-24 bg-surface-container-low/60 relative">
+        <div class="max-w-7xl mx-auto px-margin flex flex-col gap-16">
+          <div class="lp-reveal flex flex-col items-center text-center gap-3 max-w-2xl mx-auto">
+            <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">Empezar es fácil</h2>
+            <p class="font-body-md text-body-md text-on-surface-variant">Sin tarjeta. Sin integrar tu banco. Sin
+              vueltas.</p>
+          </div>
+
+          <div class="lp-reveal relative">
+            <div class="lp-line hidden md:block absolute top-[2.9rem] left-[17%] right-[17%] h-0.5 bg-primary/30"></div>
+            <div class="lp-stagger grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+              <div class="flex flex-col items-center text-center gap-4 p-6">
+                <div
+                  class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg lp-ring text-primary">
+                  <span class="material-symbols-outlined text-[30px] text-on-primary">person_add</span>
+                </div>
+                <h3 class="font-headline-md text-headline-md text-on-surface font-bold">1. Crea tu cuenta</h3>
+                <p class="font-body-md text-body-md text-secondary leading-relaxed">Correo, contraseña y listo. Elige
+                  cuenta personal o en pareja; puedes cambiarla luego.</p>
+              </div>
+              <div class="flex flex-col items-center text-center gap-4 p-6">
+                <div class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg">
+                  <span class="material-symbols-outlined text-[30px]">edit_note</span>
+                </div>
+                <h3 class="font-headline-md text-headline-md text-on-surface font-bold">2. Registra y organiza</h3>
+                <p class="font-body-md text-body-md text-secondary leading-relaxed">Anota tus gastos, marca cuáles son
+                  fijos y define tus metas. Cada gasto queda en su lugar.</p>
+              </div>
+              <div class="flex flex-col items-center text-center gap-4 p-6">
+                <div class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg">
+                  <span class="material-symbols-outlined text-[30px]">insights</span>
+                </div>
+                <h3 class="font-headline-md text-headline-md text-on-surface font-bold">3. Consulta y decide</h3>
+                <p class="font-body-md text-body-md text-secondary leading-relaxed">Mira tu informe, simula créditos y
+                  recibe avisos antes de cada vencimiento.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- DEMO INTERACTIVO -->
+      <!-- ============================================================== -->
+      <section id="probar" class="w-full py-24 bg-surface relative overflow-hidden">
+
+        {{-- Doodles de fondo: patrón SVG con 15 íconos financieros. --}}
+        <div class="lp-doodles bg-primary" aria-hidden="true"></div>
+
+        {{-- Glows drift laterales --}}
+        <div
+          class="lp-drift absolute -bottom-32 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none">
+        </div>
+        <div
+          class="lp-drift absolute -top-24 -right-32 w-80 h-80 bg-tertiary-container/15 rounded-full blur-[100px] pointer-events-none">
+        </div>
+
+        <div class="max-w-5xl mx-auto px-margin flex flex-col gap-10 relative z-10">
+
+          {{-- Encabezado --}}
+          <div class="lp-reveal flex flex-col items-center text-center gap-3 max-w-2xl mx-auto">
+            <span
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-fixed/40 font-label-sm text-label-sm uppercase tracking-widest text-primary font-bold">
+              <span class="material-symbols-outlined text-[14px]">touch_app</span>
+              Demo
+            </span>
+            <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">Probar sin registrarte</h2>
+            <p class="font-body-md text-body-md text-on-surface-variant">Un vistazo rápido a dos herramientas. Nada
+              se guarda.</p>
+          </div>
+
+          {{-- Card con acentos flotantes --}}
+          <div class="isolate">
+
+            {{-- Acento flotante izquierdo · ahorro --}}
+            <div
+              class="lp-float absolute -left-12 top-1/3 w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-on-primary shadow-xl pointer-events-none hidden lg:flex z-20"
+              aria-hidden="true">
+              <span class="material-symbols-outlined text-[26px]" style="font-variation-settings:'FILL' 1;">savings</span>
+            </div>
+
+            {{-- CAMBIO 2: Acento flotante derecho · tendencia -> marca secundaria --}}
+            <div
+              class="lp-float-slow absolute -right-12 top-2/3 w-14 h-14 rounded-2xl bg-accent-secondary flex items-center justify-center text-on-accent-secondary shadow-xl pointer-events-none hidden lg:flex z-20"
+              aria-hidden="true">
+              <span class="material-symbols-outlined text-[26px]"
+                style="font-variation-settings:'FILL' 1;">trending_up</span>
+            </div>
+
+            {{-- Acento flotante superior · calculadora --}}
+            <div
+              class="lp-float-late absolute -top-4 right-12 w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-on-secondary-container shadow-xl pointer-events-none hidden lg:flex z-20"
+              aria-hidden="true">
+              <span class="material-symbols-outlined text-[22px]">calculate</span>
+            </div>
+
+            {{-- Card --}}
+            <div id="simulador"
+              class="lp-reveal lp-reveal--zoom relative bg-surface-container-lowest rounded-3xl shadow-2xl p-5 sm:p-8 flex flex-col gap-6 border border-outline-variant/20">
+
+              {{-- Tabs --}}
+              <div role="tablist" aria-label="Elige una herramienta"
+                class="inline-flex self-center p-1 rounded-xl bg-surface-container-low gap-1">
+                <button type="button" role="tab" id="tab-regla" data-tab="regla" aria-selected="true"
+                  aria-controls="panel-regla"
+                  class="lp-tab inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg font-label-md text-label-md font-bold text-on-surface-variant aria-selected:bg-primary aria-selected:text-on-primary">
+                  <span class="material-symbols-outlined text-[18px]">pie_chart</span>Mi 50/30/20
+                </button>
+                <button type="button" role="tab" id="tab-credito" data-tab="credito" aria-selected="false"
+                  aria-controls="panel-credito"
+                  class="lp-tab inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg font-label-md text-label-md font-bold text-on-surface-variant aria-selected:bg-primary aria-selected:text-on-primary">
+                  <span class="material-symbols-outlined text-[18px]">calculate</span>Simular crédito
+                </button>
+              </div>
+
+              <!-- Panel 1: 50/30/20 -->
+              <div id="panel-regla" class="lp-panel grid grid-cols-1 md:grid-cols-2 gap-8" data-panel="regla"
+                role="tabpanel" aria-labelledby="tab-regla">
+                <div class="flex flex-col gap-4">
+                  <label class="flex flex-col gap-1.5">
+                    <span class="font-label-md text-label-md text-on-surface font-semibold">Tu ingreso mensual
+                      (COP)</span>
+                    <input id="reg-ingreso" type="text" inputmode="numeric" autocomplete="off" value="3.850.000"
+                      class="lp-num w-full rounded-lg bg-surface-container-low px-4 py-3 font-numeric-md text-numeric-md text-on-surface border border-outline-variant/40 focus:border-primary focus:outline-none">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="font-label-md text-label-md text-on-surface font-semibold">Lo que gastas en necesidades
+                      <span class="text-secondary font-normal">(arriendo, mercado, servicios)</span></span>
+                    <input id="reg-necesidades" type="text" inputmode="numeric" autocomplete="off" value="2.100.000"
+                      class="lp-num w-full rounded-lg bg-surface-container-low px-4 py-3 font-numeric-md text-numeric-md text-on-surface border border-outline-variant/40 focus:border-primary focus:outline-none">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="font-label-md text-label-md text-on-surface font-semibold">Lo que gastas en gustos
+                      <span class="text-secondary font-normal">(salidas, ropa, suscripciones)</span></span>
+                    <input id="reg-gustos" type="text" inputmode="numeric" autocomplete="off" value="1.150.000"
+                      class="lp-num w-full rounded-lg bg-surface-container-low px-4 py-3 font-numeric-md text-numeric-md text-on-surface border border-outline-variant/40 focus:border-primary focus:outline-none">
+                  </label>
+                  <p class="font-body-sm text-body-sm text-secondary">Lo que sobra se cuenta como ahorro.</p>
+                </div>
+
+                <div class="bg-surface-container-low rounded-2xl p-5 flex flex-col justify-center gap-4">
+                  <p id="reg-vacio" class="font-body-md text-body-md text-secondary text-center" hidden>Escribe tu
+                    ingreso para ver el diagnóstico.</p>
+                  <div id="reg-resultado" class="flex flex-col gap-4">
+                    <div class="w-full h-4 rounded-full bg-surface-container-high overflow-hidden flex gap-0.5">
+                      <div id="reg-bar-nec" class="lp-bar-live h-full bg-primary rounded-l-full"></div>
+                      {{-- CAMBIO 3: bg-tertiary-container -> bg-want --}}
+                      <div id="reg-bar-gus" class="lp-bar-live h-full bg-want"></div>
+                      <div id="reg-bar-aho" class="lp-bar-live h-full bg-primary-fixed-dim rounded-r-full"></div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 font-label-sm text-[12px]">
+                      <div class="flex flex-col gap-0.5"><span class="text-secondary flex items-center gap-1"><span
+                            class="w-2 h-2 rounded-full bg-primary"></span>Necesidades</span><span id="reg-pct-nec"
+                          class="lp-num font-numeric-md text-numeric-md font-bold text-on-surface">0%</span><span
+                          id="reg-val-nec" class="lp-num text-secondary">$0</span></div>
+                      {{-- CAMBIO 4: bg-tertiary-container -> bg-want --}}
+                      <div class="flex flex-col gap-0.5"><span class="text-secondary flex items-center gap-1"><span
+                            class="w-2 h-2 rounded-full bg-want"></span>Gustos</span><span id="reg-pct-gus"
+                          class="lp-num font-numeric-md text-numeric-md font-bold text-on-surface">0%</span><span
+                          id="reg-val-gus" class="lp-num text-secondary">$0</span></div>
+                      <div class="flex flex-col gap-0.5"><span class="text-secondary flex items-center gap-1"><span
+                            class="w-2 h-2 rounded-full bg-primary-fixed-dim"></span>Ahorro</span><span id="reg-pct-aho"
+                          class="lp-num font-numeric-md text-numeric-md font-bold text-on-surface">0%</span><span
+                          id="reg-val-aho" class="lp-num text-secondary">$0</span></div>
+                    </div>
+                    <p id="reg-mensaje" class="font-headline-sm text-headline-sm text-on-surface font-bold leading-snug">
+                    </p>
+                    <p id="reg-ideal" class="lp-num font-label-sm text-label-sm text-secondary"></p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Panel 2: crédito -->
+              <div id="panel-credito" class="lp-panel grid grid-cols-1 md:grid-cols-2 gap-8" data-panel="credito"
+                role="tabpanel" aria-labelledby="tab-credito" hidden>
+                <div class="flex flex-col gap-4">
+                  <label class="flex flex-col gap-1.5">
+                    <span class="font-label-md text-label-md text-on-surface font-semibold">Monto del crédito
+                      (COP)</span>
+                    <input id="cr-monto" type="text" inputmode="numeric" autocomplete="off" value="10.000.000"
+                      class="lp-num w-full rounded-lg bg-surface-container-low px-4 py-3 font-numeric-md text-numeric-md text-on-surface border border-outline-variant/40 focus:border-primary focus:outline-none">
+                  </label>
+                  <div class="grid grid-cols-2 gap-4">
+                    <label class="flex flex-col gap-1.5">
+                      <span class="font-label-md text-label-md text-on-surface font-semibold">Tasa mensual (%)</span>
+                      <input id="cr-tasa" type="number" min="0" max="5" step="0.1" value="1.5"
+                        class="lp-num w-full rounded-lg bg-surface-container-low px-4 py-3 font-numeric-md text-numeric-md text-on-surface border border-outline-variant/40 focus:border-primary focus:outline-none">
+                    </label>
+                    <label class="flex flex-col gap-1.5">
+                      <span class="font-label-md text-label-md text-on-surface font-semibold">Plazo: <span
+                          id="cr-plazo-out" class="text-primary font-bold">24 meses</span></span>
+                      <input id="cr-plazo" type="range" min="6" max="84" step="1" value="24"
+                        class="w-full accent-primary mt-3">
+                    </label>
+                  </div>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="font-label-md text-label-md text-on-surface font-semibold">Tu ingreso mensual (para el
+                      semáforo)</span>
+                    <input id="cr-ingreso" type="text" inputmode="numeric" autocomplete="off" value="3.850.000"
+                      class="lp-num w-full rounded-lg bg-surface-container-low px-4 py-3 font-numeric-md text-numeric-md text-on-surface border border-outline-variant/40 focus:border-primary focus:outline-none">
+                  </label>
+                </div>
+
+                <div class="bg-surface-container-low rounded-2xl p-5 flex flex-col justify-center gap-4">
+                  <p id="cr-vacio" class="font-body-md text-body-md text-secondary text-center" hidden>Escribe un monto
+                    para calcular tu cuota.</p>
+                  <div id="cr-resultado" class="flex flex-col gap-4">
+                    <div class="flex flex-col">
+                      <span class="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">Cuota
+                        mensual</span>
+                      <span id="cr-cuota" class="lp-num font-display-lg text-display-lg text-primary font-bold">$0</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 font-label-sm text-label-sm">
+                      <div class="flex flex-col"><span class="text-secondary">Total a pagar</span><span id="cr-total"
+                          class="lp-num font-numeric-md text-numeric-md font-bold text-on-surface">$0</span></div>
+                      <div class="flex flex-col"><span class="text-secondary">Intereses</span><span id="cr-intereses"
+                          class="lp-num font-numeric-md text-numeric-md font-bold text-on-surface">$0</span></div>
+                    </div>
+
+                    <div id="cr-semaforo" class="flex flex-col gap-3">
+                      <div class="flex items-center justify-between">
+                        <span class="font-label-sm text-label-sm text-secondary">La cuota es <strong id="cr-pct"
+                            class="lp-num text-on-surface">0%</strong> de tu ingreso</span>
+                        <span id="cr-chip-ok"
+                          class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-bold">Saludable</span>
+                        {{-- CAMBIO 5: chip moderado -> bg-want-soft text-want --}}
+                        <span id="cr-chip-mid"
+                          class="px-2.5 py-0.5 rounded-full bg-want-soft text-want font-label-sm text-label-sm font-bold"
+                          hidden>Moderado</span>
+                        <span id="cr-chip-bad"
+                          class="px-2.5 py-0.5 rounded-full bg-error-container text-error font-label-sm text-label-sm font-bold"
+                          hidden>Riesgo</span>
+                      </div>
+                      <div class="relative flex gap-0.5 h-2.5 mt-1">
+                        <div id="cr-seg-ok" class="lp-seg is-active w-[40%] rounded-l-full bg-primary"></div>
+                        {{-- CAMBIO 6: bg-tertiary-container -> bg-want --}}
+                        <div id="cr-seg-mid" class="lp-seg w-[20%] bg-want"></div>
+                        <div id="cr-seg-bad" class="lp-seg w-[40%] rounded-r-full bg-error"></div>
+                        <div id="cr-marker" class="lp-marker bg-on-surface"></div>
+                      </div>
+                      <div class="flex justify-between font-label-sm text-[11px] text-secondary">
+                        <span>0%</span><span>20%</span><span>30%</span><span>50%+</span>
+                      </div>
+                    </div>
+                    <p id="cr-sin-ingreso" class="font-label-sm text-label-sm text-secondary" hidden>Agrega tu ingreso
+                      para ver el semáforo de endeudamiento.</p>
+                  </div>
+                </div>
+              </div>
+
+              <p class="font-label-sm text-label-sm text-secondary text-center">
+                Cálculo orientativo con sistema francés. Son simulaciones, no créditos reales.
+                <span class="block mt-1 text-secondary/80">Con tu cuenta, cada simulación queda guardada para
+                  comparar.</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- CARACTERÍSTICAS -->
+      <!-- ============================================================== -->
+      <section id="caracteristicas" class="w-full py-16 bg-surface-container-low/60">
+        <div class="max-w-7xl mx-auto px-margin flex flex-col gap-10">
+          <div class="lp-reveal flex flex-col items-center text-center gap-3 max-w-2xl mx-auto">
+            <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">Menos hojas de cálculo</h2>
+            <p class="font-body-md text-body-md text-on-surface-variant">Cada herramienta resuelve un estrés concreto:
+              olvidar un pago, no saber en qué se va la plata o endeudarte de más.</p>
+          </div>
+
+          <div class="lp-reveal lp-stagger grid grid-cols-1 md:grid-cols-3 gap-5">
+
+            <div
+              class="lp-tilt lp-lift flex flex-col bg-surface-container-lowest rounded-2xl p-6 shadow-sm hover:shadow-lg">
+              <div class="w-12 h-12 rounded-xl bg-primary-fixed/50 flex items-center justify-center mb-4">
+                <span class="lp-wiggle material-symbols-outlined text-[26px] text-primary">alarm_on</span>
+              </div>
+              <h3 class="font-headline-lg text-headline-lg text-on-surface font-bold mb-2">Nunca más un pago
+                vencido</h3>
+              <p class="font-body-md text-body-md text-secondary leading-relaxed mb-4">Registra tus gastos fijos y te
+                avisamos 3 días antes. Si se pasa la fecha, también.</p>
+              <div class="mt-auto bg-surface-container-low p-3.5 rounded-xl flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5"><span
+                    class="material-symbols-outlined text-primary text-[18px]">bolt</span><span
+                    class="font-label-md text-label-md text-on-surface font-medium">Servicios públicos</span></div>
+                <span class="px-2.5 py-0.5 rounded-full bg-error/15 text-error font-label-sm text-[11px] font-bold">Vence
+                  en 3 días</span>
+              </div>
+            </div>
+
+            <div
+              class="lp-tilt lp-lift flex flex-col bg-surface-container-lowest rounded-2xl p-6 shadow-sm hover:shadow-lg">
+              <div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center mb-4">
+                {{-- CAMBIO 7: text-tertiary -> text-want --}}
+                <span class="material-symbols-outlined text-[26px] text-want">category</span>
+              </div>
+              <h3 class="font-headline-lg text-headline-lg text-on-surface font-bold mb-2">Categorías a tu manera</h3>
+              <p class="font-body-md text-body-md text-secondary leading-relaxed mb-4">Usa las del sistema o crea las
+                tuyas con su ícono. Si borras una, tus gastos se mueven sin perderse.</p>
+              <div class="mt-auto bg-surface-container-low p-3.5 rounded-xl flex items-center gap-2.5 flex-wrap">
+                <span class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center"><span
+                    class="material-symbols-outlined text-[20px]">home</span></span>
+                <span class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center"><span
+                    class="material-symbols-outlined text-[20px]">shopping_cart</span></span>
+                {{-- CAMBIO 8: bg-tertiary-fixed text-tertiary -> bg-want-soft text-want --}}
+                <span class="w-9 h-9 rounded-lg bg-want-soft text-want flex items-center justify-center"><span
+                    class="material-symbols-outlined text-[20px]">movie</span></span>
+                {{-- CAMBIO 9: igual que el anterior --}}
+                <span class="w-9 h-9 rounded-lg bg-want-soft text-want flex items-center justify-center"><span
+                    class="material-symbols-outlined text-[20px]">restaurant</span></span>
+                <span class="w-9 h-9 rounded-lg bg-primary-fixed text-primary flex items-center justify-center"><span
+                    class="material-symbols-outlined text-[20px]">savings</span></span>
+                <span class="w-9 h-9 rounded-lg bg-primary-fixed text-primary flex items-center justify-center"><span
+                    class="material-symbols-outlined text-[20px]">flight</span></span>
+              </div>
+            </div>
+
+            <div
+              class="lp-tilt lp-lift flex flex-col bg-surface-container-lowest rounded-2xl p-6 shadow-sm hover:shadow-lg">
+              <div class="w-12 h-12 rounded-xl bg-primary-fixed/50 flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-[26px] text-primary">query_stats</span>
+              </div>
+              <h3 class="font-headline-lg text-headline-lg text-on-surface font-bold mb-2">Tu informe, al día</h3>
+              <p class="font-body-md text-body-md text-secondary leading-relaxed mb-4">Cada mes guardamos tu resumen.
+                Compara cómo evolucionas sin rearmar la cuenta.</p>
+              <div class="mt-auto bg-surface-container-low p-3.5 rounded-xl flex flex-col gap-2">
+                <div class="flex justify-between font-label-sm text-label-sm font-semibold"><span>Distribución
+                    ideal</span><span class="text-primary">100%</span></div>
+                <div class="w-full h-2 rounded-full bg-surface-container-high flex overflow-hidden">
+                  <div class="lp-fill lp-w-50 bg-primary h-full"></div>
+                  {{-- CAMBIO 10: bg-tertiary-container -> bg-want --}}
+                  <div class="lp-fill lp-w-30 bg-want h-full"></div>
+                  <div class="lp-fill lp-w-20 bg-primary-fixed-dim h-full"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- METAS COMPARTIDAS -->
+      <!-- ============================================================== -->
+      <section id="metas-familiares" class="w-full py-24 bg-surface relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-margin">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            <!-- Left: Metas Visual Mockup and Privacy Shield -->
-            <div class="lg:col-span-6 flex flex-col gap-6">
-              <div class="relative bg-surface-container-lowest rounded-2xl p-6 sm:p-8 shadow-xl">
-                <!-- Goal Header -->
-                <div class="flex items-center justify-between pb-4">
-                  <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
-                      <span class="material-symbols-outlined text-[26px] text-primary">flight_takeoff</span>
+
+            <div class="lg:col-span-6 flex flex-col gap-6 lp-reveal lp-reveal--left">
+              <div class="lp-float-slow relative bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden">
+
+                {{-- IMAGEN #2: pareja con alcancía --}}
+                <div class="lp-foto-fade lp-ratio-3x2 bg-surface-container text-outline">
+                  <span class="lp-foto__ph material-symbols-outlined" aria-hidden="true">image</span>
+                  <img class="lp-img" src="{{ asset('img/meta-couple.jpg') }}"
+                    alt="Pareja sonriendo junto a una alcancía, ahorrando para una meta compartida" width="1200"
+                    height="800" decoding="async">
+                </div>
+
+                <div class="relative z-10 px-6 sm:px-8 pb-6 sm:pb-8 -mt-24">
+                  <div class="flex items-center justify-between pb-4">
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
+                        <span class="material-symbols-outlined text-[26px] text-primary">flight_takeoff</span>
+                      </div>
+                      <div>
+                        <h4 class="font-headline-md text-headline-md text-on-surface font-bold">Vacaciones en pareja
+                        </h4>
+                        <p class="font-body-sm text-body-sm text-secondary">Meta compartida con 2 personas</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 class="font-headline-md text-headline-md text-on-surface font-bold">
-                      Vacaciones Familiares.
-                      </h4>
-                      <p class="font-body-sm text-body-sm text-secondary">
-                        Meta compartida con 2 integrantes
-                      </p>
+                    <span
+                      class="px-3 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-bold">Activa</span>
+                  </div>
+
+                  <div class="bg-surface-container-low p-5 rounded-xl flex flex-col gap-3 my-2">
+                    <div class="flex justify-between items-baseline gap-2 flex-wrap">
+                      <span class="font-headline-sm text-headline-sm text-secondary">Total conjunto</span>
+                      <span class="lp-num font-numeric-lg text-numeric-lg text-primary font-bold">
+                        <span data-count="7200000" data-format="cop">$7.200.000</span>
+                        <span class="font-body-sm text-body-sm text-secondary font-normal">/ $10.000.000</span>
+                      </span>
+                    </div>
+                    <div class="w-full h-3 rounded-full bg-surface-container-high overflow-hidden">
+                      <div class="lp-fill lp-w-72 bg-primary h-full rounded-full"></div>
+                    </div>
+                    <div class="flex justify-between font-label-sm text-label-sm text-secondary pt-1">
+                      <span>Faltan $2.800.000 COP</span>
+                      <span class="font-bold text-on-surface">72% de la meta</span>
                     </div>
                   </div>
-                  <span class="px-3 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-bold">Activo</span>
-                </div>
-                <!-- Global Unified Progress Bar -->
-                <div class="bg-surface-container-low p-5 rounded-xl flex flex-col gap-3 my-2">
-                  <div class="flex justify-between items-baseline">
-                    <span class="font-headline-sm text-headline-sm text-secondary">Ahorro Consolidado</span>
-                    <span class="font-numeric-lg text-numeric-lg text-primary font-bold">$7.200.000 <span class="font-body-sm text-body-sm text-secondary font-normal">/ $10.000.000</span></span>
-                  </div>
-                  <div class="w-full h-3 rounded-full bg-surface-container-high overflow-hidden">
-                    <div
-                      class="bg-primary h-full rounded-full transition-all duration-700"
-                      style="width: 72%"
-                    ></div>
-                  </div>
-                  <div class="flex justify-between font-label-sm text-label-sm text-secondary pt-1">
-                    <span>Faltan $2.800.000 COP</span>
-                    <span class="font-bold text-on-surface">72% de la meta</span>
-                  </div>
-                </div>
-                <!-- Individual Member Cards with Shielding Indicator -->
-                <div class="grid grid-cols-2 gap-4 mt-2">
-                  <!-- Member A -->
-                  <div class="bg-surface-container-low p-3.5 rounded-xl flex flex-col gap-1">
-                    <div class="flex items-center justify-between">
-                      <span class="font-headline-sm text-[13px] text-on-surface font-bold">Tú (Organizador)</span>
-                      <span class="material-symbols-outlined text-primary text-[16px]">lock</span>
+
+                  <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div class="bg-surface-container-low p-3.5 rounded-xl flex flex-col gap-1">
+                      <div class="flex items-center justify-between">
+                        <span class="font-headline-sm text-[13px] text-on-surface font-bold">Tu aporte</span>
+                        <span class="material-symbols-outlined text-primary text-[16px]">visibility</span>
+                      </div>
+                      <p class="lp-num font-numeric-md text-numeric-md text-on-surface font-bold">$3.600.000</p>
+                      <p class="font-label-sm text-[10px] text-secondary">Solo tú ves tu historial</p>
                     </div>
-                    <p class="font-label-sm text-label-sm text-secondary">
-                      Aportes a la meta: <strong class="text-on-surface font-semibold">50%</strong>
-                    </p>
-                    <p class="font-label-sm text-[10px] text-secondary">
-                      Gastos personales: <span class="text-primary font-bold">Privados</span>
-                    </p>
-                  </div>
-                  <!-- Member B -->
-                  <div class="bg-surface-container-low p-3.5 rounded-xl flex flex-col gap-1">
-                    <div class="flex items-center justify-between">
-                      <span class="font-headline-sm text-[13px] text-on-surface font-bold">Pareja / Familiar</span>
-                      <span class="material-symbols-outlined text-primary text-[16px]">lock</span>
+                    <div class="bg-surface-container-low p-3.5 rounded-xl flex flex-col gap-1">
+                      <div class="flex items-center justify-between">
+                        <span class="font-headline-sm text-[13px] text-on-surface font-bold">Aporte de tu pareja</span>
+                        <span class="material-symbols-outlined text-primary text-[16px]">lock</span>
+                      </div>
+                      <p class="font-numeric-md text-numeric-md text-secondary font-bold tracking-widest">••••••</p>
+                      <p class="font-label-sm text-[10px] text-secondary">Privado para ti</p>
                     </div>
-                    <p class="font-label-sm text-label-sm text-secondary">
-                      Aportes a la meta: <strong class="text-on-surface font-semibold">50%</strong>
-                    </p>
-                    <p class="font-label-sm text-[10px] text-secondary">
-                      Gastos personales: <span class="text-primary font-bold">Privados</span>
-                    </p>
-                  </div>
-                </div>
-                <!-- Absolute Privacy Guarantee Banner Inside Component -->
-                <div class="mt-6 flex items-start gap-3 p-3.5 rounded-xl bg-primary-fixed/30 text-on-primary-fixed">
-                  <span
-                    class="material-symbols-outlined text-[20px] text-primary shrink-0 mt-0.5"
-                    style="font-variation-settings: &quot;FILL&quot; 1;"
-                  >enhanced_encryption</span>
-                  <p class="font-body-sm text-[12px] leading-snug">
-                    <strong>Privacidad en las metas compartidas:</strong> Consulta cómo se gestionan los datos personales y los permisos de acceso a la información dentro de la plataforma.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <!-- Right: Text Rationale & Benefits -->
-            <div class="lg:col-span-6 flex flex-col gap-6">
-              <div class="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold">
-                <span class="material-symbols-outlined text-[16px]">diversity_3</span>
-                <span>Módulo de Metas Familiares (RQNF-03)</span>
-              </div>
-              <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold leading-tight">
-                Ahorren juntos para grandes proyectos, manteniendo tu autonomía intacta.
-              </h2>
-              <p class="font-body-lg text-body-lg text-secondary leading-relaxed">
-                Ya sea para la cuota inicial de una vivienda, el fondo de emergencias del hogar o las próximas
-                vacaciones, la colaboración financiera no debe costar la pérdida de privacidad individual.
-              </p>
-              <div class="flex flex-col gap-4 pt-2">
-                <div class="flex items-start gap-3">
-                  <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0 mt-0.5">
-                    <span class="material-symbols-outlined text-[18px]">check</span>
-                  </div>
-                  <div>
-                    <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                      Seguimiento de metas compartidas
-                    </h4>
-                    <p class="font-body-md text-body-md text-secondary">
-                      Monitorean conjuntamente cuánto falta para el hito sin necesidad de hojas de cálculo
-                      compartidas desactualizadas.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start gap-3">
-                  <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0 mt-0.5">
-                    <span class="material-symbols-outlined text-[18px]">check</span>
-                  </div>
-                  <div>
-                    <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                      Independencia en tus gastos diarios
-                    </h4>
-                    <p class="font-body-md text-body-md text-secondary">
-                      Tus gustos, compras personales y saldo de emergencia individual permanecen 100%
-                      invisibles para los demás miembros.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start gap-3">
-                  <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0 mt-0.5">
-                    <span class="material-symbols-outlined text-[18px]">check</span>
-                  </div>
-                  <div>
-                    <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                      Invitaciones seguras por correo
-                    </h4>
-                    <p class="font-body-md text-body-md text-secondary">
-                      Vincula a tu pareja o hijos mediante enlaces temporales encriptados sin compartir
-                      contraseñas.
-                    </p>
                   </div>
                 </div>
               </div>
             </div>
+
+            <div class="lg:col-span-6 flex flex-col gap-6 lp-reveal lp-reveal--right">
+              <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold leading-tight">Ahorren juntos,
+                sin perder la privacidad.</h2>
+              <p class="font-body-lg text-body-lg text-secondary leading-relaxed">Para la cuota de una vivienda, un
+                fondo de emergencias o las próximas vacaciones: ambos ven cuánto falta, nadie ve cuánto puso el
+                otro.</p>
+
+              <div class="lp-stagger lp-reveal flex flex-col gap-4 pt-2">
+                <div class="flex items-start gap-3">
+                  <div
+                    class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[18px]">flag</span>
+                  </div>
+                  <div>
+                    <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">Un solo avance para los
+                      dos</h4>
+                    <p class="font-body-md text-body-md text-secondary">El progreso se consolida solo, sin hojas de
+                      cálculo desactualizadas.</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div
+                    class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[18px]">lock</span>
+                  </div>
+                  <div>
+                    <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">Aportes privados</h4>
+                    <p class="font-body-md text-body-md text-secondary">Cada quien ve el total de la meta y su propio
+                      historial. Tus gastos personales no se comparten.</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div
+                    class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+                  </div>
+                  <div>
+                    <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">Invitas, no compartes
+                      claves</h4>
+                    <p class="font-body-md text-body-md text-secondary">Invitas a tu pareja o familiar y acepta desde
+                      su propia cuenta. Máximo 2 personas por meta.</p>
+                  </div>
+                </div>
+              </div>
+
+              {{-- CAMBIO 11: botón "Crear cuenta en pareja" -> acento secundario --}}
+              <a href="{{ route('registro', ['tipo' => 'familiar']) }}"
+                class="self-start inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent-secondary text-on-accent-secondary font-headline-sm text-headline-sm shadow-md hover:shadow-lg transition-all group">
+                <span>Crear cuenta en pareja</span>
+                <span
+                  class="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+              </a>
+            </div>
+
           </div>
         </div>
       </section>
-      <!-- COMPARISON TABLE: PERFILES DE CUENTA -->
-      <section class="w-full py-24 bg-surface">
-        <div class="max-w-7xl mx-auto px-margin flex flex-col gap-16">
-          <div class="flex flex-col items-center text-center gap-3 max-w-2xl mx-auto">
-            <span class="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-widest"> Transparencia y Elección </span>
+
+      <!-- ============================================================== -->
+      <!-- CUENTAS -->
+      <!-- ============================================================== -->
+      <section id="cuentas" class="lp-plans relative w-full overflow-hidden py-24 bg-surface-container-low">
+
+        <div class="lp-plans__bg" aria-hidden="true">
+          <div class="lp-plans__dots"></div>
+          <span class="lp-plans__ring lp-plans__ring--1"></span>
+          <span class="lp-plans__ring lp-plans__ring--2"></span>
+          <span class="lp-plans__ring lp-plans__ring--3"></span>
+          <div class="lp-drift absolute -top-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"></div>
+          <div
+            class="lp-drift absolute -bottom-32 -right-24 w-96 h-96 bg-tertiary-container/15 rounded-full blur-[100px]">
+          </div>
+        </div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-margin flex flex-col gap-14">
+
+          <div class="lp-reveal flex flex-col items-center text-center gap-4 max-w-2xl mx-auto">
+            <span
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-fixed/40 font-label-sm text-label-sm uppercase tracking-widest text-primary font-bold">
+              <span class="material-symbols-outlined text-[14px]"
+                style="font-variation-settings:'FILL' 1;">workspace_premium</span>
+              Elige tu cuenta
+            </span>
             <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
-              Elige la modalidad que se adapte a tu momento de vida
+              Dos cuentas, las dos
+              <span
+                class="text-primary underline decoration-primary-fixed decoration-wavy underline-offset-8">gratis</span>
             </h2>
-            <p class="font-body-md text-body-md text-secondary">
-              Ambas modalidades son completamente gratuitas y operan bajo los más rigurosos estándares de
-              seguridad y confidencialidad.
-            </p>
+            <p class="font-body-md text-body-md text-secondary">Misma seguridad en las dos. Puedes cambiar de tipo
+              cuando quieras desde Ajustes.</p>
           </div>
-          <!-- Pricing / Mode Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto w-full">
-            <!-- Standard Account -->
-            <div class="tarjeta-tinte tarjeta-tinte--estandar flex flex-col bg-surface-container-lowest rounded-2xl p-8 sm:p-10 shadow-sm hover:shadow-md transition-shadow relative">
-              <div class="flex items-center justify-between mb-4">
-                <span class="px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">Control Personal</span>
-                <span class="font-numeric-md text-numeric-md text-on-surface font-bold">Gratis</span>
+
+          <div
+            class="lp-reveal lp-stagger grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10 max-w-4xl mx-auto w-full items-stretch">
+
+            <!-- Personal -->
+            <article class="lp-plan lp-plan--basic lp-lift md:my-5">
+              <div class="lp-plan__band">
+                <span class="material-symbols-outlined text-[16px]">person</span>Para ti solo
               </div>
-              <h3 class="font-headline-xl text-headline-xl text-on-surface font-bold">Usuario Estándar</h3>
-              <p class="font-body-md text-body-md text-secondary mt-2 mb-8">
-                Ideal para estudiantes, solteros o personas que buscan poner orden definitivo a su dinero,
-                recibos y capacidad crediticia.
-              </p>
-              <ul class="flex flex-col gap-4 font-body-md text-body-md text-on-surface mb-8">
-                <li class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                  <span>Registro de ingresos y gastos diarios ilimitados</span>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                  <span>Organización y seguimiento de gastos fijos</span>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                  <span>Diagnóstico de balance con Regla 50/30/20</span>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                  <span>Simulador de créditos con amortización francesa</span>
-                </li>
-                <li class="flex items-center gap-3 text-secondary opacity-60">
-                  <span class="material-symbols-outlined text-[20px]">cancel</span>
-                  <span>Metas colectivas compartidas en tiempo real</span>
-                </li>
-              </ul>
-              <div class="mt-auto">
-                <a
-                  class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-headline-sm text-headline-sm transition-colors"
-                  data-path="crear-cuenta"
-                  href="{{ route('registro', ['tipo' => 'estandar']) }}"
-                > Elegir Cuenta Estándar </a>
+              <div class="flex flex-col flex-1 p-8 sm:p-9 gap-6">
+                <div class="flex items-center gap-4">
+                  <span class="lp-plan__icon"><span
+                      class="material-symbols-outlined text-[26px]">account_circle</span></span>
+                  <div>
+                    <h3 class="font-headline-lg text-headline-lg text-on-surface font-bold">Cuenta personal</h3>
+                    <p class="font-body-sm text-body-sm text-secondary">Tú, tu plata y tus metas.</p>
+                  </div>
+                </div>
+
+                <p class="font-body-md text-body-md text-secondary">Si quieres poner orden a tu plata, tus gastos y
+                  tus créditos sin depender de nadie.</p>
+
+                <div class="flex items-baseline gap-2">
+                  <span class="font-display-lg text-display-lg text-on-surface font-bold">Gratis</span>
+                  <span class="font-label-md text-label-md text-secondary">sin tarjeta</span>
+                </div>
+
+                <div class="lp-plan__rule"></div>
+
+                <ul class="flex flex-col gap-3.5 font-body-md text-body-md text-on-surface">
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Gastos diarios y categorías propias</li>
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Gastos fijos con avisos</li>
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Informe mensual guardado</li>
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Simulador con historial</li>
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Metas individuales</li>
+                  <li class="lp-plan__off flex items-center gap-3 text-secondary"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">close</span></span><span class="opacity-70">Metas
+                      compartidas en pareja</span></li>
+                </ul>
+
+                <div class="mt-auto pt-2">
+                  <a class="lp-plan__btn lp-plan__btn--ghost font-headline-sm text-headline-sm"
+                    href="{{ route('registro', ['tipo' => 'estandar']) }}">
+                    Empezar solo
+                  </a>
+                </div>
               </div>
-            </div>
-            <!-- Familiar Account (Highlighted) -->
-            <div class="tarjeta-tinte tarjeta-tinte--familiar flex flex-col bg-surface-container-lowest rounded-2xl p-8 sm:p-10 shadow-lg relative overflow-hidden">
-              <!-- Subtle Accent bar on top -->
-              <div class="absolute top-0 left-0 right-0 h-2 bg-primary"></div>
-              <div class="flex items-center justify-between mb-4">
-                <span class="px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">favorite</span> Recomendado para Parejas </span>
-                <span class="font-numeric-md text-numeric-md text-primary font-bold">Gratis</span>
+            </article>
+
+            <!-- Pareja (destacada) -->
+            <article class="lp-plan lp-plan--pro lp-lift bg-inverse-surface text-white">
+              <svg class="lp-plans__icon lp-plans__duo lp-float-late text-primary" style="top:16%;right:5%;"
+                viewBox="0 0 32 24" aria-hidden="true">
+                <circle cx="22" cy="8" r="4" opacity=".55" />
+                <path d="M14 22c0-4.4 3.6-8 8-8s8 3.6 8 8z" opacity=".55" />
+                <circle cx="11" cy="9" r="4.5" />
+                <path d="M2 23c0-5 4-9 9-9s9 4 9 9z" />
+              </svg>
+              <div class="flex flex-col flex-1 p-8 sm:p-9 gap-6">
+                <div class="flex items-center gap-4">
+                  <span class="lp-plan__icon"><span class="material-symbols-outlined text-[26px]">group</span></span>
+                  <div>
+                    <h3 class="font-headline-lg text-headline-lg text-white font-bold">Cuenta en pareja</h3>
+                    <p class="lp-plan__muted font-body-sm text-body-sm">Ahorrar juntos, sin exponerse.</p>
+                  </div>
+                </div>
+
+                <p class="lp-plan__muted font-body-md text-body-md">Si quieres ahorrar en equipo hacia una misma meta,
+                  sin compartir cada gasto del día.</p>
+
+                <div class="flex items-end justify-between gap-4">
+                  <div class="flex items-baseline gap-2">
+                    <span class="font-display-lg text-display-lg text-white font-bold">Gratis</span>
+                    <span class="lp-plan__muted font-label-md text-label-md">sin tarjeta</span>
+                  </div>
+                  <span class="lp-plan__pair" title="Hasta 2 personas por meta" aria-label="Hasta 2 personas por meta">
+                    <span class="material-symbols-outlined">person</span>
+                    <span class="material-symbols-outlined">person</span>
+                  </span>
+                </div>
+
+                <div class="lp-plan__rule"></div>
+
+                <ul class="flex flex-col gap-3.5 font-body-md text-body-md text-white">
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Todo lo de la cuenta personal</li>
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Metas compartidas (máximo 2 personas)</li>
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Invitaciones desde la app</li>
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Cada quien ve el total, nunca el aporte del
+                    otro</li>
+                  <li class="flex items-center gap-3"><span class="lp-plan__check"><span
+                        class="material-symbols-outlined">check</span></span>Progreso consolidado de la meta</li>
+                </ul>
+
+                <div class="mt-auto pt-2">
+                  <a class="lp-shine lp-plan__btn lp-plan__btn--accent font-headline-sm text-headline-sm"
+                    href="{{ route('registro', ['tipo' => 'familiar']) }}">
+                    <span>Empezar en pareja</span>
+                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  </a>
+                </div>
               </div>
-              <h3 class="font-headline-xl text-headline-xl text-on-surface font-bold">Usuario Familiar</h3>
-              <p class="font-body-md text-body-md text-secondary mt-2 mb-8">
-                Diseñado para parejas, familias o compañeros de piso que coordinan gastos comunes y proyectos
-                de ahorro colaborativos.
-              </p>
-              <ul class="flex flex-col gap-4 font-body-md text-body-md text-on-surface mb-8">
-                <li class="flex items-center gap-3">
-                  <span
-                    class="material-symbols-outlined text-primary text-[20px]"
-                    style="font-variation-settings: &quot;FILL&quot; 1;"
-                  >check_circle</span>
-                  <span class="font-medium">Todo lo incluido en la cuenta Estándar</span>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span
-                    class="material-symbols-outlined text-primary text-[20px]"
-                    style="font-variation-settings: &quot;FILL&quot; 1;"
-                  >check_circle</span>
-                  <span class="font-medium">Creación de Metas Colaborativas (RQNF-03)</span>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span
-                    class="material-symbols-outlined text-primary text-[20px]"
-                    style="font-variation-settings: &quot;FILL&quot; 1;"
-                  >check_circle</span>
-                  <span class="font-medium">Invitación segura a miembros sin compartir contraseñas</span>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span
-                    class="material-symbols-outlined text-primary text-[20px]"
-                    style="font-variation-settings: &quot;FILL&quot; 1;"
-                  >check_circle</span>
-                  <span class="font-medium">Consulta las opciones de privacidad disponibles para los gastos individuales</span>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span
-                    class="material-symbols-outlined text-primary text-[20px]"
-                    style="font-variation-settings: &quot;FILL&quot; 1;"
-                  >check_circle</span>
-                  <span class="font-medium">Visualización de progreso consolidado conjunto</span>
-                </li>
-              </ul>
-              <div class="mt-auto">
-                <a
-                  class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-md transition-all"
-                  data-path="crear-cuenta"
-                  href="{{ route('registro', ['tipo' => 'familiar']) }}"
-                ><span>Crear Cuenta Familiar</span> <span class="material-symbols-outlined text-[18px]">arrow_forward</span> </a>
-              </div>
-            </div>
+            </article>
+
           </div>
+
+          <div class="lp-reveal flex flex-wrap items-center justify-center gap-3">
+            <span class="lp-plans__perk"><span class="material-symbols-outlined">swap_horiz</span>Cambia de tipo desde
+              Ajustes</span>
+            <span class="lp-plans__perk"><span class="material-symbols-outlined">credit_card_off</span>Sin tarjeta de
+              crédito</span>
+            <span class="lp-plans__perk"><span class="material-symbols-outlined">shield_lock</span>Misma seguridad en
+              las dos</span>
+          </div>
+
         </div>
       </section>
-      <!-- FAQ SECTION (Pedagogical & Regulatory Reassurance) -->
-      <section id="seguridad" class="w-full py-20 bg-surface-container-low/40">
-        <div class="max-w-4xl mx-auto px-margin flex flex-col gap-10">
-          <div class="text-center flex flex-col gap-2">
-            <h3 class="font-headline-lg text-headline-lg text-on-surface font-bold">
-              Preguntas Frecuentes sobre Seguridad y Uso
-            </h3>
-            <p class="font-body-md text-body-md text-secondary">
-              Claridad absoluta en cómo funciona la plataforma y qué hacemos con tus datos.
-            </p>
-          </div>
-          <div class="flex flex-col gap-4">
-            <!-- Question 1 -->
-            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col gap-2">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-primary text-[22px]">verified</span>
-                <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                  ¿Cuentas Claras solicita contraseñas o claves bancarias?
-                </h4>
-              </div>
-              <p class="font-body-sm text-body-sm text-secondary pl-8">
-                <strong>Nunca.</strong> Nuestra plataforma es un sistema pedagógico de autogestión. No requerimos vinculación con APIs bancarias, credenciales dinámicas ni claves de ningún producto financiero.
-              </p>
-            </div>
-            <!-- Question 2 -->
-            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col gap-2">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-primary text-[22px]">verified</span>
-                <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                  ¿Si tengo un retraso en mis pagos, seré reportado a centrales de riesgo?
-                </h4>
-              </div>
-              <p class="font-body-sm text-body-sm text-secondary pl-8">
-             <strong>Bajo ninguna circunstancia.</strong> Cuentas Claras no es una entidad prestamista ni bancaria. Su objetivo es ayudarte a llevar un registro de tus compromisos y consultar las fechas de vencimiento de tus gastos.</p>
-            </div>
-            <!-- Question 3 -->
-            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col gap-2">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-primary text-[22px]">verified</span>
-                <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                  ¿Cómo se cumple la Ley 1581 de 2012 de Tratamiento de Datos Personales?
-                </h4>
-              </div>
-              <p class="font-body-sm text-body-sm text-secondary pl-8">
-                Tratamos los datos personales de acuerdo con nuestra Política de privacidad y la normativa aplicable. Allí puedes consultar las finalidades del tratamiento y los canales disponibles para ejercer tus derechos.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-      <!-- FINAL CALL TO ACTION BANNER -->
-      <!-- BEFORE VS AFTER COMPARISON SECTION -->
-      <section id="caracteristicas" class="w-full py-20 bg-surface border-t border-outline-variant/30">
+
+      <!-- ============================================================== -->
+      <!-- ¿TE SUENA? -->
+      <!-- ============================================================== -->
+      <section class="w-full py-20 bg-surface">
         <div class="max-w-7xl mx-auto px-margin flex flex-col gap-12">
-          <div class="flex flex-col items-center text-center gap-3 max-w-3xl mx-auto">
-            <span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-widest bg-primary-fixed/40 px-3 py-1 rounded-full"> Evoluciona tu método </span>
-            <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
-              Hojas de cálculo caóticas vs. Claridad con Cuentas Claras
-            </h2>
-            <p class="font-body-md text-body-md text-secondary">
-              Compara la frustración del registro manual tradicional frente a un sistema diseñado para
-              brindarte paz mental en pareja y familia.
-            </p>
+          <div class="lp-reveal flex flex-col items-center text-center gap-3 max-w-2xl mx-auto">
+            <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">¿Te suena?</h2>
+            <p class="font-body-md text-body-md text-secondary">Tres situaciones comunes. Si te identificas con
+              alguna, esto es para ti.</p>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto w-full">
-            <!-- Before: Chaos -->
-            <div class="bg-surface-container-lowest rounded-2xl p-8 border border-error/20 shadow-sm flex flex-col gap-6">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-error/10 text-error flex items-center justify-center shrink-0">
-                  <span class="material-symbols-outlined text-[24px]">cancel</span>
+
+          <div class="lp-reveal lp-stagger lp-situaciones grid grid-cols-1 md:grid-cols-3 gap-8">
+
+            <div class="lp-situacion flex flex-col">
+              <div class="lp-bubble bg-primary-fixed text-on-primary-fixed rounded-3xl p-7 shadow-sm">
+                <span class="material-symbols-outlined text-[28px] opacity-70" aria-hidden="true">balance</span>
+                <p class="font-headline-lg text-headline-lg font-bold leading-snug mt-2">¿Quién puso más este mes?</p>
+              </div>
+              <div class="flex items-start gap-4 mt-9 px-2">
+                <div class="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[24px]">diversity_3</span>
                 </div>
-                <div>
-                  <h3 class="font-headline-md text-headline-md text-on-surface font-bold">
-                    Antes: El estrés de siempre
-                  </h3>
-                  <p class="font-body-sm text-body-sm text-secondary">
-                    Excel, notas dispersas y recibos olvidados
-                  </p>
+                <div class="flex flex-col gap-1.5">
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Vives en pareja</h3>
+                  <p class="font-body-md text-body-md text-secondary leading-relaxed">Quieren ahorrar para algo grande
+                    sin discutir por quién aporta más. Cada uno ve el avance, no el detalle del otro.</p>
+                  <a href="#metas-familiares"
+                    class="group inline-flex items-center gap-1 font-label-md text-label-md text-primary font-bold">
+                    <span>Ver metas compartidas</span>
+                    <span
+                      class="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+                  </a>
                 </div>
               </div>
-              <ul class="flex flex-col gap-3 font-body-md text-body-md text-secondary">
-                <li class="flex items-start gap-2.5">
-                  <span class="material-symbols-outlined text-error text-[20px] shrink-0 mt-0.5">close</span>
-                  <span>Olvidar fechas de corte y pagar recargos por mora en servicios y tarjetas.</span>
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="material-symbols-outlined text-error text-[20px] shrink-0 mt-0.5">close</span>
-                  <span>Discusiones en pareja al revisar gastos íntimos compartidos en tablas públicas.</span>
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="material-symbols-outlined text-error text-[20px] shrink-0 mt-0.5">close</span>
-                  <span>Cálculos manuales enredados de amortización sin saber si te sobreendeudas.</span>
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="material-symbols-outlined text-error text-[20px] shrink-0 mt-0.5">close</span>
-                  <span>Desconocimiento del balance real entre necesidades vitales y ahorro a fin de mes.</span>
-                </li>
-              </ul>
             </div>
-            <!-- After: Cuentas Claras -->
-            <div class="bg-surface-container-lowest rounded-2xl p-8 border border-primary/30 shadow-md flex flex-col gap-6 relative overflow-hidden">
-              <div class="absolute top-0 right-0 px-3 py-1 bg-primary text-on-primary font-label-sm text-label-sm font-semibold rounded-bl-xl">
-                La Experiencia Serena
+
+            <div class="lp-situacion flex flex-col">
+              {{-- CAMBIO 12: burbuja "independiente" -> bloque gustos semántico --}}
+              <div class="lp-bubble bg-want-soft text-want rounded-3xl p-7 shadow-sm">
+                <span class="material-symbols-outlined text-[28px] opacity-70"
+                  aria-hidden="true">account_balance_wallet</span>
+                <p class="font-headline-lg text-headline-lg font-bold leading-snug mt-2">¿Cuánto me queda de verdad?</p>
               </div>
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-primary shrink-0">
-                  <span class="material-symbols-outlined text-[24px]">check_circle</span>
+              <div class="flex items-start gap-4 mt-9 px-2">
+                {{-- CAMBIO 13: icono work -> bg-want text-on-want --}}
+                <div
+                  class="w-12 h-12 rounded-full bg-want text-on-want flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[24px]">work</span>
                 </div>
-                <div>
-                  <h3 class="font-headline-md text-headline-md text-on-surface font-bold">
-                    Ahora: Cuentas Claras
-                  </h3>
-                  <p class="font-body-sm text-body-sm text-primary font-medium">
-                    Control automatizado y pedagogía familiar
-                  </p>
+                <div class="flex flex-col gap-1.5">
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Eres independiente</h3>
+                  <p class="font-body-md text-body-md text-secondary leading-relaxed">Cada mes tus ingresos cambian.
+                    Necesitas saber cuánto entra, cuánto sale y cuánto puedes gastar de verdad.</p>
+                  <a href="#probar"
+                    class="group inline-flex items-center gap-1 font-label-md text-label-md text-primary font-bold">
+                    <span>Probar el 50/30/20</span>
+                    <span
+                      class="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+                  </a>
                 </div>
               </div>
-              <ul class="flex flex-col gap-3 font-body-md text-body-md text-on-surface">
-                <li class="flex items-start gap-2.5">
-                  <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">check_circle</span>
-                  <span>Organiza tus compromisos y consulta las fechas de vencimiento de tus gastos.</span>
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">check_circle</span>
-                  <span>Consulta cómo se gestionan los datos personales y los permisos de acceso en la plataforma.</span>
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">check_circle</span>
-                  <span>Simulador de crédito con sistema francés y semáforo preventivo del 30%.</span>
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">check_circle</span>
-                  <span>Consulta visual de la distribución de tus ingresos y gastos.</span>
-                </li>
-              </ul>
+            </div>
+
+            <div class="lp-situacion flex flex-col">
+              <div class="lp-bubble bg-secondary-container text-on-secondary-container rounded-3xl p-7 shadow-sm">
+                <span class="material-symbols-outlined text-[28px] opacity-70" aria-hidden="true">visibility</span>
+                <p class="font-headline-lg text-headline-lg font-bold leading-snug mt-2">¿En qué se me fue la plata?</p>
+              </div>
+              <div class="flex items-start gap-4 mt-9 px-2">
+                <div
+                  class="w-12 h-12 rounded-full bg-inverse-surface text-white flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[24px]">person</span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Quieres claridad</h3>
+                  <p class="font-body-md text-body-md text-secondary leading-relaxed">No buscas un banco. Solo quieres
+                    saber en qué se va tu plata, cuánto te queda y si te alcanza para lo que sigue.</p>
+                  <a href="#caracteristicas"
+                    class="group inline-flex items-center gap-1 font-label-md text-label-md text-primary font-bold">
+                    <span>Ver cómo te ayuda</span>
+                    <span
+                      class="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- SEGURIDAD Y PRIVACIDAD -->
+      <!-- ============================================================== -->
+      <section id="seguridad" class="w-full py-20 bg-surface-container-low border-y border-outline-variant/30">
+        <div class="max-w-7xl mx-auto px-margin flex flex-col gap-8">
+          <div
+            class="lp-reveal lp-reveal--zoom relative overflow-hidden rounded-3xl bg-inverse-surface text-inverse-on-surface shadow-xl">
+            <div
+              class="lp-drift absolute -top-24 -left-24 w-80 h-80 bg-primary/20 rounded-full blur-3xl pointer-events-none">
+            </div>
+            <div
+              class="lp-drift absolute -bottom-24 -right-24 w-80 h-80 bg-tertiary-container/20 rounded-full blur-3xl pointer-events-none">
+            </div>
+
+            <div class="lp-trust relative z-10">
+              <div class="flex flex-col items-center lg:items-start text-center lg:text-left gap-5">
+                <div
+                  class="lp-ring w-16 h-16 rounded-2xl bg-primary text-on-primary flex items-center justify-center shadow-lg">
+                  <span class="material-symbols-outlined text-[34px]">shield_lock</span>
+                </div>
+                <h2 class="font-headline-xl text-headline-xl text-white font-bold">Tus datos, bajo tu control</h2>
+                <p class="font-body-lg text-body-lg text-white/80 leading-relaxed">Cuatro compromisos simples, sin letra
+                  pequeña. Lo tuyo se queda contigo.</p>
+                <a href="{{ route('politica') }}"
+                  class="inline-flex items-center gap-1 font-label-md text-label-md text-white font-bold underline underline-offset-4">
+                  Leer la política de privacidad
+                  <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+              </div>
+
+              <div class="lp-stagger flex flex-col">
+                <div class="lp-trust-row">
+                  <div class="lp-trust-icon text-white">
+                    <span class="material-symbols-outlined text-[24px]">key_off</span>
+                  </div>
+                  <div class="lp-trust-text">
+                    <h4 class="font-headline-sm text-headline-sm text-white font-bold">No conectas tu banco</h4>
+                    <p class="font-body-sm text-body-sm text-white/80">Cero claves, cero tokens, cero tarjetas. Tú
+                      registras lo que quieras, cuando quieras.</p>
+                  </div>
+                  <div class="lp-trust-metric">
+                    <span class="lp-num block font-numeric-lg text-numeric-lg text-white font-bold">0</span>
+                    <span class="block font-label-sm text-[11px] uppercase tracking-wider text-white/80">claves
+                      pedidas</span>
+                  </div>
+                </div>
+                <div class="lp-trust-row">
+                  <div class="lp-trust-icon text-white">
+                    <span class="material-symbols-outlined text-[24px]">visibility_off</span>
+                  </div>
+                  <div class="lp-trust-text">
+                    <h4 class="font-headline-sm text-headline-sm text-white font-bold">Tus números son privados</h4>
+                    <p class="font-body-sm text-body-sm text-white/80">Tus gastos, informes y metas son solo tuyos.
+                      Nadie más los ve.</p>
+                  </div>
+                  <div class="lp-trust-metric">
+                    <span class="lp-num block font-numeric-lg text-numeric-lg text-white font-bold" data-count="100"
+                      data-suffix="%">100%</span>
+                    <span class="block font-label-sm text-[11px] uppercase tracking-wider text-white/80">tuyos</span>
+                  </div>
+                </div>
+                <div class="lp-trust-row">
+                  <div class="lp-trust-icon text-white">
+                    <span class="material-symbols-outlined text-[24px]">block</span>
+                  </div>
+                  <div class="lp-trust-text">
+                    <h4 class="font-headline-sm text-headline-sm text-white font-bold">No vendemos tus datos</h4>
+                    <p class="font-body-sm text-body-sm text-white/80">No compartimos tu información con terceros ni
+                      la usamos para publicidad.</p>
+                  </div>
+                  <div class="lp-trust-metric">
+                    <span class="lp-num block font-numeric-lg text-numeric-lg text-white font-bold">0</span>
+                    <span class="block font-label-sm text-[11px] uppercase tracking-wider text-white/80">terceros</span>
+                  </div>
+                </div>
+                <div class="lp-trust-row">
+                  <div class="lp-trust-icon text-white">
+                    <span class="material-symbols-outlined text-[24px]">delete_forever</span>
+                  </div>
+                  <div class="lp-trust-text">
+                    <h4 class="font-headline-sm text-headline-sm text-white font-bold">Borras todo cuando quieras</h4>
+                    <p class="font-body-sm text-body-sm text-white/80">Elimina tu cuenta y tus datos desde Ajustes. Sin
+                      llamar a nadie, sin pedir permiso.</p>
+                  </div>
+                  <div class="lp-trust-metric">
+                    <span class="lp-num block font-numeric-lg text-numeric-lg text-white font-bold">Tú</span>
+                    <span class="block font-label-sm text-[11px] uppercase tracking-wider text-white/80">decides</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
-      <!-- TESTIMONIALS SECTION -->
-      <section class="w-full py-20 bg-surface-container-low">
-        <div class="max-w-7xl mx-auto px-margin flex flex-col gap-12">
-          <div class="flex flex-col items-center text-center gap-3 max-w-3xl mx-auto">
-            <span class="font-label-sm text-label-sm text-tertiary uppercase font-bold tracking-widest bg-tertiary-fixed px-3 py-1 rounded-full"> Ejemplos de uso </span>
-            <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
-              Ejemplos de cómo puedes organizar tus finanzas
-            </h2>
-             <p class="font-body-md text-body-md text-secondary">
-             Estos ejemplos ilustran cómo puedes registrar tus gastos, organizar tus compromisos y planificar tus metas de ahorro.
-            </p>
+
+      <!-- ============================================================== -->
+      <!-- PREGUNTAS FRECUENTES -->
+      <!-- ============================================================== -->
+      <section id="preguntas" class="w-full py-20 bg-surface-container-low/60">
+        <div class="max-w-3xl mx-auto px-margin flex flex-col gap-10">
+          <div class="lp-reveal flex flex-col items-center text-center gap-3">
+            <h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">Preguntas frecuentes</h2>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- Testimonial 1 -->
-            <div class="bg-surface-container-lowest rounded-2xl p-8 shadow-sm flex flex-col justify-between gap-6">
-              <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-1 text-primary">
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                </div>
-                <p class="font-body-md text-body-md text-on-surface leading-relaxed">
-                  "Logramos ahorrar la cuota inicial de nuestro apartamento en Medellín sin tener que discutir
-                  por dinero. Cada quien aportaba su cuota a la meta compartida mientras nuestros gastos del
-                  día a día siguieron siendo completamente privados."
-                </p>
-              </div>
-              <div class="flex items-center gap-3 pt-4 border-t border-outline-variant/30">
-                <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold">
-                  CM
-                </div>
-                <div>
-                  <p class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                    Camila &amp; Mateo
-                  </p>
-                  <p class="font-body-sm text-[12px] text-secondary">Ahorro de Vivienda Propia • Medellín</p>
-                </div>
-              </div>
-            </div>
-            <!-- Testimonial 2 -->
-            <div class="bg-surface-container-lowest rounded-2xl p-8 shadow-sm flex flex-col justify-between gap-6">
-              <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-1 text-primary">
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                </div>
-                <p class="font-body-md text-body-md text-on-surface leading-relaxed">
-                 Llevar un registro de mis gastos me ayuda a organizar mejor mis compromisos. Ahora puedo consultar las fechas de vencimiento y planificar mis pagos con más claridad.
-                </p>
-              </div>
-              <div class="flex items-center gap-3 pt-4 border-t border-outline-variant/30">
-                <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold">
-                  AR
-                </div>
-                <div>
-                  <p class="font-headline-sm text-headline-sm text-on-surface font-bold">Andrés Restrepo</p>
-                  <p class="font-body-sm text-[12px] text-secondary">Ingeniero Independiente • Bogotá</p>
-                </div>
-              </div>
-            </div>
-            <!-- Testimonial 3 -->
-            <div class="bg-surface-container-lowest rounded-2xl p-8 shadow-sm flex flex-col justify-between gap-6">
-              <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-1 text-primary">
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                  <span class="material-symbols-outlined text-[18px]">star</span>
-                </div>
-                <p class="font-body-md text-body-md text-on-surface leading-relaxed">
-                  "Entender la regla 50/30/20 con gráficos tan claros me enseñó a no culparme por disfrutar de
-                  mis salidas y hobbies, porque mi 20% de ahorro ya estaba protegido desde el día que recibo
-                  mi salario."
-                </p>
-              </div>
-              <div class="flex items-center gap-3 pt-4 border-t border-outline-variant/30">
-                <div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed font-bold">
-                  VG
-                </div>
-                <div>
-                  <p class="font-headline-sm text-headline-sm text-on-surface font-bold">Valentina Gómez</p>
-                  <p class="font-body-sm text-[12px] text-secondary">Diseñadora Gráfica • Cali</p>
-                </div>
-              </div>
-            </div>
+
+          <div class="lp-reveal lp-stagger flex flex-col gap-3">
+
+            <details class="lp-faq bg-surface-container-lowest rounded-xl shadow-sm">
+              <summary
+                class="flex items-center justify-between gap-4 p-5 font-headline-sm text-headline-sm text-on-surface font-bold">
+                <span>¿Necesito conectar mi banco?</span>
+                <span class="lp-faq__icon material-symbols-outlined text-primary">add</span>
+              </summary>
+              <p class="lp-faq__body px-5 pb-5 font-body-md text-body-md text-secondary leading-relaxed">No. Tú
+                registras tus gastos manualmente. Nunca pedimos claves, tokens ni datos de tarjetas.</p>
+            </details>
+
+            <details class="lp-faq bg-surface-container-lowest rounded-xl shadow-sm">
+              <summary
+                class="flex items-center justify-between gap-4 p-5 font-headline-sm text-headline-sm text-on-surface font-bold">
+                <span>¿Qué es la regla 50/30/20?</span>
+                <span class="lp-faq__icon material-symbols-outlined text-primary">add</span>
+              </summary>
+              <p class="lp-faq__body px-5 pb-5 font-body-md text-body-md text-secondary leading-relaxed">
+                Es una forma de repartir tu ingreso mensual: 50&nbsp;% para necesidades (arriendo, mercado, servicios),
+                30&nbsp;% para gustos (salidas, ropa, suscripciones) y 20&nbsp;% para ahorro. Cuentas Claras agrupa tus
+                gastos en estos tres bloques y te muestra si estás por encima o por debajo en cada uno.
+              </p>
+            </details>
+
+            <details class="lp-faq bg-surface-container-lowest rounded-xl shadow-sm">
+              <summary
+                class="flex items-center justify-between gap-4 p-5 font-headline-sm text-headline-sm text-on-surface font-bold">
+                <span>¿Mi pareja puede ver mis gastos?</span>
+                <span class="lp-faq__icon material-symbols-outlined text-primary">add</span>
+              </summary>
+              <p class="lp-faq__body px-5 pb-5 font-body-md text-body-md text-secondary leading-relaxed">No. En una
+                meta compartida, cada quien ve el total conjunto y su propio historial de aportes. Tus gastos
+                personales no se comparten.</p>
+            </details>
+
+            <details class="lp-faq bg-surface-container-lowest rounded-xl shadow-sm">
+              <summary
+                class="flex items-center justify-between gap-4 p-5 font-headline-sm text-headline-sm text-on-surface font-bold">
+                <span>¿Funciona en el celular?</span>
+                <span class="lp-faq__icon material-symbols-outlined text-primary">add</span>
+              </summary>
+              <p class="lp-faq__body px-5 pb-5 font-body-md text-body-md text-secondary leading-relaxed">Sí. Funciona
+                en el navegador de tu celular, tablet o computador. No necesitas descargar nada.</p>
+            </details>
+
+            <details class="lp-faq bg-surface-container-lowest rounded-xl shadow-sm">
+              <summary
+                class="flex items-center justify-between gap-4 p-5 font-headline-sm text-headline-sm text-on-surface font-bold">
+                <span>¿Puedo cambiar de cuenta personal a cuenta en pareja?</span>
+                <span class="lp-faq__icon material-symbols-outlined text-primary">add</span>
+              </summary>
+              <p class="lp-faq__body px-5 pb-5 font-body-md text-body-md text-secondary leading-relaxed">Sí, desde
+                Ajustes cuando quieras. De pareja a personal también, siempre que no tengas metas compartidas
+                activas.</p>
+            </details>
+
+            <details class="lp-faq bg-surface-container-lowest rounded-xl shadow-sm">
+              <summary
+                class="flex items-center justify-between gap-4 p-5 font-headline-sm text-headline-sm text-on-surface font-bold">
+                <span>¿El simulador solicita un crédito real?</span>
+                <span class="lp-faq__icon material-symbols-outlined text-primary">add</span>
+              </summary>
+              <p class="lp-faq__body px-5 pb-5 font-body-md text-body-md text-secondary leading-relaxed">No. Solo
+                calcula la cuota con sistema francés para que decidas con información. No reportamos nada a centrales
+                de riesgo.</p>
+            </details>
+
+            <details class="lp-faq bg-surface-container-lowest rounded-xl shadow-sm">
+              <summary
+                class="flex items-center justify-between gap-4 p-5 font-headline-sm text-headline-sm text-on-surface font-bold">
+                <span>¿Tiene costo?</span>
+                <span class="lp-faq__icon material-symbols-outlined text-primary">add</span>
+              </summary>
+              <p class="lp-faq__body px-5 pb-5 font-body-md text-body-md text-secondary leading-relaxed">Las dos
+                modalidades son gratuitas. Consulta los <a class="text-primary underline underline-offset-2"
+                  href="{{ route('terminos') }}">términos y condiciones</a> para los detalles de uso.</p>
+            </details>
+
           </div>
         </div>
       </section>
-      <!-- SECURITY & PRIVACY TRUST BADGES -->
-      <section class="w-full py-16 bg-surface border-y border-outline-variant/30">
-        <div class="max-w-7xl mx-auto px-margin">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div class="flex flex-col items-center gap-3 p-4">
-              <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined text-[28px]">enhanced_encryption</span>
-              </div>
-              <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                Protección de datos personales
-              </h4>
-              <p class="font-body-sm text-body-sm text-secondary">
-                La información personal debe tratarse conforme a la Política de privacidad de Cuentas Claras y a la normativa aplicable.
-              </p>
-            </div>
-            <div class="flex flex-col items-center gap-3 p-4">
-              <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined text-[28px]">key_off</span>
-              </div>
-              <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                Sin Claves ni APIs Bancarias
-              </h4>
-              <p class="font-body-sm text-body-sm text-secondary">
-                Nunca te pediremos tokens de acceso, números de tarjeta ni credenciales de tus cuentas
-                bancarias.
-              </p>
-            </div>
-            <div class="flex flex-col items-center gap-3 p-4">
-              <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined text-[28px]">policy</span>
-              </div>
-              <h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">
-                Cumplimiento Ley 1581 de 2012
-              </h4>
-              <p class="font-body-sm text-body-sm text-secondary">
-                El tratamiento de tus datos personales se explica en nuestra Política de privacidad, donde puedes consultar las finalidades y los canales disponibles para ejercer tus derechos.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+
+      <!-- ============================================================== -->
+      <!-- CTA FINAL -->
+      <!-- ============================================================== -->
       <section class="w-full pt-12 bg-surface pb-8">
         <div class="max-w-7xl mx-auto px-margin">
-          <div class="relative rounded-3xl bg-inverse-surface text-inverse-on-surface overflow-hidden p-10 sm:p-16 flex flex-col items-center text-center shadow-xl">
-            <div class="absolute -top-24 -left-24 w-80 h-80 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-tertiary-container/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="relative z-10 flex flex-col items-center gap-6 max-w-2xl">
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-semibold">
-                <span class="material-symbols-outlined text-[15px]">spa</span>
-                <span>Empieza hoy tu tranquilidad financiera</span>
-              </div>
+          <div
+            class="lp-reveal lp-reveal--zoom relative rounded-3xl bg-inverse-surface text-inverse-on-surface overflow-hidden p-10 sm:p-16 lg:py-20 lg:pl-20 flex flex-col items-center text-center lg:items-start lg:text-left shadow-xl">
+
+            {{-- IMAGEN #3: pareja planeando, lado derecho con máscara --}}
+            <div class="lp-cta-bg absolute top-0 -right-16 inset-y-0 right-0 w-full lg:w-[62%] pointer-events-none"
+              aria-hidden="true">
+              <img class="lp-img" src="{{ asset('img/cuenta-familiar.jpg') }}" alt="" width="1200" height="800"
+                loading="lazy" decoding="async">
+            </div>
+
+            <div
+              class="lp-drift absolute -top-24 -left-24 w-80 h-80 bg-primary/20 rounded-full blur-3xl pointer-events-none">
+            </div>
+            <div
+              class="lp-drift absolute -bottom-24 -right-24 w-80 h-80 bg-tertiary-container/20 rounded-full blur-3xl pointer-events-none">
+            </div>
+
+            <div class="relative z-10 flex flex-col items-center lg:items-start gap-6 max-w-2xl lg:max-w-xl">
               <h2 class="font-display-lg text-display-lg font-bold text-white tracking-tight">
-                Toma el control de tu dinero hoy mismo
+                Empieza hoy. Gratis.
               </h2>
-              <p class="font-body-lg text-body-lg text-surface-container-highest/80 leading-relaxed">
-                Organiza tus gastos, consulta tus compromisos y planifica tus metas personales o familiares desde una misma plataforma.
+              <p class="font-body-lg text-body-lg text-white/80 leading-relaxed">
+                Crea tu cuenta en menos de 3 minutos. Sin tarjeta, sin integrar tu banco, sin compromisos.
               </p>
               <div class="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full sm:w-auto">
-                <a
-                  class="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-lg transition-transform active:scale-95"
-                  data-path="crear-cuenta"
-                  href="{{ route('registro', ['tipo' => 'estandar']) }}"
-                ><span>Crear Mi Cuenta Gratis</span><span class="material-symbols-outlined text-[20px]">bolt</span></a>
+                <a class="lp-shine w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-lg transition-transform active:scale-95"
+                  href="{{ route('registro', ['tipo' => 'estandar']) }}">
+                  <span>Crear mi cuenta</span>
+                  <span class="material-symbols-outlined text-[20px]">bolt</span>
+                </a>
+                <a class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 rounded-xl text-white/80 hover:text-white font-label-md text-label-md"
+                  href="{{ route('login') }}">
+                  Ya tengo cuenta · Iniciar sesión
+                </a>
               </div>
-              <p class="font-label-sm text-label-sm text-surface-container-highest/60 mt-2">
-                Configuración en menos de 2 minutos • Acceso inmediato desde cualquier dispositivo
-              </p>
             </div>
+
           </div>
         </div>
       </section>
+
     </div>
   </main>
+
+  <script src="{{ asset('js/landing-page.js') }}" defer></script>
 @endsection
+
+@push('scripts')
+  <script src="{{ asset('js/landing-header.js') }}" defer></script>
+@endpush
