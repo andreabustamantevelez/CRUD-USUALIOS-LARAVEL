@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class UsuariosTest extends TestCase
@@ -19,6 +20,23 @@ class UsuariosTest extends TestCase
             ->get(route('admin.usuarios'))
             ->assertOk();
     }
+    // tests/Feature/Admin/UsuariosTest.php
+    public function test_admin_suspender_notifica_al_usuario(): void
+    {
+        Notification::fake();
+        $admin = User::factory()->administrador()->create();
+        $objetivo = User::factory()->create(['activo' => true]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.usuarios.estado', $objetivo), ['activo' => false]);
+
+        Notification::assertSentTo(
+            $objetivo,
+            \App\Notifications\AlertaSeguridad::class,
+            fn($n) => $n->evento === 'account.suspended'
+        );
+    }
+
 
     public function test_estandar_no_entra_al_listado(): void
     {
@@ -87,13 +105,41 @@ class UsuariosTest extends TestCase
 
     public function test_admin_puede_eliminar_a_otro_usuario(): void
     {
+        $admin = User::factory()->administrador()->create(['password' => bcrypt('secreto123')]);
+        $objetivo = User::factory()->create();
+
+        $this->actingAs($admin)
+            ->delete(route('admin.usuarios.destroy', $objetivo), [
+                'password' => 'secreto123',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('users', ['id' => $objetivo->id]);
+    }
+
+    public function test_eliminar_sin_password_falla(): void
+    {
         $admin = User::factory()->administrador()->create();
         $objetivo = User::factory()->create();
 
         $this->actingAs($admin)
             ->delete(route('admin.usuarios.destroy', $objetivo))
-            ->assertRedirect();
+            ->assertSessionHasErrors('password');
 
-        $this->assertDatabaseMissing('users', ['id' => $objetivo->id]);
+        $this->assertDatabaseHas('users', ['id' => $objetivo->id]);
+    }
+
+    public function test_eliminar_con_password_incorrecta_falla(): void
+    {
+        $admin = User::factory()->administrador()->create(['password' => bcrypt('secreto123')]);
+        $objetivo = User::factory()->create();
+
+        $this->actingAs($admin)
+            ->delete(route('admin.usuarios.destroy', $objetivo), [
+                'password' => 'otra-cosa',
+            ])
+            ->assertSessionHasErrors('password');
+
+        $this->assertDatabaseHas('users', ['id' => $objetivo->id]);
     }
 }

@@ -22,7 +22,33 @@ class AjustesTest extends TestCase
     // =========================================================================
     // TIPO DE CUENTA (J5 / C7)
     // =========================================================================
+// tests/Feature/AjustesTest.php
+    public function test_confirmar_correo_notifica_al_correo_viejo(): void
+    {
+        Notification::fake();
 
+        $usuario = User::factory()->create([
+            'email' => 'viejo@correo.com',
+            'pending_email' => 'nuevo@correo.com',
+            'email_token' => hash('sha256', 'token-plano-123'),
+            'pending_email_expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($usuario)
+            ->get(route('ajustes.confirmar-correo', ['token' => 'token-plano-123']))
+            ->assertRedirect(route('login'));
+
+        $fresh = $usuario->fresh();
+        $this->assertSame('nuevo@correo.com', $fresh->email);
+
+        Notification::assertSentOnDemand(
+            \App\Notifications\AlertaSeguridad::class,
+            function ($notification, $channels, $notifiable) {
+                return $notification->evento === 'email.changed'
+                    && $notifiable->routes['mail'] === 'viejo@correo.com';
+            }
+        );
+    }
     public function test_estandar_puede_cambiar_a_familiar(): void
     {
         $u = User::factory()->create();

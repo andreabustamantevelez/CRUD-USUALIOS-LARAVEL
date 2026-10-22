@@ -206,17 +206,50 @@
               </div>
 
               <div class="admin-categoria__acciones">
-                {{-- Desactivar / Activar --}}
-                <form method="POST" action="{{ route('admin.categorias.desactivar', $cat) }}">
+              {{-- Desactivar / Activar con re-auth --}}
+              <button type="button"
+                      class="btn {{ $cat->activa ? 'btn-secondary' : 'btn-primary' }}"
+                      onclick="document.getElementById('modal-desactivar-{{ $cat->id }}').showModal()">
+                {{ $cat->activa ? 'Desactivar' : 'Activar' }}
+              </button>
+
+              <dialog id="modal-desactivar-{{ $cat->id }}" class="admin-modal">
+                <form method="POST" action="{{ route('admin.categorias.desactivar', $cat) }}" class="admin-modal__form">
                   @csrf
                   @method('PATCH')
-                  <button type="submit"
-                          class="btn {{ $cat->activa ? 'btn-secondary' : 'btn-primary' }}"
-                          title="{{ $cat->activa ? 'Dejará de aparecer en formularios nuevos' : 'Volverá a aparecer en formularios' }}">
-                    {{ $cat->activa ? 'Desactivar' : 'Activar' }}
-                  </button>
-                </form>
 
+                  <h3 class="admin-modal__titulo">
+                    {{ $cat->activa ? 'Desactivar' : 'Activar' }} "{{ $cat->nombre }}"
+                  </h3>
+                  <p class="admin-modal__texto">
+                    @if ($cat->activa)
+                      La categoría dejará de aparecer al registrar gastos nuevos. Los gastos
+                      históricos que la usan no se modifican. Confirma con tu contraseña.
+                    @else
+                      La categoría volverá a aparecer al registrar gastos nuevos. Confirma con tu contraseña.
+                    @endif
+                  </p>
+
+                  <label class="admin-modal__label" for="password-cat-{{ $cat->id }}">Tu contraseña</label>
+                  <input type="password"
+                        id="password-cat-{{ $cat->id }}"
+                        name="password"
+                        required
+                        autocomplete="current-password"
+                        class="input w-full">
+
+                  <div class="admin-modal__acciones">
+                    <button type="button"
+                            class="btn btn-secondary"
+                            onclick="document.getElementById('modal-desactivar-{{ $cat->id }}').close()">
+                      Cancelar
+                    </button>
+                    <button type="submit" class="btn {{ $cat->activa ? 'btn-secondary' : 'btn-primary' }}">
+                      {{ $cat->activa ? 'Desactivar' : 'Activar' }}
+                    </button>
+                  </div>
+                </form>
+              </dialog>
                 {{-- Detalles / Editar (details-accordion nativo) --}}
                 <details class="admin-categoria__editar">
                   <summary class="btn btn-secondary">Editar</summary>

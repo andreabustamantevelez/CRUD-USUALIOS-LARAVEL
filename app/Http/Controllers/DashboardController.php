@@ -18,10 +18,15 @@ use Illuminate\View\View;
  *           Métricas del mes, distribución 50/30/20, próximos vencimientos,
  *           últimos gastos, notificaciones recientes y tarjeta de metas si es familiar.
  * Quién lo usa: ruta 'panel' (routes/modulos/panel.php).
- * Dependencias: C1 (gastos por periodo) — hoy con whereYear/whereMonth directo,
+ * Dependencias: C1 (gastos por periodo) — cerrado 2026-10-21,
  *               C3 (ingreso mensual), C4 (notificaciones), C6 (metas activas),
  *               GeneradorInforme (Valeria) y ServicioGastosFijos (Nikol).
  * Dueño: Juan (J8).
+ *
+ * CAMBIO 2026-10-21:
+ *   - TODO(J8) cerrado: whereYear/whereMonth reemplazados por
+ *     Gasto::delPeriodo($anio, $mes) (contrato C1).
+ *   - Sin cambio de comportamiento: el scope hace lo mismo que el inline.
  */
 class DashboardController extends Controller
 {
@@ -37,11 +42,9 @@ class DashboardController extends Controller
         $gastosFijos->generarPagosDelPeriodo($usuario, $hoy);
         $gastosFijos->marcarVencidos($usuario, $hoy);
 
-        // TODO(J8): reemplazar por Gasto::delPeriodo($anio, $mes) cuando Nikol agregue
-        // el scope del contrato C1. Mientras tanto, whereYear + whereMonth directo.
+        // C1: gastos del mes actual, vía scope delPeriodo.
         $totalGastadoMes = (int) Gasto::delUsuario((int) $usuario->id)
-            ->whereYear('fecha', $hoy->year)
-            ->whereMonth('fecha', $hoy->month)
+            ->delPeriodo($hoy->year, $hoy->month)
             ->sum('monto');
 
         $ingreso = (int) ($usuario->ingreso_mensual ?? 0);
@@ -139,9 +142,9 @@ class DashboardController extends Controller
             'sin_clasificar' => 0,
         ];
 
+        // C1: gastos del mes, vía scope delPeriodo.
         $gastos = Gasto::delUsuario((int) $usuario->id)
-            ->whereYear('fecha', $fecha->year)
-            ->whereMonth('fecha', $fecha->month)
+            ->delPeriodo($fecha->year, $fecha->month)
             ->with('categoria')
             ->get();
 

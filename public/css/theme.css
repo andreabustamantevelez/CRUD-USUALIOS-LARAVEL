@@ -752,6 +752,31 @@
   border-color: color-mix(in srgb, var(--line) 70%, transparent);
 }
 
+/* ---- 5.6 Familiar: --tertiary sigue siendo morado, pero forzamos
+       las utilidades para que siempre lean el token (a prueba de hex de
+       style.css). No cambia el look, solo la fuente del color. ---- */
+[data-account-type="familiar"] .bg-tertiary              { background-color: var(--tertiary) !important; }
+[data-account-type="familiar"] .bg-tertiary-container    { background-color: var(--tertiary-container) !important; }
+[data-account-type="familiar"] .bg-tertiary-fixed        { background-color: var(--tertiary-fixed) !important; }
+[data-account-type="familiar"] .bg-tertiary-fixed-dim    { background-color: var(--tertiary-fixed-dim) !important; }
+[data-account-type="familiar"] .bg-tertiary\/10          { background-color: color-mix(in srgb, var(--tertiary) 10%, transparent) !important; }
+[data-account-type="familiar"] .bg-tertiary\/15          { background-color: color-mix(in srgb, var(--tertiary) 15%, transparent) !important; }
+[data-account-type="familiar"] .bg-tertiary\/20          { background-color: color-mix(in srgb, var(--tertiary) 20%, transparent) !important; }
+[data-account-type="familiar"] .bg-tertiary-container\/15 { background-color: color-mix(in srgb, var(--tertiary-container) 15%, transparent) !important; }
+[data-account-type="familiar"] .bg-tertiary-container\/20 { background-color: color-mix(in srgb, var(--tertiary-container) 20%, transparent) !important; }
+
+[data-account-type="familiar"] .text-tertiary                { color: var(--tertiary) !important; }
+[data-account-type="familiar"] .text-on-tertiary             { color: var(--on-tertiary) !important; }
+[data-account-type="familiar"] .text-tertiary-container      { color: var(--tertiary-container) !important; }
+[data-account-type="familiar"] .text-on-tertiary-container   { color: var(--on-tertiary-container) !important; }
+[data-account-type="familiar"] .text-tertiary-fixed          { color: var(--tertiary-fixed) !important; }
+[data-account-type="familiar"] .text-on-tertiary-fixed       { color: var(--on-tertiary-fixed) !important; }
+
+[data-account-type="familiar"] .border-tertiary              { border-color: var(--tertiary) !important; }
+
+[data-account-type="familiar"] .hover\:bg-tertiary:hover     { background-color: var(--accent-hover) !important; }
+[data-account-type="familiar"] .hover\:text-tertiary:hover   { color: var(--accent-hover) !important; }
+
 /* ==========================================================================
    6. MÓDULO DE GASTOS FIJOS (MODO OSCURO)
    ========================================================================== */
@@ -1139,6 +1164,127 @@ select[multiple] {
   background-color: color-mix(in srgb, var(--admin) 20%, transparent);
   color: var(--admin);
 }
+
+/* ==========================================================================
+   8.5 Overrides de utilidades tintadas para ADMINISTRADOR
+   --------------------------------------------------------------------------
+   Reemplaza los hex hardcodeados de style.css (#006948, #2563eb, etc.)
+   por los tokens --admin-* / --accent-* para que el admin vea todo azul.
+   Se aplica en claro y en oscuro (no va dentro de [data-theme="oscuro"]).
+   ========================================================================== */
+
+/* Fondos sólidos */
+[data-account-type="administrador"] .bg-primary              { background-color: var(--accent) !important; }
+[data-account-type="administrador"] .bg-primary-container    { background-color: var(--accent-container) !important; }
+[data-account-type="administrador"] .bg-primary-fixed        { background-color: var(--accent-fixed) !important; }
+[data-account-type="administrador"] .bg-primary\/5           { background-color: color-mix(in srgb, var(--accent) 5%,  transparent) !important; }
+[data-account-type="administrador"] .bg-primary\/10          { background-color: color-mix(in srgb, var(--accent) 10%, transparent) !important; }
+[data-account-type="administrador"] .bg-primary\/15          { background-color: color-mix(in srgb, var(--accent) 15%, transparent) !important; }
+[data-account-type="administrador"] .bg-primary\/20          { background-color: color-mix(in srgb, var(--accent) 20%, transparent) !important; }
+[data-account-type="administrador"] .bg-primary\/30          { background-color: color-mix(in srgb, var(--accent) 30%, transparent) !important; }
+[data-account-type="administrador"] .bg-primary-fixed\/30    { background-color: color-mix(in srgb, var(--accent-fixed) 30%, transparent) !important; }
+[data-account-type="administrador"] .bg-primary-fixed\/40    { background-color: color-mix(in srgb, var(--accent-fixed) 40%, transparent) !important; }
+[data-account-type="administrador"] .bg-primary-fixed\/50    { background-color: color-mix(in srgb, var(--accent-fixed) 50%, transparent) !important; }
+
+/* Texto / iconos */
+[data-account-type="administrador"] .text-primary                { color: var(--accent) !important; }
+[data-account-type="administrador"] .text-primary-container      { color: var(--accent-container) !important; }
+[data-account-type="administrador"] .text-on-primary             { color: var(--accent-on) !important; }
+[data-account-type="administrador"] .text-on-primary-container   { color: var(--accent-on-container) !important; }
+[data-account-type="administrador"] .text-primary-fixed          { color: var(--accent-fixed) !important; }
+[data-account-type="administrador"] .text-on-primary-fixed       { color: var(--accent-on-fixed) !important; }
+
+/* Bordes y rings */
+[data-account-type="administrador"] .border-primary          { border-color: var(--accent) !important; }
+[data-account-type="administrador"] .border-primary\/30      { border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important; }
+[data-account-type="administrador"] .border-primary\/50      { border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important; }
+[data-account-type="administrador"] .ring-primary            { --tw-ring-color: var(--accent) !important; }
+
+/* Hovers propios del admin */
+[data-account-type="administrador"] .hover\:bg-primary:hover           { background-color: var(--accent-hover) !important; }
+[data-account-type="administrador"] .hover\:bg-primary-container:hover { background-color: var(--accent-hover) !important; }
+[data-account-type="administrador"] .hover\:bg-primary\/10:hover       { background-color: color-mix(in srgb, var(--accent) 10%, transparent) !important; }
+[data-account-type="administrador"] .hover\:bg-primary\/20:hover       { background-color: color-mix(in srgb, var(--accent) 20%, transparent) !important; }
+[data-account-type="administrador"] .hover\:text-primary:hover         { color: var(--accent-hover) !important; }
+[data-account-type="administrador"] .hover\:border-primary:hover       { border-color: var(--accent-hover) !important; }
+
+/* Focus */
+[data-account-type="administrador"] .focus\:ring-primary:focus   { --tw-ring-color: var(--accent) !important; }
+[data-account-type="administrador"] .focus\:border-primary:focus { border-color: var(--accent) !important; }
+
+/* ==========================================================================
+   8.5.1 · Acento secundario de marca
+   --------------------------------------------------------------------------
+   Sustituye a --tertiary como "marca secundaria" (botón alterno, acento
+   "tendencia"). Sí cambia con el rol. El morado semántico del bloque 50/30/20
+   queda en --want (definido en la sección 1, no se toca).
+   ========================================================================== */
+:root {
+  --accent-secondary:       #7c3aed;
+  --accent-secondary-hover: #6d28d9;
+  --on-accent-secondary:    #ffffff;
+}
+[data-theme="oscuro"] {
+  --accent-secondary:       #b79df1;
+  --accent-secondary-hover: #c4b0f5;
+  --on-accent-secondary:    #1a1526;
+}
+[data-account-type="familiar"] {
+  --accent-secondary:       #2f2ebe;
+  --accent-secondary-hover: #3a39d4;
+  --on-accent-secondary:    #ffffff;
+}
+[data-theme="oscuro"][data-account-type="familiar"] {
+  --accent-secondary:       #a8a9ff;
+  --accent-secondary-hover: #c1c2ff;
+  --on-accent-secondary:    #1c1c66;
+}
+[data-account-type="administrador"] {
+  --accent-secondary:       #60a5fa;
+  --accent-secondary-hover: #3b82f6;
+  --on-accent-secondary:    #0d1e4a;
+}
+[data-theme="oscuro"][data-account-type="administrador"] {
+  --accent-secondary:       #93b4ff;
+  --accent-secondary-hover: #a8c2ff;
+  --on-accent-secondary:    #0d1e4a;
+}
+
+/* ELIMINAR — todo el bloque 8.6 completo */
+[data-account-type="administrador"] {
+  --tertiary:                  var(--admin);
+  --tertiary-container:        var(--admin-container);
+  --tertiary-fixed:            var(--admin-fixed);
+  --tertiary-fixed-dim:        var(--admin-fixed);
+  --on-tertiary:               var(--admin-on);
+  --on-tertiary-container:     var(--admin-on-container);
+  --on-tertiary-fixed:         var(--admin-on-fixed);
+  --on-tertiary-fixed-variant: var(--admin-on-fixed);
+}
+
+[data-theme="oscuro"][data-account-type="administrador"] {
+  --tertiary:                  var(--admin);
+  --tertiary-container:        var(--admin-container);
+  --tertiary-fixed:            var(--admin-fixed);
+  --tertiary-fixed-dim:        var(--admin-fixed);
+  --on-tertiary:               var(--admin-on);
+  --on-tertiary-container:     var(--admin-on-container);
+  --on-tertiary-fixed:         var(--admin-on-fixed);
+  --on-tertiary-fixed-variant: var(--admin-on-fixed);
+}
+
+[data-account-type="administrador"] .bg-tertiary { background-color: var(--accent) !important; }
+[data-account-type="administrador"] .text-tertiary { color: var(--accent) !important; }
+[data-account-type="administrador"] .border-tertiary { border-color: var(--accent) !important; }
+[data-account-type="administrador"] .bg-tertiary-container { background-color: var(--accent-container) !important; }
+[data-account-type="administrador"] .bg-tertiary-fixed { background-color: var(--accent-fixed) !important; }
+[data-account-type="administrador"] .text-on-tertiary { color: var(--accent-on) !important; }
+[data-account-type="administrador"] .text-on-tertiary-fixed { color: var(--accent-on-fixed) !important; }
+[data-account-type="administrador"] .hover\:bg-tertiary:hover { background-color: var(--accent-hover) !important; }
+[data-account-type="administrador"] .hover\:text-tertiary:hover { color: var(--accent-hover) !important; }
+[data-account-type="administrador"] .hover\:border-tertiary:hover { border-color: var(--accent-hover) !important; }
+[data-account-type="administrador"] .focus\:ring-tertiary:focus { --tw-ring-color: var(--accent) !important; }
+[data-account-type="administrador"] .focus\:border-tertiary:focus { border-color: var(--accent) !important; }
 
 /* ==========================================================================
    9. PÁGINA 403

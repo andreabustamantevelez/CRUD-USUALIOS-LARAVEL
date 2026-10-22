@@ -38,4 +38,10 @@ class Gasto extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+    public function scopeDelPeriodo($query, int $anio, int $mes)
+    {
+        return $query
+            ->whereYear('fecha', $anio)
+            ->whereMonth('fecha', $mes);
+    }
 }

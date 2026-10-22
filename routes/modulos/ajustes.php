@@ -3,6 +3,17 @@
 use App\Http\Controllers\AjustesController;
 use Illuminate\Support\Facades\Route;
 
+/*
+ * routes/modulos/ajustes.php — DUEÑO: Valeria (V4).
+ *
+ * BUGFIX 2026-10-21:
+ *   La ruta de reenviar confirmación tenía el prefijo 'ajustes' dos veces
+ *   (el del grupo + uno manual), generando /ajustes/ajustes/confirmar-correo/reenviar.
+ *   Se quitó el 'ajustes/' manual del path y el 'ajustes.' manual del nombre.
+ *   URL final: /ajustes/confirmar-correo/reenviar
+ *   Nombre final: ajustes.confirmar-correo.reenviar
+ */
+
 Route::prefix('ajustes')->name('ajustes.')->group(function () {
     // Cualquier rol con sesión (incluye administrador)
     Route::get('/perfil', [AjustesController::class, 'perfil'])
@@ -15,6 +26,7 @@ Route::prefix('ajustes')->name('ajustes.')->group(function () {
         ->name('confirmar-correo');
 
     Route::post('/confirmar-correo/reenviar', [AjustesController::class, 'reenviarConfirmacionCorreo'])
+        ->middleware('throttle:1,1')
         ->name('confirmar-correo.reenviar');
 
     // Solo estandar y familiar: el administrador no tiene finanzas personales

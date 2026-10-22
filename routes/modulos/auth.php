@@ -7,10 +7,11 @@ use Illuminate\Support\Facades\Route;
 
 /*
  * routes/modulos/auth.php — DUEÑO: Juan (J3). HECHO (2026-10-06, Juan).
- * Nombres (NO se cambian): login, login.entrar, registro, registro.guardar, password.request,
- *   password.email, password.reset, password.update, logout
+ * Nombres (NO se cambian): login, login.entrar, registro, registro.guardar,
+ *   password.request, password.email, password.reset, password.update, logout
+ *
  * 'guest' = solo para quien NO ha iniciado sesión (si ya tiene sesión, lo manda a su panel).
- * 'throttle:5,1' = máximo 5 peticiones por minuto (recuperación de contraseña).
+ * 'throttle:5,1' = máximo 5 peticiones por minuto (registro y recuperación de contraseña).
  * El límite de intentos del login vive en LoginRequest (5 por minuto por correo + IP).
  */
 
@@ -19,7 +20,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/iniciar-sesion', [LoginController::class, 'store'])->name('login.entrar');
 
     Route::get('/crear-usuario', [RegistroController::class, 'create'])->name('registro');
-    Route::post('/crear-usuario', [RegistroController::class, 'store'])->name('registro.guardar');
+    Route::post('/crear-usuario', [RegistroController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('registro.guardar');
 
     Route::get('/recuperar-contrasena', [PasswordResetController::class, 'create'])->name('password.request');
     Route::post('/recuperar-contrasena', [PasswordResetController::class, 'enviarEnlace'])

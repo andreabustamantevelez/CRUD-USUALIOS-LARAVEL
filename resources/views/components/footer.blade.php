@@ -54,7 +54,7 @@
           Legal y Normativa
         </span>
         <a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors"
-           href="{{ route('politica') }}">Política de Tratamiento de Datos (Ley 1581 de 2012)</a>
+           href="{{ route('politica') }}">Política de Tratamiento de Datos</a>
         <a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors"
            href="{{ route('terminos') }}">Términos y Condiciones del Servicio</a>
         <a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors"
